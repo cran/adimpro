@@ -1,0 +1,7 @@
+useDynLib(adimpro)
+export(read.image,write.image,show.image,read.raw,make.image)
+export(rgb2yiq,yiq2rgb,rgb2yuv,yuv2rgb,rgb2hsi,hsi2rgb,rgb2xyz,xyz2rgb,rgb2grey)
+export(edges,rotate.image,shrink.image,clip.image,adjust.image)
+export(awsimage,awspimage,mask.create)
+export(plot.adimpro,summary.adimpro)
+export(extract.ni)
