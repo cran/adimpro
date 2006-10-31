@@ -131,7 +131,7 @@ awspimage(object, hmax=12, aws=TRUE, degree=1, varmodel = NULL,
 \seealso{ \code{\link{read.image}}, \code{\link{read.raw}}, \code{\link{make.image}}, \code{\link{show.image}}, \code{\link{clip.image}} }
 \examples{
 img.noise <- read.image(system.file("img/wias-noise.ppm",package="adimpro"))
-X11(width=7,height=3,canvas="grey71")
+X11(width=7,height=3)
 img.hat.c <- awsimage(img.noise,hmax=15,graph=TRUE)
 }
 \keyword{ manip }% at least one, from doc/KEYWORDS

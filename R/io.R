@@ -282,7 +282,7 @@ show.rgb <- function(img, max.x=max.x, max.y=max.y,
   # define 0 to 255 in hexadecimal notation
   hex <- c(0:9, LETTERS[1:6])
   hex <- paste(hex[(0:255)%/%16+1],hex[(0:255)%%16+1],sep="")
-  color <- paste("#",hex[img$img[,,1]%/%256+1],hex[img$img[,,2]%/%256+1],hex[img$img[,,3]%/%256+1],sep="")
+  color <- paste("\#",hex[img$img[,,1]%/%256+1],hex[img$img[,,2]%/%256+1],hex[img$img[,,3]%/%256+1],sep="")
     
   x <- seq(1,dimg0[1],length=dimg[1])
   y <- seq(1,dimg0[2],length=dimg[2])
@@ -555,11 +555,11 @@ plot.adimpro <- function(x, new = FALSE, ...) {
   
   if (x$type == "greyscale") {
     if (aws) { 
-      if (new) X11(width=5,height=5,canvas="grey71")
+      if (new) X11(width=5,height=5)
       oldpar <- par(mfrow = c(2,2),mar=c(3,3,3,1))
       on.exit(par(oldpar))
     } else {
-      if (new) X11(width=7,height=3,canvas="grey71")
+      if (new) X11(width=7,height=3)
       oldpar <- par(mfrow = c(1,3),mar=c(3,3,3,1))
       on.exit(par(oldpar))
     }
@@ -574,7 +574,7 @@ plot.adimpro <- function(x, new = FALSE, ...) {
     if (aws) show.image(ni,max.x=400,max.y=400)
     
   } else {
-    if (new) X11(width=7,height=5,canvas="grey71")
+    if (new) X11(width=7,height=5)
     oldpar <- par(mfrow = c(2,3),mar=c(3,3,3,1))
     on.exit(par(oldpar))
     

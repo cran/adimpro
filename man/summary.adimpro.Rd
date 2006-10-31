@@ -6,7 +6,7 @@
   'summary' method for class '"adimpro"'.
 }
 \usage{
-summary.adimpro(object, ...)
+\method{summary}{adimpro}(object, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{

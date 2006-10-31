@@ -6,7 +6,7 @@
   Visualize image data.
 }
 \usage{
-plot.adimpro(x, new=FALSE, ...)
+\method{plot}{adimpro}(x, new=FALSE, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
