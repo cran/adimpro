@@ -522,9 +522,13 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
          z1=z1/n
          vres(k)=n/(n-1)*(z2-z1*z1)
          z=0.d0
-         DO i=1,n1-1
+         DO i=1,n1
             DO j=1,n2
                res(i,j,k)=res(i,j,k)-z1
+            END DO
+         END DO
+         DO i=1,n1-1
+            DO j=1,n2
                z=z+res(i,j,k)*res(i+1,j,k)
             END DO
          END DO

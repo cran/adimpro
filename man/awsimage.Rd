@@ -9,13 +9,13 @@
 awsimage(object, hmax=4, aws=TRUE, varmodel=NULL, ladjust=1.0,
          mask=NULL, xind = NULL, yind = NULL, 
          wghts=c(1,1,1,1), scorr=TRUE, 
-         lkern="Triangle", skern="Triangle", 
+         lkern="Triangle", 
          demo=FALSE, graph=FALSE, 
          max.pixel=4.e2, clip = FALSE, compress=TRUE)
 awspimage(object, hmax=12, aws=TRUE, degree=1, varmodel = NULL,
           ladjust=1.0, xind = NULL, yind = NULL, 
           wghts=c(1,1,1,1), scorr= TRUE,
-          lkern="Triangle", skern="Triangle", 
+          lkern="Triangle", 
           demo=FALSE, graph=FALSE, 
           max.pixel= 4.e2, clip = FALSE, compress=TRUE)
 }
@@ -60,9 +60,6 @@ awspimage(object, hmax=12, aws=TRUE, degree=1, varmodel = NULL,
   \item{scorr}{ (logical). Specifies whether  spatial correlation is to be
     estimated. Defaults to \code{TRUE}.  Is set to \code{FALSE} if
     \code{mask} is not \code{NULL}. }
-  \item{skern}{ Specifies the stochastic kernel. Defaults
-    to "Triangle", the alternative choice is "Exponential" for a
-    truncated "Gaussian" kernel. }
   \item{lkern}{ Specifies the location kernel. Defaults to
     "Triangle", other choices are "Quadratic", "Cubic" and "Uniform".
     The use of "Triangle" corresponds to the Epanechnicov kernel 

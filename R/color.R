@@ -1,5 +1,5 @@
 rgb2grey <- function(obj, compress=TRUE) {
-  if(!check.adimpro(img)) {
+  if(!check.adimpro(obj)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
   if (obj$type!="rgb") {
@@ -16,7 +16,7 @@ rgb2grey <- function(obj, compress=TRUE) {
 }
 
 rgb2yiq <- function(obj) {
-  if(!check.adimpro(img)) {
+  if(!check.adimpro(obj)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
   if (obj$type!="rgb") {
@@ -40,7 +40,7 @@ rgb2yiq <- function(obj) {
 }
 
 yiq2rgb <- function(obj, compress=TRUE) {
-  if(!check.adimpro(img)) {
+  if(!check.adimpro(obj)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
   if (obj$type!="yiq") {
@@ -63,7 +63,7 @@ yiq2rgb <- function(obj, compress=TRUE) {
 }
 
 rgb2yuv <- function(obj) {
-  if(!check.adimpro(img)) {
+  if(!check.adimpro(obj)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
   if (obj$type!="rgb") {
@@ -87,7 +87,7 @@ rgb2yuv <- function(obj) {
 }
 
 yuv2rgb <- function(obj, compress=TRUE) {
-  if(!check.adimpro(img)) {
+  if(!check.adimpro(obj)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
   if (obj$type!="yuv") {
@@ -110,7 +110,7 @@ yuv2rgb <- function(obj, compress=TRUE) {
 }
 
 hsi2rgb <- function (obj, compress=TRUE) {
-  if(!check.adimpro(img)) {
+  if(!check.adimpro(obj)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
   if (obj$type!="hsi") {
@@ -153,7 +153,7 @@ hsi2rgb <- function (obj, compress=TRUE) {
 }
 
 rgb2hsi <- function (obj) {
-  if(!check.adimpro(img)) {
+  if(!check.adimpro(obj)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
   if (obj$type!="rgb") {
@@ -187,7 +187,7 @@ rgb2hsi <- function (obj) {
 }
 
 rgb2xyz <- function(obj) {
-  if(!check.adimpro(img)) {
+  if(!check.adimpro(obj)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
   if (obj$type!="rgb") {
@@ -212,7 +212,7 @@ rgb2xyz <- function(obj) {
 }
 
 xyz2rgb <- function(obj, compress=TRUE) {
-  if(!check.adimpro(img)) {
+  if(!check.adimpro(obj)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
   if (obj$type!="xyz") {
@@ -265,9 +265,9 @@ gamma.correction <- function (img, ga = 2.4, bp = 0.00304,
     gammaofbreaks[ind] <- sls * (fs * breaks[ind]^(1/ga) - c0)
     img$img <- (1-aimg)*gammaofbreaks[iimg+1] + aimg*gammaofbreaks[iimg+2]
   } else {
-    ind <- (1:length(img))[img > bp]
+    ind <- (1:length(img$img))[img$img > bp]
     img$img[ind] <- fs * img$img[ind]^(1/ga) - c0
-    img$img <- sls * img    
+    img$img <- sls * img$img
   }
   
   img$img <- as.integer(65535 * img$img)
@@ -277,6 +277,7 @@ if(any(img$img>65535)) cat("large values in gamma\n")
   
   invisible(img)
 }
+
 
 white.balance <- function(img, red = 1.0, blue = 1.0, brightness =
                           1.0, log = FALSE) {

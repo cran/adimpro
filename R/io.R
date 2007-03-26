@@ -3,8 +3,8 @@ read.image <- function(filename, compress=TRUE, convert.path = "convert") {
   ext <- tolower(fileparts[length(fileparts)])
   name <- filename
   
-  if (ext %in% c("tif","tiff","pgm","ppm","png","pnm","gif","jpg","jpeg")) {
-    if (ext %in% c("tif","tiff","png","gif","jpg","jpeg")) {
+  if (ext %in% c("tif","tiff","pgm","ppm","png","pnm","gif","jpg","jpeg","bmp")) {
+    if (ext %in% c("tif","tiff","png","gif","jpg","jpeg","bmp")) {
       tmpfile <- paste(c(fileparts[-length(fileparts)],"ppm"),collapse=".")
       if (file.exists(filename)) {
         if (.Platform$OS.type == "windows") {
@@ -282,7 +282,7 @@ show.rgb <- function(img, max.x=max.x, max.y=max.y,
   # define 0 to 255 in hexadecimal notation
   hex <- c(0:9, LETTERS[1:6])
   hex <- paste(hex[(0:255)%/%16+1],hex[(0:255)%%16+1],sep="")
-  color <- paste("\#",hex[img$img[,,1]%/%256+1],hex[img$img[,,2]%/%256+1],hex[img$img[,,3]%/%256+1],sep="")
+  color <- paste("#",hex[img$img[,,1]%/%256+1],hex[img$img[,,2]%/%256+1],hex[img$img[,,3]%/%256+1],sep="")
     
   x <- seq(1,dimg0[1],length=dimg[1])
   y <- seq(1,dimg0[2],length=dimg[2])
@@ -625,7 +625,13 @@ summary.adimpro <- function(object, ...) {
 make.image <- function(x, gamma = FALSE, compress=TRUE){
   dimg <- dim(x)
   if(is.null(dimg) || !(length(dimg) %in% 2:3)) return(warning("x is not an array of appropriate dimensions."))
-  if(min(x) < 0) x <- (x-min(x))/(max(x)-min(x))
+  if(min(x) < 0) {
+    if (diff(range(x)) == 0) {
+      x <- 0 * x
+    } else {
+      x <- (x-min(x))/(max(x)-min(x))
+    }
+  }
   if( max(x) <= 1) x <- 65535 * x
   dim(x) <- NULL
   x <- if(compress) writeBin(as.integer(x),raw(),2) else array(as.integer(x),dimg)
@@ -649,4 +655,14 @@ extract.ni <- function (object, gamma = FALSE, compress=TRUE) {
     stop("image was not processed by awsimage or awspimage")
   }
   invisible(ni)
+}
+
+extract.image <- function (object) {
+  if (!check.adimpro(object)) {
+    stop(" Consistency check for argument object failed (see warnings).\n")
+  }
+  if (object$compressed)
+    object <- decompress.image(object)
+
+  invisible(object$img)
 }

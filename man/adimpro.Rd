@@ -20,12 +20,12 @@ make.image(x,gamma=FALSE,compress=TRUE)
   \item{filename}{ file name }
   \item{x}{ Array or matrix containing RGB or greyscale values in the
     range (0,1) or (0,65535). }
-  \item{type}{ option settings for dcraw. default "PPM"}
-  \item{wb}{ white balance. default "NONE"}
+  \item{type}{ option settings for dcraw. default "PPM", alternatives are "RAW", "Halfsize" and "Info".}
+  \item{wb}{ white balance. default "CAMERA", alternatives are "AUTO" and "NONE".}
   \item{cspace}{ defines the output color space, default "sRGB", alternatives are "RAW", "Adobe", "wGamut"
      and "XYZ", see manpages of dcraw.}
-  \item{interp}{ defines the interpolation method, default "VNG", Alternatives are
-   "Bilinear", "" and "FourC" (Four color interpolation), see manpages of dcraw. 
+  \item{interp}{ defines the interpolation method, default "Bilinear", Alternatives are
+   "VNG", "" and "FourC" (Four color interpolation), see manpages of dcraw. 
    "VNG" seems to provide the smallest spatial correlations.}
   \item{rm.ppm}{ remove intermediate tmp file? default \code{TRUE}}
   \item{gamma}{ logical, determines \code{value$gamma}}

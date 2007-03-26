@@ -1,7 +1,6 @@
 awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
                       ladjust=1.0 , mask = NULL, xind = NULL, 
-                      yind = NULL, wghts=c(1,1,1,1), scorr=TRUE, lkern="Triangle", 
-                      skern="Triangle", demo=FALSE, graph=FALSE, max.pixel=4.e2,clip=FALSE,compress=TRUE) {
+                      yind = NULL, wghts=c(1,1,1,1), scorr=TRUE, lkern="Triangle", demo=FALSE, graph=FALSE, max.pixel=4.e2,clip=FALSE,compress=TRUE) {
 
   #
   #          Auxilary functions
@@ -95,10 +94,6 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
                   Cubic=4,
                   Uniform=1,
                   2)
-  skern <- switch(skern,
-                  Triangle=1,
-                  Exp=2,
-                  1)
   if (is.null(hmax)) hmax <- 4
   wghts <- wghts/sum(wghts)
   dgf <- sum(wghts)^2/sum(wghts^2)
@@ -120,16 +115,10 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
       wghts <- wghts[1:dv]/sigma2
     } 
   }
-  if (skern==1) {
-    # set the support of the statistical kernel to (0,2) for skern==1, set spmin and spmax
+    # set the support of the statistical kernel to (0,1), set spmin and spmax
     lambda <- 2*lambda
     spmin <- 0
     spmax <- 1
-  } else {
-    #   set cut off point in K_{st}(x) = exp(-x) I_{x<spmax}
-    spmin <- 0
-    spmax <- 3  
-  }
   #     now set hinit and hincr if not provided
   if(aws) hinit <- 1 else {
     cat("No adaptation method specified. Calculate kernel estimate with bandwidth hmax.\n")
@@ -177,7 +166,7 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
                          as.double(bi0),
                          theta=integer(prod(dimg)),
                          as.integer(lkern),
-                         as.integer(skern),
+                         as.integer(1),
                          as.double(spmin),		       
                          as.double(spmax),
                          double(twohp1*twohp1),# array for location weights
@@ -198,8 +187,6 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
                          DUP=FALSE,
                          PACKAGE="adimpro")[c("scorr","chcorr")]
     spcorr <- spchcorr$scorr
-#    spcorr <- matrix(pmin(.9,0.8817*spcorr+0.231/hpre+6.018*spcorr/hpre^2+
-#                            1.753*spcorr^2/hpre-10.622*spcorr^2/hpre^2),2,dv)
     srh <- sqrt(hpre) 
     spcorr <- matrix(pmin(.9,spcorr+
                           bcf[1]/srh+bcf[2]/hpre+
@@ -277,7 +264,7 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
                          bi0=as.double(bi0),# just take a scalar here
                          theta=integer(prod(dimg)),
                          as.integer(lkern),
-                         as.integer(skern),
+                         as.integer(1),
                          as.double(spmin),		       
                          as.double(spmax),
                          as.double(sqrt(wghts)),
@@ -301,7 +288,7 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
                          bi0=as.double(bi0),
                          theta=integer(prod(dimg)),
                          as.integer(lkern),
-                         as.integer(skern),
+                         as.integer(1),
                          as.double(spmin),
                          as.double(spmax),
                          double(twohp1*twohp1),# array for location weights
@@ -328,7 +315,7 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
                        bi0=as.double(bi0),
                        theta=integer(prod(dimg)),
                        as.integer(lkern),
-		       as.integer(skern),
+		       as.integer(1),
                        as.double(spmin),
                        as.double(spmax),
                        double(twohp1*twohp1),# array for location weights
@@ -394,7 +381,11 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
                    " (1,3):",signif(chcorr[2],2),
                    " (2,3):",signif(chcorr[3],2),"\n")
       } else {
-         spcorr <- matrix(pmin(.9,.06+0.9*spchcorr$scorr+1.108/hpre),2,dv)
+           spcorr <-   matrix(pmin(.9,spchcorr$scorr+
+                         bcf[1]/srh+bcf[2]/hpre+
+                         bcf[3]*spchcorr$scorr/srh+bcf[4]*spchcorr$scorr/hpre+
+                         bcf[5]*spchcorr$scorr^2/srh+bcf[6]*spchcorr$scorr^2/hpre),2,dv)         
+# spcorr <- matrix(pmin(.9,.06+0.9*spchcorr$scorr+1.108/hpre),2,dv)
       #  bias correction for spatial correlation
          chcorr <- spchcorr$chcorr
       }
@@ -466,7 +457,7 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
 #########################################################################################  
 awspimage <- function(object, hmax=12, aws=TRUE, degree=1,
                       varmodel=NULL, ladjust=1.0, xind = NULL, yind = NULL, 
-                      wghts=c(1,1,1,1), scorr=TRUE, lkern="Triangle", skern="Triangle",demo=FALSE,
+                      wghts=c(1,1,1,1), scorr=TRUE, lkern="Triangle",demo=FALSE,
                       graph=FALSE, max.pixel=4.e2, clip=FALSE, compress=TRUE){
   #
   #          Auxilary functions
@@ -576,10 +567,6 @@ awspimage <- function(object, hmax=12, aws=TRUE, degree=1,
                   Cubic=4,
                   Uniform=1,
                   2)
-  skern <- switch(skern,
-                  Triangle=1,
-                  Exp=2,
-                  1)
   if (is.null(hmax)) hmax <- 12
   wghts <- wghts/max(wghts)
   #
@@ -594,20 +581,12 @@ awspimage <- function(object, hmax=12, aws=TRUE, degree=1,
     vobj <- list(coef= sigma2, meanvar=sigma2)
     spcorr <- matrix(0,2,dv)
   }
-  if (skern==1) {
     #
-    # set the support of the statistical kernel to (0,2) for skern==1, set spmin and spmax
+    # set the support of the statistical kernel to (0,1), set spmin and spmax
     #
     lambda <- 2*lambda
     spmin <- 0
     spmax <- 1
-  } else {
-    #
-    #   set cut off point in K_{st}(x) = exp(-x) I_{x<spmax}
-    #
-    spmin <- 0
-    spmax <- 3  
-  }
   bi <- array(rep(1,n*dp2),c(dimg[1:2],dp2))
   theta <- array(0,c(dimg,dp1))
   theta[,,,1] <- switch(imgtype,greyscale=object$img[xind,yind],rgb=object$img[xind,yind,])
@@ -646,7 +625,7 @@ awspimage <- function(object, hmax=12, aws=TRUE, degree=1,
                          as.double(bi0),
                          theta=integer(prod(dimg)),
                          as.integer(lkern),
-                         as.integer(skern),
+                         as.integer(1),
                          as.double(spmin),		       
                          as.double(spmax),
                          double(twohp1*twohp1),# array for location weights
@@ -769,7 +748,7 @@ awspimage <- function(object, hmax=12, aws=TRUE, degree=1,
                      bi0=double(1),
                      ai=double(n*dp1*dv),
                      as.integer(lkern),
-                     as.integer(skern),
+                     as.integer(1),
                      as.double(spmin),
                      as.double(spmax),
                      double(twohp1*twohp1),# array for location weights
@@ -795,7 +774,9 @@ awspimage <- function(object, hmax=12, aws=TRUE, degree=1,
                              rgb=object$img[xind,yind,])
       show.image(graphobj,max.x=max.pixel,xaxt="n",yaxt="n")
       title("Observed Image")
-      graphobj$img <- array(pmin(65535,pmax(0,as.integer(theta[,,1,]))),dimg)
+      graphobj$img <- switch(imgtype,
+                             greyscale=array(pmin(65535,pmax(0,as.integer(theta[,,1,]))),dimg[1:2]),
+                             rgb=array(pmin(65535,pmax(0,as.integer(theta[,,1,]))),dimg))
       show.image(graphobj,max.x=max.pixel,xaxt="n",yaxt="n")
       title(paste("Reconstruction  h=",signif(hakt,3)))
       graphobj$img <- matrix(pmin(65535,pmax(0,as.integer(65534*bi[,,1]/bi0))),n1,n2)
