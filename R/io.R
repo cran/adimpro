@@ -340,7 +340,7 @@ read.ppm <- function(filename) {
   count <- 0
   while (TRUE) {
     nl <- readLines(con,n=1)
-    if ((regexpr("^ *\#", nl) != -1) || (regexpr("^ *$", nl) != -1)) {
+    if ((regexpr("^ *#", nl) != -1) || (regexpr("^ *$", nl) != -1)) {
       count <- count + 1
     } else {
       size <- nl
@@ -394,7 +394,7 @@ read.pgm <- function(filename) {
   count <- 0
   while (TRUE) {
     nl <- readLines(con,n=1)
-    if ((regexpr("^ *\#", nl) != -1) || (regexpr("^ *$", nl) != -1)) {
+    if ((regexpr("^ *#", nl) != -1) || (regexpr("^ *$", nl) != -1)) {
       count <- count + 1
     } else {
       size <- nl

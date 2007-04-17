@@ -121,8 +121,8 @@ awspimage(object, hmax=12, aws=TRUE, degree=1, varmodel = NULL,
   \index{adaptive smoothing} by
   Propagation-Separation-methods. WIAS-Preprint No. 1068.
   
-  Polzehl, J. and Tabelow, K. (2006). Adaptive smoothing of digital
-  images, WIAS-Preprint 1177. 
+  Polzehl, J. and Tabelow, K. (2007). Adaptive smoothing of digital
+  images, Journal of Statistical Software 19 (1). 
 }
 \author{ Joerg Polzehl \email{polzehl@wias-berlin.de} }
 \seealso{ \code{\link{read.image}}, \code{\link{read.raw}}, \code{\link{make.image}}, \code{\link{show.image}}, \code{\link{clip.image}} }

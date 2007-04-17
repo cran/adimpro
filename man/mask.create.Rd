@@ -31,8 +31,8 @@ mask.create(img,
 }
 \value{logical matrix of image dimension. 
 }
-\references{ Polzehl, J., and Tabelow, K. (2006). Adaptive smoothing of
-  digital images, WIAS-Preprint 1177. 
+\references{ Polzehl, J., and Tabelow, K. (2007). Adaptive smoothing of
+  digital images, Journal of Statistical Software 19 (1). 
  }
 \author{  Joerg Polzehl \email{polzehl@wias-berlin.de}  }
 \seealso{ \code{\link{awsimage}}  }

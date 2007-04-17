@@ -56,8 +56,8 @@ xyz2rgb(obj, compress=TRUE)
   Gonzalez, R.C., and Woods, R.E. (2002). Digital Image
   Processing. Prentice Hall. 
   
-  Polzehl, J., and Tabelow, K. (2006). Adaptive smoothing of digital
-  images, WIAS-Preprint 1177. 
+  Polzehl, J., and Tabelow, K. (2007). Adaptive smoothing of digital
+  images, Journal of Statistical Software 19 (1). 
 }
 \author{ Karsten Tabelow \email{tabelow@wias-berlin.de} }
 \examples{
