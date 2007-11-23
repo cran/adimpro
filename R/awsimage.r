@@ -516,7 +516,7 @@ awspimage <- function(object, hmax=12, aws=TRUE, degree=1,
   args <- match.call()
   if(!(degree %in% c(1,2))) {
     warning("only polynomial degrees 1 and 2 implemented, original image is returned")
-    return(img)
+    return(object)
   }
   if(clip) object <- clip.image(object,xind,yind,compress=FALSE)
   if(object$compressed) object <- decompress.image(object)
