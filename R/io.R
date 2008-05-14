@@ -1,4 +1,5 @@
-read.image <- function(filename, compress=TRUE, convert.path = "convert") {
+read.image <- function(filename, compress=TRUE) {
+  convert.path <- paste(Sys.getenv("ImageMagick"),"convert",sep="")
   fileparts <- strsplit(filename,"\\.")[[1]]
   ext <- tolower(fileparts[length(fileparts)])
   name <- filename
@@ -7,24 +8,8 @@ read.image <- function(filename, compress=TRUE, convert.path = "convert") {
     if (ext %in% c("tif","tiff","png","gif","jpg","jpeg","bmp")) {
       tmpfile <- paste(c(fileparts[-length(fileparts)],"ppm"),collapse=".")
       if (file.exists(filename)) {
-        if (.Platform$OS.type == "windows") {
-          a <- system(paste(convert.path,"-version"),FALSE)
-          if (a >= 0) {
-            system(paste(convert.path,"-compress None",filename,tmpfile),wait=TRUE)
+            system(paste(convert.path," -compress None \"",filename,"\" \"",tmpfile,"\"",sep=""),wait=TRUE)
             filename <- tmpfile            
-          } else {
-            stop(paste("Error: need ImageMagick (convert). install from www.imagemagick.org\n"))
-          }
-        } else {
-          if (.Platform$OS.type != "unix") warning("never tested this OS. maybe we cannot proceed here.\n")
-          a <- system("convert -version",TRUE,TRUE)
-          if (length(grep("ImageMagick",a,ignore.case=TRUE)) > 0) {
-            system(paste("convert -compress None",filename,tmpfile))
-            filename <- tmpfile
-          } else {
-            stop(paste("Error: need ImageMagick (convert). install from www.imagemagick.org\n"))
-          }          
-        }
       } else {
         stop(paste("Error: file",filename,"does not exist!"))
       }
@@ -39,6 +24,7 @@ read.image <- function(filename, compress=TRUE, convert.path = "convert") {
         stop("cannot find ",filename,"\n")
       }
       object$type <- "greyscale"
+      object$cspace <- "greyscale"
     } else {
       if (file.exists(filename)) {
         object$img <- read.ppm(filename)
@@ -60,13 +46,53 @@ read.image <- function(filename, compress=TRUE, convert.path = "convert") {
         object$img <- object$img[,,1]
         object$type <- "greyscale"
       }
+    description <- paste(system(paste(Sys.getenv("ImageMagick"),"identify -format %c \"",name,"\" ",sep=""),intern=TRUE),collapse="\n",sep="")
+    interpolation <- extract.info(description,"Interpolation")
+    if(is.null(interpolation)) interpolation <- "unknown"
+    object$interp <- interpolation
+    gammatype <- extract.info(description,"Gammatype")
+    if(is.null(gammatype)) gammatype <- "ITU"
+    object$gammatype <- gammatype
+    object$gamma <- gammatype %in% c("ITU","sRGB","CIE")
+    whitep <- extract.info(description,"WhitePoint")
+    if(is.null(whitep)) whitep <- "D65"
+    object$whitep <- whitep
+    wb <- extract.info(description,"WhiteBalance")
+    if(is.null(wb)) wb <- "IMAGE"
+    object$wb <- wb
+    cspace <- extract.info(description,"Cspace")
+    if(is.null(cspace)) cspace <- if(ext == "pgm") "greyscale" else "sRGB"
+#  if cspace %in% c("xyz","hsi","yiq","yuv") we need to reconstruct the image
+    if(cspace %in% c("xyz","hsi","yiq","yuv")){
+       object$img <- object$img/65535
+       object$type <- cspace
+       compress <- FALSE
+    }
+    if(cspace == "yiq") {
+       object$img[,,2] <- 1.2*object$img[,,2]-0.595716
+       object$img[,,3] <- 1.06*object$img[,,3]-0.522591
+    }
+    if(cspace == "yuv") {
+       object$img[,,2] <- object$img[,,2]-0.493
+       object$img[,,3] <- 1.76*object$img[,,3]-0.877
+    }
+    object$cspace <- cspace 
     if(compress) {
       dim(object$img) <- NULL 
       object$img <- writeBin(as.integer(object$img),raw(),2)
     }
-    object$gamma <- TRUE
-    object$wb <- "UNKNOWN"
-    object$file <- name
+    file <- extract.info(description,"File")
+    if(is.null(file)) file <- name
+    object$file <- file
+    object$xind <- extract.info(description,"xind")
+    object$yind <- extract.info(description,"yind")
+    ctype <- extract.info(description,"Type")
+    if((!is.null(ctype))&&ctype=="RAW") {
+       object$type <- "RAW"
+       }
+    object$description <- description
+    object <- modify.info(object,add=FALSE)
+# remove duplicated informmation from description
     object$compressed <- compress
     
     class(object) <- "adimpro"
@@ -78,16 +104,23 @@ read.image <- function(filename, compress=TRUE, convert.path = "convert") {
   }
 }
 
-write.image <- function(img, file="tmp.ppm", max.x = NULL, max.y =NULL, depth=NULL, color.par = NULL, alg = 1, convert.path = "convert") {
+write.image <- function(img, file="tmp.ppm", max.x = NULL, max.y =NULL, depth=NULL,
+       gammatype="ITU", whitep = NULL, temp = NULL, cspace = NULL, black=0, exposure=1) {
   
+  convert.path <- paste(Sys.getenv("ImageMagick"),"convert",sep="")
   if(!check.adimpro(img)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
-  
+  if(is.null(cspace)) cspace <- img$cspace
+  if(!(cspace %in% c("sRGB","Adobe","wGamut","kodak","xyz","yuv","yiq","hsi"))) {
+       cspace <- "sRGB"
+  }
+  if(cspace %in% c("xyz","yuv","yiq","hsi")){
+     gammatype <- "None"
+  }
   if(img$compressed) img <- decompress.image(img)
-
+  
   if(!is.null(max.x)||!is.null(max.y)) img <- shrink.image(img, xt=max.x, yt=max.y, method="nearest",compress=FALSE)
-  cp <- colorpar(color.par)
   
   fileparts <- strsplit(file,"\\.")[[1]]
   ext <- tolower(fileparts[length(fileparts)])
@@ -102,39 +135,42 @@ write.image <- function(img, file="tmp.ppm", max.x = NULL, max.y =NULL, depth=NU
 
   # image dimension
   dimg <- dim(img$img)
-
-  # convert colorspace if neccessary
-  img <- switch(img$type,
-                "hsi" = hsi2rgb(img,compress=FALSE),
-                "yuv" = yuv2rgb(img,compress=FALSE),
-                "yiq" = yiq2rgb(img,compress=FALSE),
-                "xyz" = xyz2rgb(img,compress=FALSE),
-                img)
   
   # determine file name for PPM intermediate
   fileparts <- strsplit(file,"\\.")[[1]]
   ext <- tolower(fileparts[length(fileparts)])
   if (img$type == "greyscale") {
     tmpfile <- paste(c(fileparts[-length(fileparts)],"pgm"),collapse=".")
-  } else if (img$type == "rgb") {
+  } else {
     tmpfile <- paste(c(fileparts[-length(fileparts)],"ppm"),collapse=".")
   }
   
   # white balance
-  if ( (cp[3] != 1.0) || (cp[4] != 1.0) || (cp[5] != 1.0)) {
-    img <- white.balance(img, red = cp[3], blue = cp[4], brightness = cp[5])
+  dogamma <- !is.null(gammatype)&&gammatype!=img$gammatype
+  docspace <- cspace!=img$cspace
+  dowhite <- (!is.null(whitep)&&whitep!=img$whitep)||(!is.null(temp))
+  doexposure <- !is.null(exposure)&&(exposure!=1||black!=0)
+  if(dogamma||docspace||dowhite||doexposure){
+  img <- adjust.image(img, gammatype=gammatype, cspace=cspace, 
+                whitep=whitep, temp=temp, black=black, exposure=exposure, compress=FALSE) 
   }
-
-  # gamma correction
-  if (!img$gamma) {
-    img <- gamma.correction(img, ga = cp[1], bp = cp[2], alg = alg)
+  if(img$cspace %in% c("xyz","hsi")){
+     img$img <- array(as.integer(65535*img$img),dim(img$img))
   }
-
+  if(img$cspace=="yiq"){
+     img$img[,,2] <- (img$img[,,2] + 0.595716)/1.2
+     img$img[,,3] <- (img$img[,,3] + 0.522591)/1.06
+     img$img <- array(as.integer(65535*img$img),dim(img$img))
+  }
+  if(img$cspace=="yuv"){
+     img$img[,,2] <- (img$img[,,2] + 0.493)
+     img$img[,,3] <- (img$img[,,3] + 0.877)/1.76
+     img$img <- array(as.integer(65535*img$img),dim(img$img))
+  }
   # rotate image appropriately
   pimg <- switch(img$type,
                  "greyscale" = img$img[,dimg[2]:1],
-                 "rgb" = img$img[,dimg[2]:1,],
-                 NULL)
+                 img$img[,dimg[2]:1,])
   
   # now write
   if(img$type != "unknown") {
@@ -146,8 +182,7 @@ write.image <- function(img, file="tmp.ppm", max.x = NULL, max.y =NULL, depth=NU
       maximg <- 65535
     }
     ptype <- switch(img$type,
-                    "greyscale" = "P5",
-                    "rgb" = "P6")
+                    "greyscale" = "P5","P6")
     
     con <- file(tmpfile, "wb")
     writeChar(ptype,con,eos=NULL)
@@ -158,7 +193,7 @@ write.image <- function(img, file="tmp.ppm", max.x = NULL, max.y =NULL, depth=NU
     writeBin(charToRaw("\n"),con)
     close(con)
     
-    if (img$type == "rgb") pimg <- aperm(pimg,c(3,1,2))
+    if (img$type != "greyscale") pimg <- aperm(pimg,c(3,1,2))
     
     if (depth == 8) {
       con <- file(tmpfile, "ab")
@@ -169,60 +204,103 @@ write.image <- function(img, file="tmp.ppm", max.x = NULL, max.y =NULL, depth=NU
       writeBin(as.vector(pimg), con, 2, endian="big")
       close(con)              
     }
-    
+    img <- modify.info(img,add=TRUE)
+#  write additional information to image description
     if (tmpfile != file) {
-      if (.Platform$OS.type == "windows") {
-        a <- system(paste(convert.path,"-version"),FALSE)
-        if (a >= 0) {
-          system(paste(convert.path,"-compress None",tmpfile,file),wait=TRUE)
+          system(paste(convert.path,
+           " -compress None -comment \"",img$description,"\" \"",
+           tmpfile,"\" \"",file,"\"",sep=""),wait=TRUE)
           file.remove(tmpfile)
-        } else {
-          warning(paste("could not convert",
-      tmpfile,"into",file,"need ImageMagick (convert). install from www.imagemagick.org\n",tmpfile,"is kept\n"))
-        }
-      } else {
-        if (.Platform$OS.type != "unix") warning("never tested this OS. maybe we cannot proceed here.\n")
-        a <- system("convert -version",TRUE,TRUE)
-        if (length(grep("ImageMagick",a,ignore.case=TRUE)) > 0) {
-          system(paste("convert -compress None",tmpfile,file))
-          file.remove(tmpfile)
-        } else {
-          warning(paste("could not convert", tmpfile,"into",file,"need ImageMagick (convert). install from www.imagemagick.org\n",tmpfile,"is kept\n"))
-        }          
-      }
+    } else {
+          system(paste(Sys.getenv("ImageMagick"),
+"mogrify -comment \"",img$description,"\" \"",tmpfile,"\"",sep=""),wait=TRUE)
     }
   } else {
     stop("Error: unknown colorspace type! exiting!")
   }
   invisible(NULL)
 }
+write.raw <- function(img, filename="tmp.png") {
+  
+  convert.path <- paste(Sys.getenv("ImageMagick"),"convert",sep="")
+  if(!check.adimpro(img)) {
+    stop(" Consistency check for argument object failed (see warnings).\n")
+  }
+  fileparts <- strsplit(filename,"\\.")[[1]]
+  if(!(tolower(fileparts[length(fileparts)]) %in% c("png"))){
+     filename <- paste(filename,".png",sep="")
+  }
+  if(img$compressed) img <- decompress.image(img)
+  depth <- 16
+  dimg <- dim(img$img)
+  
+  # determine file name for PPM intermediate
+    tmpfile <- paste(c(fileparts[-length(fileparts)],"pgm"),collapse=".")
+    pimg <- img$img[,dimg[2]:1]
+  # now write
+    maximg <- 65535
+    ptype <- "P5"
+    con <- file(tmpfile, "wb")
+    writeChar(ptype,con,eos=NULL)
+    writeBin(charToRaw("\n"),con)
+    writeChar(paste(dimg[1],dimg[2]),con,eos=NULL)
+    writeBin(charToRaw("\n"),con)
+    writeChar(as.character(maximg),con,eos=NULL)
+    writeBin(charToRaw("\n"),con)
+    close(con)
+    con <- file(tmpfile, "ab")
+    writeBin(as.vector(pimg), con, 2, endian="big")
+    close(con)
+    img <- modify.info(img,add=TRUE)
+          system(paste(convert.path,
+       " -compress None -comment \"",img$description,"\" \"",
+         tmpfile,"\" \"",filename,"\"",sep=""),wait=TRUE)
+          file.remove(tmpfile)
+  invisible(NULL)
+}
 
-show.image <- function (img, max.x = 1e+03, max.y =1e+03,
-                        color.par = NULL, channel=NULL, alg = 1, new = FALSE, ...) {
+show.image <- function (img, max.x = 1e+03, max.y =1e+03, gammatype = "ITU", whitep = NULL, temp = NULL,
+                        cspace = "sRGB", black=0, exposure=1, channel=NULL, new = FALSE, ...) {
 
   if(!check.adimpro(img)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
-
-  cp <- colorpar(color.par)
+  
+  if(cspace %in% c("grey","gray","grayscale")) cspace <- "greyscale" 
+  dimg0 <- img$dim
+  if(dimg0[1]>=max.x||dimg0[2]>=max.y){
+  img <- shrink.image(img,xt=max.x,yt=max.y,method="gap",compress=FALSE)
+  } else if(img$compressed) img <- decompress.image(img)
+  dimg <- img$dim
+  
   
   # we need of course!
   di <- dim(img$img)
   
   # convert colorspace if neccessary
-  img <- switch(img$type,
-                "hsi" = hsi2rgb(img,compress=FALSE),
-                "yuv" = yuv2rgb(img,compress=FALSE),
-                "yiq" = yiq2rgb(img,compress=FALSE),
-                "xyz" = xyz2rgb(img,compress=FALSE),
-                img)
-  
-  if (!is.null(channel)&&img$type=="rgb") {
+  if(!(cspace %in% c("sRGB","Adobe","wGamut","kodak"))) gammatype <- "None"
+  if(toupper(img$type) == "RAW") {
+#  avoid calling adjust.image 
+     cspace <- img$cspace
+     whitep <- temp <- NULL
+     exposure <- 1
+     black <- 0
+     gammatype <- img$gammatype
+  }
+  if( cspace != img$cspace || !is.null(whitep) || !is.null(temp) ||exposure!=1||black!=0||gammatype!=img$gammatype) {
+      img <- adjust.image(img,gammatype = gammatype, whitep = whitep, temp = temp,
+                              cspace = cspace, black= black, exposure = exposure, compress=FALSE)
+  }
+#   if color.space %in% c("hsi","yuv","yiq","xyz") scale channels to provide maximum contrast
+  if(img$type %in% c("yuv","yiq")){
+     for(i in 1:3){
+        img$img[,,i] <- as.integer(65535*(img$img[,,i]-min(img$img[,,i]))/(max(img$img[,,i])-min(img$img[,,i])))
+     }
+  }
+  if(img$type %in% c("xyz","hsi")) img$img <- img$img*65535
+   if (!is.null(channel)&&img$type!="greyscale") {
     if(channel %in% (1:3)){
-      if(img$compressed){
-        nimg <- length(img$img)%/%3
-        img$img <- img$img[(channel-1)*nimg+(1:nimg)]
-      } else img$img <- img$img[,,channel]
+      img$img <- img$img[,,channel]
       img$type <- "greyscale"
     }
   }
@@ -230,21 +308,18 @@ show.image <- function (img, max.x = 1e+03, max.y =1e+03,
     
   # now plot according to image type attribute
   switch(img$type,
-         "greyscale" = show.greyscale(img,max.x=max.x,max.y=max.y, ga = cp[1], bp = cp[2], 
-           alg = alg, brightness = cp[5],...),
-         "rgb" = show.rgb(img,max.x=max.x,max.y=max.y, ga = cp[1], bp = cp[2], alg = alg, 
-           red = cp[3], blue = cp[4], brightness = cp[5],...),
+         "greyscale" = show.greyscale(img,dimg0,...),
+         "RAW" = show.greyscale(img,dimg0,...),
+         "rgb" = show.rgb(img,dimg0,...),
+         "hsi" = show.rgb(img,dimg0,...),
+         "yuv" = show.rgb(img,dimg0,...),
+         "yiq" = show.rgb(img,dimg0,...),
+         "xyz" = show.rgb(img,dimg0,...),
          return())
   
 }
 
-show.rgb <- function(img, max.x=max.x, max.y=max.y,
-                     ga = 2.4, bp = 0.00304, alg = 1, 
-                     red = 1.0, blue = 1.0, brightness = 1.0,...) {
-
-  # if max.pixel is exceeded, shrink the image to a displayable size 
-  dimg0 <- img$dim
-  img <- shrink.image(img,xt=max.x,yt=max.y,method="gap",compress=FALSE)
+show.rgb <- function(img,dimg0,...) {
 
   # check colorspace
   if(any(is.na(img$img))) cat("NA's in img$img\n")
@@ -255,8 +330,9 @@ show.rgb <- function(img, max.x=max.x, max.y=max.y,
   
   # should never be executed!!!
   if (maximg > 65535) {
-    warning("Found values smaller than 0 or larger than 65535. Please check!")
-    img$img <- 65535*(img$img - minimg) / (maximg - minimg)
+   if(img$type=="rgb")    warning("Found values smaller than 0 or larger than 65535. Please check!")
+#    img$img <- 65535*(img$img - minimg) / (maximg - minimg)
+    img$img[img$img> 65535] <- 65535
   }
   
   # end check colorspace
@@ -265,14 +341,6 @@ show.rgb <- function(img, max.x=max.x, max.y=max.y,
   # define an image z of same size as img and fill with increasing numbers
   z <- matrix(1:prod(dimg),nrow = dimg[1],ncol = dimg[2])
     
-  # white balance
-  if ( (red != 1.0) || (blue != 1.0) || (brightness != 1.0)) {
-    img <- white.balance(img, red = red, blue = blue, brightness = brightness)
-  }
-   # gamma correction
-  if (!img$gamma) {
-    img <- gamma.correction(img, ga = ga, bp = bp, alg = alg)
-  }
     
   # define the clor map such that for every pixel the color is set
   # according to the value of z
@@ -290,12 +358,8 @@ show.rgb <- function(img, max.x=max.x, max.y=max.y,
   image(x, y, z, col = color, asp = 1, xlab="",ylab="", ...)
 }
 
-show.greyscale <- function(img,max.x=max.x,max.y=max.y,
-                           ga = 2.4, bp = 0.00304, alg = 1, 
-                           brightness = 1.0,...) {
+show.greyscale <- function(img,dimg0,...) {
   # if max.pixel is exceeded, shrink the image to a displayable size 
-  dimg0 <- img$dim
-  img <- shrink.image(img,xt=max.x,yt=max.y,method="gap",compress=FALSE)
   dimg <- img$dim
   
   # check colorspace
@@ -306,23 +370,15 @@ show.greyscale <- function(img,max.x=max.x,max.y=max.y,
   
   # should never be executed!!!
   if (maximg > 65535) {
-    warning("Found values smaller than 0 or larger than 65535. Please check!")
-    img$img <- (img$img - minimg) / (maximg - minimg)
+     if(img$type=="rgb") warning("Found values smaller than 0 or larger than 65535. Please check!")
+#    img$img <- (img$img - minimg) / (maximg - minimg)
+     img$img[img$img> 65535] <- 65535
   }
   
   # end check colorspace
   # define an image z of same size as img and fill with increasing numbers
   z <- matrix(1:prod(dimg),nrow = dimg[1],ncol = dimg[2])
 
-  # white balance
-  if (brightness != 1.0) {
-    img <- white.balance(img, red = 1, blue = 1, brightness = brightness)
-  }
-
-  # gamma correction
-  if (!img$gamma) {
-    img <- gamma.correction(img, ga = ga, bp = bp, alg = alg)
-  }
 
   color <- grey(img$img/65535)
     
@@ -364,7 +420,7 @@ read.ppm <- function(filename) {
     }
   } else if (type == "P6") {
     con <- file(filename,"rb")
-    ttt <- readLines(con,n=3) # header again
+    ttt <- readLines(con,n=3+count) # header again
     if (maxval > 255) {
       # endianess not clear. use quasi-standard
       img <- readBin(con,"int",n=sizex*sizey*3,2,signed=FALSE,endian="big") 
@@ -418,7 +474,7 @@ read.pgm <- function(filename) {
     }
   } else if (type == "P5") {
     con <- file(filename,"rb")
-    ttt <- readLines(con,n=3) # header again
+    ttt <- readLines(con,n=3+count) # header again
     if (maxval > 255) {
       # endianess not clear. use quasi-standard
       img <- readBin(con,"int",n=sizex*sizey*3,2,signed=FALSE,endian="big") 
@@ -441,11 +497,31 @@ read.pgm <- function(filename) {
   invisible(img)
 }
 
-read.raw <- function (filename,type="PPM",wb="NONE",cspace="sRGB",interp="Bilinear",rm.ppm=TRUE,compress=TRUE) {
+read.raw <- function (filename,type="PPM",wb="CAMERA",cspace="Adobe",interp="Bilinear",rm.ppm=TRUE,compress=TRUE) {
+# check the image to be a grey-value png that can be interpreted as
+# containing RAW-data 
+# otherwise just take it as a color image without gamma correction
+    fileparts <- strsplit(filename,"\\.")[[1]]
+    ext <- tolower(fileparts[length(fileparts)])
+    if(ext == "png"){
+    img <- read.image(filename)
+    if(img$type=="RAW") {
+       img$depth <- "16bit"
+       img$orientation <- "horizontal"
+       img$interp <- "None"
+       img$cspace <- cspace
+       img$whitep <- "D65"
+       img$wb <- "CAMERA"
+       if(type!="RAW"){
+          img <- develop.raw(img,"BILINEAR")
+       }
+    }
+  return(invisible(img))
+  }
   opt1 <- switch(toupper(type),PPM="-4",RAW="-4 -d",HALFSIZE="-h",INFO="-i -v","-4")
   opt2 <- if (opt1 == "-i -v") NULL else switch(toupper(wb),NONE=NULL,AUTO="-a",CAMERA="-w")
-  opt3 <- switch(cspace,RAW="-o 0",sRGB=NULL,Adobe="-o 2",wGamut="-o 3",XYZ="-o 5",NULL)
-  opt4 <- switch(interp,Bilinear="-q 0",VNG="-q 2",AHD=NULL,FourC="-f","-q 2")
+  opt3 <- switch(cspace,RAW="-o 0",sRGB=NULL,Adobe="-o 2",wGamut="-o 3",kodak="-o 4",XYZ="-o 5",NULL)
+  opt4 <- switch(interp,Bilinear="-q 0",VNG="-q 2",AHD="-q 3",FourC="-f","-q 0")
   #  VNG seems to provide minimal spatial correlation
   system(paste("dcraw", opt1, opt2, opt3, opt4, filename))
 
@@ -453,37 +529,44 @@ read.raw <- function (filename,type="PPM",wb="NONE",cspace="sRGB",interp="Biline
   
   if(opt1 != "-i -v") {
     if(opt1 == "-4 -d") {
-      filename <- paste(strsplit(filename,"\\.")[[1]][1],".pgm",sep="") 
-      object$img <- read.pgm(filename)
-      object$type <- "greyscale"
+      filenamep <- paste(strsplit(filename,"\\.")[[1]][1],".pgm",sep="") 
+      object$img <- read.pgm(filenamep)
+      object$type <- "RAW"
+      interp <- "None"
+      cspace <- "CAMERA"
+      wb <- "None"
     } else {
-      filename <- paste(strsplit(filename,"\\.")[[1]][1],".ppm",sep="") 
-      if (file.exists(filename)) {
-        object$img <- read.ppm(filename)
-      } else {
+      filenamep <- paste(strsplit(filename,"\\.")[[1]][1],".ppm",sep="") 
+      if (file.exists(filenamep)) {
+        object$img <- read.ppm(filenamep)
+        } else {
         # ImageMagick under WINDOWS contains version of dcraw that
         # creates image.ppm instead of filename.ppm
         filename2 <- "image.ppm"
         if (file.exists(filename2)) {
           object$img <- read.ppm(filename2)
-          filename <- filename2
+          filenamep <- filename2
         } else {
           stop("cannot find neither ",filename," nor ",filename2,"\n")
         }
       }
       object$type <- "rgb"
     }
-    if(rm.ppm) file.remove(filename)
+    if(rm.ppm) file.remove(filenamep)
   }
-  
+  description <- system(paste("dcraw -i -v", filename),intern=TRUE)
+  object$description  <- paste(description,collapse="\n",sep="")
   object$depth <- attr(object$img, "depth")
   attr(object$img, "depth") <- NULL
   object$dim <- dim(object$img)[1:2]
+  if(object$type=="RAW") object$orientation <- if(object$dim[1]>=object$dim[2]) "horizontal" else "vertical"
   object$file <- filename
-  object$interpolation <- interp
+  object$interp <- interp
   object$cspace <- cspace
+  object$whitep <- "D65"
   object$gamma <- FALSE
-  object$wb <- wb
+  object$gammatype <- "None"
+  object$wb <- toupper(wb)
   if(compress) {
     dim(object$img) <- NULL 
     object$img <- writeBin(as.integer(object$img),raw(),2)
@@ -494,11 +577,14 @@ read.raw <- function (filename,type="PPM",wb="NONE",cspace="sRGB",interp="Biline
 }
 
   
-plot.adimpro <- function(x, new = FALSE, ...) {
+plot.adimpro <- function(x, new = FALSE, gammatype=NULL, cspace=NULL, whitep=NULL, temp=NULL, black=0, exposure=1,...) {
   if(!check.adimpro(x)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
   if(x$compressed) x <- decompress.image(x)
+  if(!(is.null(gammatype)&&is.null(cspace)&&is.null(whitep)&&is.null(temp)&&exposure==1&&black==0)) {
+     x <- adjust.image(x, gammatype=gammatype, cspace=cspace, whitep=whitep, temp=temp, black=black,exposure=exposure,compress=FALSE)
+  }
   if ("ni" %in% names(x)) {
     aws <- TRUE
     ni <- make.image(65535* x$ni / x$ni0, compress=FALSE, gamma=FALSE)
@@ -542,9 +628,9 @@ plot.adimpro <- function(x, new = FALSE, ...) {
     col2 <- "blue1"
     col3 <- "blue4"
     tt <- c("X channel","Y channel","Z channel")
-    xlim1 <- NULL
-    xlim2 <- NULL
-    xlim3 <- NULL
+    xlim1 <- range(x$img[,,1])
+    xlim2 <- range(x$img[,,2])
+    xlim3 <- range(x$img[,,3])
   } else if (x$type == "greyscale") {
     col <- grey(0:99/99)
     tt <- "Grey level"
@@ -564,7 +650,7 @@ plot.adimpro <- function(x, new = FALSE, ...) {
       on.exit(par(oldpar))
     }
     hist(x$img,100,col=col,border=col,xlim=xlim,main=tt)
-    show.image(x,max.x=400,max.y=400)
+    show.image(x,max.x=400,max.y=400,gammatype=if(is.null(gammatype)) "ITU" else gammatype)
     
     plot(c(0,1),c(0,1),type="n",xaxt="n",yaxt="n",xlab="",ylab="",frame.plot=FALSE)
     text(0,1,paste("Image file",x$file),pos=4)
@@ -581,12 +667,18 @@ plot.adimpro <- function(x, new = FALSE, ...) {
     hist(x$img[,,1],100,col=col1,border=col1,xlim=xlim1,main=tt[1])
     hist(x$img[,,2],100,col=col2,border=col2,xlim=xlim2,main=tt[2])
     hist(x$img[,,3],100,col=col3,border=col3,xlim=xlim3,main=tt[3])
-    show.image(x,max.x=400,max.y=400)
+    show.image(x,max.x=400,max.y=400, gammatype=if(is.null(gammatype)) "ITU" else gammatype)
     
     plot(c(0,1),c(0,1),type="n",xaxt="n",yaxt="n",xlab="",ylab="",frame.plot=FALSE)
     text(0,1,paste("Image file",x$file),pos=4)
     text(0,0.9,paste("Min",min(x$img)),pos=4)
     text(0,0.8,paste("Max",max(x$img)),pos=4)
+    text(0,0.7,paste("Colorspace",x$cspace),pos=4)
+    if(is.character(x$whitep)) wp <- x$whitep else wp <- paste("Temp=",temp)
+    text(0,0.6,paste("White point",wp, paste("(",paste(signif(whitepoint(x$whitep),4),collapse=","),")")),pos=4)
+    if(black!=0) text(0,0.5,paste("Black",black),pos=4)
+    if(exposure!=1) text(0,0.4,paste("Exposure",exposure),pos=4)
+    text(0,0.3,paste("Gamma",x$gammatype),pos=4)
     
     if (aws) show.image(ni,max.x=400,max.y=400)
   }
@@ -598,16 +690,20 @@ summary.adimpro <- function(object, ...) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
   #  if(object$compressed) object <- decompress.image(object)
-  cat("         Image file:", object$file,"\n")
+  cat("         Image file:", object$file,"\n") 
   if(!is.null(object$xind))
     cat("horizontal clipping:", min(object$xind),":",max(object$xind),"\n")
   if(!is.null(object$yind))
     cat("  vertical clipping:", min(object$yind),":",max(object$yind),"\n")
+  if(!is.null(object$rotate))
+    cat(" Image rotated by:", object$rotate*90,"degrees\n")
   cat("    Image dimension:", object$dim,"\n")
-  cat("        Color space:", object$type,"\n")
+  cat("        Color space:", object$type)
+  if(object$type=="rgb") cat("(", object$cspace, ")")
+  cat("\n")
   cat("        Color depth:", object$depth,"\n")
-  cat("   Gamma correction:", object$gamma,"\n")
-  cat("      White balance:", object$wb,"\n")
+  cat("   Gamma correction:", object$gamma," Type:", object$gammatype,"\n")
+  cat("        White point:", object$whitep,"\n")
   if(!object$compressed) cat("              Range:", as.integer(range(object$img)),"\n")
   if(object$compressed)  cat("   Compressed image\n")
   if (!is.null(object$hmax))
@@ -620,24 +716,60 @@ summary.adimpro <- function(object, ...) {
     cat("channel correlation:", object$chcorr,"\n")
   if (!is.null(object$varcoef))
     cat("est. variance param:", object$varcoef,"\n")
+  if(!is.null(object$description)) {
+    cat("\nEXIF-Information:\n")
+    cat(object$description,"\n")
+  }
 }
 
-make.image <- function(x, gamma = FALSE, compress=TRUE){
+make.image <- function(x, compress=TRUE, gammatype="None", whitep="D65", cspace="Adobe", scale="Original", xmode="RGB"){
+  if(gammatype %in% c("ITU","sRGB","CIE")) {
+      gamma <- TRUE
+  } else {
+      gamma <- FALSE
+      gammatype <- "None"
+  }
   dimg <- dim(x)
   if(is.null(dimg) || !(length(dimg) %in% 2:3)) return(warning("x is not an array of appropriate dimensions."))
-  if(min(x) < 0) {
-    if (diff(range(x)) == 0) {
-      x <- 0 * x
-    } else {
-      x <- (x-min(x))/(max(x)-min(x))
-    }
+  if(diff(range(x))==0) {
+     xmode=="RGB"
+  }  
+  if(xmode=="RGB"){
+  if(diff(range(x))==0) {
+      x <- 0*x 
+  } else {
+  if(scale=="Maxcontrast"){
+     if(length(dimg)==2){
+        x <- 65535*(x-min(x))/(max(x)-min(x))
+     } else {
+        for(i in 1:dimg[3]) x[,,i] <- 65535*(x[,,i]-min(x[,,i]))/(max(x[,,i])-min(x[,,i]))
+     }
+  } else {
+     if(min(x) < 0) x <- (x-min(x))/(max(x)-min(x))*max(x)
+     if( max(x) <= 1) x <- 65535 * x
+  } 
   }
-  if( max(x) <= 1) x <- 65535 * x
   dim(x) <- NULL
   x <- if(compress) writeBin(as.integer(x),raw(),2) else array(as.integer(x),dimg)
   img <- list(img=x, type=switch(length(dimg)-1,"greyscale","rgb"),depth="16bit",
-              dim=dimg[1:2], gamma=gamma, wb="UNKNOWN", file="artificial",compressed=compress)
+              dim=dimg[1:2], gamma=gamma, gammatype=gammatype,whitep=whitep,description="",
+              cspace=switch(length(dimg)-1,"greyscale",cspace), file="artificial",wb="MAKE.IMAGE",compressed=compress)
   class(img) <- "adimpro"
+  } else {
+# interprete components in x as HSI
+     if(min(x[,,1])<0||max(x[,,1])>1) {
+        x[,,1] <- (x[,,1]-min(x[,,1]))/(max(x[,,1])-min(x[,,1]))
+     }
+     if(min(x[,,2])<0||max(x[,,2])>1) {
+        x[,,2] <- (x[,,2]-min(x[,,2]))/(max(x[,,2])-min(x[,,2]))
+     }
+     if(min(x[,,3])<0||max(x[,,3])>1) {
+        x[,,3] <- (x[,,3]-min(x[,,3]))/(max(x[,,3])-min(x[,,3]))
+     }
+  img <- list(img=x, type="hsi",dim=dimg[1:2],depth="16bit", gamma=gamma, wb="UNKNOWN", file="artificial",compressed=FALSE, gammatype=gammatype, whitep=whitep,description="")
+  class(img) <- "adimpro"
+  img <- hsi2rgb(img)
+  }
   invisible(img) 
 }
 
@@ -663,6 +795,159 @@ extract.image <- function (object) {
   }
   if (object$compressed)
     object <- decompress.image(object)
-
   invisible(object$img)
+}
+
+extract.info <- function(object, what="Bayer"){
+  if (class(object)=="adimpro") {
+      description <- object$description
+  } else {
+description <- as.character(object)
+}
+if(!is.null(description)){
+erg<-switch(what,
+            Bayer=substr(strsplit(description,"Filter pattern: ")[[1]][2],1,4),
+            Daymulti=strsplit(description,"Daylight multipliers: ")[[1]][2],
+            Cammulti=strsplit(description,"Camera multipliers: ")[[1]][2],
+            Camera=strsplit(description,"Camera: ")[[1]][2],
+            Isize=strsplit(description,"Image size:  ")[[1]][2],
+            Osize=strsplit(description,"Output size: ")[[1]][2],
+            File=strsplit(description,"File: ")[[1]][2],
+            Interpolation=strsplit(description,"Interpolation: ")[[1]][2],
+            Gammatype=strsplit(description,"Gammatype: ")[[1]][2],
+            WhiteBalance=strsplit(description,"White Balance: ")[[1]][2],
+            WhitePoint=strsplit(description,"White Point: ")[[1]][2],
+            Cspace=strsplit(description,"Color Space: ")[[1]][2],
+            Type=strsplit(description,"Type: ")[[1]][2],
+            xind=strsplit(description,"Xind: ")[[1]][2],
+            yind=strsplit(description,"Yind: ")[[1]][2],
+            NULL
+           )
+if(!is.null(erg)&&is.na(erg)) erg <- NULL
+# case of no information
+if(!is.null(erg)) {
+   erg <- strsplit(erg,"\n")[[1]][1]
+   if(what%in%c("xind","yind")) {
+      erg <- strsplit(erg,":")[[1]]
+      erg <- as.integer(erg[1]):as.integer(erg[2])
+   }
+   if(what %in% c("Daymulti","Cammulti")){
+      zz <- textConnection(erg)
+      erg <- scan(zz, numeric(1))
+      close(zz)
+   }
+}
+} else {
+erg <- NULL
+}
+erg
+}
+modify.info <- function(img,add=TRUE){
+if(!is.null(img$description)){
+z <- textConnection(img$description,"r")
+description <- readLines(z)
+close(z)
+if(add){
+description <- c(description,paste("File:",img$file),
+                             paste("Interpolation:",img$interp),
+                             paste("Gammatype:",img$gammatype),
+                             paste("White Balance:",img$wb),
+                             paste("White Point:",img$whitep),
+                             paste("Type:",img$type),
+                             paste("Color Space:",img$cspace),
+                             if(!is.null(img$xind)) paste("Xind:",paste(min(img$xind),max(img$xind),sep=":")),
+                             if(!is.null(img$yind)) paste("Yind:",paste(min(img$yind),max(img$yind),sep=":")))
+} else {
+#  remove components that are stored elsewhere
+description <- strsplit(img$description,"File: ")[[1]][1]
+}
+}
+img$description <- paste(description,collapse="\n",sep="")
+img
+}
+
+
+
+develop.raw <- function(object,method="BILINEAR",wb=c(1,1,1),compress=TRUE){
+#
+#   converts Sensor data into RGB-images 
+#   white balance is applied as a correction on the sensor data
+#   in contrast to other functions where white balance is done in XYZ
+#
+  method <- toupper(method)
+  if(!(method %in% c("FULL","HALF","BILINEAR"))) stop("Method not implemented")
+  if(object$type!="RAW") stop("object does not contain RAW sensor data, 
+                    please read the image by read.raw(filename,type=''RAW'')")
+  if(object$compressed) object <- decompress.image(object)
+  dimg <- dim(object$img)
+  n1 <- dimg[1]
+  n2 <- dimg[2]
+  bayer <- switch(extract.info(object),RGGB=1,GRBG=2,BGGR=3,GBRG=4)
+  if(extract.info(object,"Isize")!=extract.info(object,"Osize")) bayer <- bayer+1
+  bayer <- (bayer-1)%%4+1
+  if(!is.null(object$rotate)) {
+      bayer <- object$rotate+bayer 
+      bayer <- (bayer-1)%%4+1
+  }
+  if(any(wb!=1)){
+# White balance if specified
+     object$img <- matrix(.Fortran("wbalance",
+                              sensor=as.integer(object$img),
+                              as.integer(n1),
+                              as.integer(n2),
+                              as.double(wb),
+                              as.integer(bayer),
+                              DUP=FALSE,
+                              PACKAGE="adimpro")$sensor,n1,n2)
+  }
+  h1 <- switch(method,FULL=n1-4,HALF=n1%/%2-1,n1)
+  h2 <- switch(method,FULL=n2-4,HALF=n2%/%2-1,n2)
+  theta <- array(switch(method,
+                   FULL=.Fortran("fullsize",
+                   as.integer(object$img),
+                   theta=integer(h1*h2*3),
+                   as.integer(n1),
+                   as.integer(n2),
+                   as.integer(h1),
+                   as.integer(h2),
+                   as.integer(bayer),
+                   DUP=FALSE,
+                   PACKAGE="adimpro")$theta,
+                   HALF=.Fortran("halfsize",
+                   as.integer(object$img),
+                   theta=integer(h1*h2*3),
+                   as.integer(n1),
+                   as.integer(n2),
+                   as.integer(h1),
+                   as.integer(h2),
+                   as.integer(bayer),
+                   DUP=FALSE,
+                   PACKAGE="adimpro")$theta,
+                   BILINEAR=.Fortran("indemos4",
+                   as.integer(object$img),
+                   theta=integer(n1*n2*3),
+                   as.integer(n1),
+                   as.integer(n2),
+                   as.integer(bayer),
+                   as.integer(rep(1,3*n1*n2)),
+                   integer(3*n1*n2),
+                   DUP=FALSE,
+                   PACKAGE="adimpro")$theta),c(h1,h2,3))
+  n <- h1*h2
+  out.cam <- cam2rgbmat(object)
+  object$img <- array(.Fortran("cam2rgb",
+                                as.integer(theta),
+                                as.integer(n),
+                                as.double(out.cam),
+                                theta=integer(n*3),
+                                DUP=FALSE,
+                                PACKAGE="adimpro")$theta,c(h1,h2,3))
+  object$type <- "rgb"
+  object$dim <- c(h1,h2)
+  object$interp <- method
+  if(method=="HALF"){
+     if(!is.null(object$xind)) object$xind<-unique(object$xind[-1]%/%2)
+     if(!is.null(object$yind)) object$yind<-unique(object$yind[-1]%/%2)
+  }
+  invisible(if(compress) compress.image(object) else object)
 }

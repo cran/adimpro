@@ -1,28 +1,40 @@
 \name{awsimage}
 \alias{awsimage}
 \alias{awspimage}
+\alias{awsaniso}
 \title{Propagation-Separation approach for smoothing of 2D images}
-\description{This function implements the Propagation-Separation approach 
+\description{This functions implement the Propagation-Separation approach 
 (local constant and local polynomial model) for smoothing images.
+Function \code{awsaniso} uses anisotropic location weights. This is done by evaluating local gradient estimates obtained from the actual estimated color values. 
 }
 \usage{
-awsimage(object, hmax=4, aws=TRUE, varmodel=NULL, ladjust=1.0,
+awsimage(object, hmax=4, aws=TRUE, varmodel=NULL, ladjust=1.25,
          mask=NULL, xind = NULL, yind = NULL, 
          wghts=c(1,1,1,1), scorr=TRUE, 
-         lkern="Triangle", 
+         lkern="Triangle", plateau=NULL, homogen=TRUE, earlystop=TRUE,
          demo=FALSE, graph=FALSE, 
          max.pixel=4.e2, clip = FALSE, compress=TRUE)
 awspimage(object, hmax=12, aws=TRUE, degree=1, varmodel = NULL,
           ladjust=1.0, xind = NULL, yind = NULL, 
           wghts=c(1,1,1,1), scorr= TRUE,
-          lkern="Triangle", 
+          lkern="Triangle", plateau=NULL, homogen=TRUE, earlystop=TRUE,
           demo=FALSE, graph=FALSE, 
           max.pixel= 4.e2, clip = FALSE, compress=TRUE)
+awsaniso(object, hmax = 4, g = 3, rho = 0, aws = TRUE, varmodel = NULL,
+          ladjust = 1, xind = NULL, yind = NULL, wghts = c(1, 1, 1, 1), 
+          scorr = TRUE, lkern = "Triangle", demo = FALSE, graph = FALSE,
+          satexp = 0.25, max.pixel = 400, clip = FALSE, compress = TRUE)
 }
 \arguments{
   \item{object}{Image object, class "adimpro", as from
     \code{read.image}, \code{read.raw}, or \code{make.image}.}
   \item{hmax}{ Maximum bandwidth to use in the iteration procedure.}
+  \item{g}{ Bandwidth for anisotropic smoothing gradient estimates,
+  preferably \code{g >= 3} for images with line type texture and small 
+  \code{g \approx 1} for improving edges between homogeneous regions (function \code{awsaniso} only).}
+  \item{rho}{ Regularization parameter for anisotropic smoothing gradient estimates,
+  preferably \code{rho = 0} for images with line type texture and large 
+  \code{rho \approx 3} for improving edges between homogeneous regions. (function \code{awsaniso} only)}
   \item{aws}{ (logical). If \code{TRUE} the propagation - separation
     (PS) approach from Polzehl and Spokoiny (2006) is used.
     \code{aws=FALSE} turns off the statistical penalty resulting in a
@@ -64,6 +76,20 @@ awspimage(object, hmax=12, aws=TRUE, degree=1, varmodel = NULL,
     "Triangle", other choices are "Quadratic", "Cubic" and "Uniform".
     The use of "Triangle" corresponds to the Epanechnicov kernel 
     nonparametric kernel regression. }
+  \item{plateau}{Extension of the plateau in the statistical kernel. Can take
+    values from (0,1), defaults to \code{0.25}. }
+  \item{homogen}{If TRUE the algorithm determines, in each design point i, a circle of maximum radius,
+    such that the statistical penalty \code{s_{ij}} for all points j within the
+    circle is less than the value specified in \code{plateau}. In subsequent 
+    iteration steps the statistical penalty  for such points is set to zero. 
+    This is only used if \code{plateau>0}. This results in more stable intermediate estimates and in a smoother reconstruction. \code{homogen=TRUE}
+    leads to increased memory requirements.}
+  \item{earlystop}{If TRUE the algorithm determines, in each design point i, a circle of minimal radius,
+    such that the circle includes all point j with positive weights \code{w_{ij}}.
+    if this radius is considerably smaller than the actual bandwidth then the
+    estimate in point i is fixed. This should considarably reduce computing time 
+    in case of large \code{hmax}.\code{earlystop=TRUE}
+    slightly increases memory requirements. }
   \item{demo}{ (logical). If \code{demo=TRUE} the function pauses after each
     iteration. Defaults to \code{FALSE}.  }
   \item{graph}{ (logical). If  \code{graph=TRUE} intermediate results are
@@ -71,6 +97,7 @@ awspimage(object, hmax=12, aws=TRUE, degree=1, varmodel = NULL,
   \item{max.pixel}{ Maximum dimension of images for display
     if \code{graph=TRUE}. If the true dimension is larger, the 
     images are downscaled for display. See also \code{\link{show.image}}.}
+  \item{satexp}{exponent used for scaling saturation in anisotropy visualization (function \code{awsaniso} only)}
   \item{clip}{ (logical). If \code{TRUE} a clipping region is selected, see
     \code{\link{clip.image}}, using the information contained in
     \code{xind} or \code{yind}. If both are \code{NULL} a clipping
@@ -121,15 +148,18 @@ awspimage(object, hmax=12, aws=TRUE, degree=1, varmodel = NULL,
   \index{adaptive smoothing} by
   Propagation-Separation-methods. WIAS-Preprint No. 1068.
   
-  Polzehl, J. and Tabelow, K. (2007). Adaptive smoothing of digital
-  images, Journal of Statistical Software 19 (1). 
+  Polzehl, J. and Tabelow, K. (2006). Adaptive smoothing of digital
+  images, manuscript.  
 }
-\author{ Joerg Polzehl \email{polzehl@wias-berlin.de} }
+\author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de}}
 \seealso{ \code{\link{read.image}}, \code{\link{read.raw}}, \code{\link{make.image}}, \code{\link{show.image}}, \code{\link{clip.image}} }
 \examples{
 img.noise <- read.image(system.file("img/wias-noise.ppm",package="adimpro"))
 X11(width=7,height=3)
 img.hat.c <- awsimage(img.noise,hmax=15,graph=TRUE)
+X11(width=7,height=7)
+img.hat.a <- awsaniso(img.noise,hmax=15,graph=TRUE,g=0.1,rho=3)
+show.image(imganiso2D(img.hat.a,g=0.1,rho=1000^2))
 }
 \keyword{ manip }% at least one, from doc/KEYWORDS
 \keyword{ smooth }% __ONLY ONE__ keyword per line

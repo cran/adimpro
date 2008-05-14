@@ -18,5 +18,5 @@
   The method tries to print information on the image, like image dimension,
   color space, value range, etc.
 }
-\author{ Karsten Tabelow \email{tabelow@wias-berlin.de} }
+\author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de}}
 \keyword{ print }% at least one, from doc/KEYWORDS

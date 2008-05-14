@@ -6,20 +6,24 @@
   Rotate an image by 0, 90, 180 or 270 degrees.
 }
 \usage{
-rotate.image(img, angle = 90)
+rotate.image(img, angle = 90, compress=NULL)
 }
 \arguments{
   \item{img}{ image data, that is an object of class "adimpro". }
   \item{angle}{ 0, 90, 180 or 270 degrees }
+  \item{compress}{ store result as compressed image if \code{compress=TRUE}. \code{compress=NULL}
+   uses the same format as the original object. }
 }
 \details{
   The function rotates the image \code{img} by 0, 90, 180 or 270
   degrees. Any other value for \code{degree} will cause an exception.
+  The returned object contains an additional component \code{rotate} 
+  determining the rotation.
 }
 \value{
   An object of class "adimpro" containing the rotated image.
 }
-\author{ Joerg Polzehl \email{polzehl@wias-berlin.de} }
+\author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de}}
 \seealso{ \code{\link{show.image}} }
 \examples{
 img <- read.image(system.file("img/wias.ppm",package="adimpro"))

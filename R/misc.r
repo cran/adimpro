@@ -1,3 +1,15 @@
+.onLoad <- function(lib, pkg){
+# we need the path to Imagemagick
+path2imagemagick <- strsplit(Sys.which("mogrify"),"mogrify")[[1]][1]
+if(!is.na(path2imagemagick)) {
+Sys.setenv(ImageMagick=path2imagemagick)
+} else {
+warning("could not determine path to Imagemagick \n
+please set the correct path manually using \n
+'Sys.setenv(ImageMagick='path2imagemagick')'")
+}
+}
+
 check.adimpro <- function(object){
   # Returns true if object is of class adimpro, has
   # all necessary components and no contradicting information
@@ -11,7 +23,7 @@ check.adimpro <- function(object){
       check <- 4
       break
     } else type <- object$type
-    if(!(type%in%c("rgb","hsi","yuv","yiq","xyz","greyscale"))) {
+    if(!(type%in%c("rgb","hsi","yuv","yiq","xyz","greyscale","RAW"))) {
       check <- 4
       break
     }
@@ -33,7 +45,7 @@ check.adimpro <- function(object){
         check <- 3
         break
       }
-      if(!(length(dimg)==switch(type,hsi=3,yuv=3,yiq=3,xyz=3,rgb=3,greyscale=2))) {
+      if(!(length(dimg)==switch(type,hsi=3,yuv=3,yiq=3,xyz=3,rgb=3,greyscale=2,RAW=2))) {
         check <- 5
         break
       }
@@ -55,14 +67,14 @@ check.adimpro <- function(object){
       break
     } 
     if(mode(object$wb)!="character") {
-      check <- 7
+      check <- 8
       break
     } else wb <- object$wb
-    if(!(wb %in% c("NONE","UNKNOWN","AUTO","CAMERA","USER"))) {
-      check <- 7
+    if(!(wb %in% c("NONE","UNKNOWN","AUTO","CAMERA","USER","IMAGE","MAKE.IMAGE"))) {
+      check <- 8
       break
     }
-    if(wb == "USER" & is.null(object$wbcoef)) {
+    if(wb == "USER" & is.null(object$whitep)) {
       check <- 8
       break
     }
@@ -78,8 +90,8 @@ check.adimpro <- function(object){
                    "object$type does not correspond to dim(object$img)",
                    "object$gamma is not logical",
                    "object$depth is not '8bit' or '16bit'",
-                   "object$wb is not one of 'NONE', 'Unknown', 'AUTO', 'CAMERA' or 'USER'",
-                   "object$wb 'USER' but object$wbcoef is not specified"))
+                   "object$wb is not one of 'NONE', 'Unknown', 'AUTO', 'CAMERA', 'Image', 'MAKE.IMAGE' or 'USER'",
+                   "object$wb 'USER' but object$whitep not specified"))
   }
   adimpro
 }
@@ -207,7 +219,7 @@ compress.image <- function(img){
   if(is.null(img$compressed)||!img$compressed){
     type <- img$type
     dim(img$img) <- NULL
-    size <- switch(type,rgb=2,greyscale=2,4)
+    size <- switch(type,rgb=2,greyscale=2,RAW=2,4)
     img$img <- writeBin(as.vector(img$img),raw(),size)
     if(!is.null(img$ni)) {
       dim(img$ni) <- NULL
@@ -225,11 +237,11 @@ decompress.image <- function(img){
   }
   if(!is.null(img$compressed)&&img$compressed){
     type <- img$type
-    size <- switch(type,rgb=2,greyscale=2,4)
-    what <- switch(type,rgb="integer",greyscale="integer","numeric")
-    nn <- prod(img$dim)*switch(type,greyscale=1,3)
+    size <- switch(type,rgb=2,greyscale=2,RAW=2,4)
+    what <- switch(type,rgb="integer",greyscale="integer",RAW="integer","numeric")
+    nn <- prod(img$dim)*switch(type,greyscale=1,RAW=1,3)
     img$img <- readBin(img$img,what,nn,size,signed=FALSE)
-    dim(img$img) <- switch(type,greyscale=img$dim,c(img$dim,3))
+    dim(img$img) <- switch(type,greyscale=img$dim,RAW=img$dim,c(img$dim,3))
     if(!is.null(img$ni)) {
       dim(img$ni) <- NULL
       img$ni <- readBin(img$ni,"numeric",prod(img$dim),4)
@@ -239,3 +251,4 @@ decompress.image <- function(img){
   }
   invisible(img)
 }
+

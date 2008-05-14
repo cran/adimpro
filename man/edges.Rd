@@ -6,13 +6,15 @@
   Edge detection using Laplacian, Sobel, or Robert Cross filter.
 }
 \usage{
-edges(img, type = "Laplacian", ltype=1)
+edges(img, type = "Laplacian", ltype=1, abs=FALSE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{img}{ an object of class "adimpro". }
   \item{type}{ type of edges detection filter. "Laplacian" (default), "Sobel" , or "Robertcross". }
   \item{ltype}{ type of laplacian filter. 1,2,3, or 4 }
+  \item{abs}{ take absolute values of results. This has only an effect for 
+  \code{tyoe="Laplacian"} }
 }
 \details{
   This function applies the  Laplacian, Sobel, or Robert Cross filter to
@@ -48,13 +50,24 @@ edges(img, type = "Laplacian", ltype=1)
   Gonzalez, R.C., and Woods, R.E. (2002). Digital Image
   Processing. Prentice Hall. 
 }
-\author{ Karsten Tabelow \email{tabelow@wias-berlin.de}, Joerg Polzehl \email{polzehl@wias-berlin.de} }
+\author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de} }
 \examples{
 img <- read.image(system.file("img/wias.ppm",package="adimpro"))
 X11(height=5,width=10)
-par(mfrow=c(1,2))
+par(mfrow=c(2,4),mar=c(2,2,2,.2),mgp=c(2,1,0))
 show.image(img,main="Original Image")
 img.edge <- edges(img)
+show.image(img.edge,main="Edges in red channel",channel=1)
 show.image(img.edge,main="Edges in green channel",channel=2)
+show.image(img.edge,main="Edges in blue channel",channel=3)
+img.edge <- edges(img)
+show.image(img.edge,main="Edges (Laplacian)")
+img.edge <- edges(img,abs=TRUE)
+show.image(img.edge,main="Edges (abs(Laplacian))")
+img.edge <- edges(img,"Sobel")
+show.image(img.edge,main="Edges (Sobel)")
+img.edge <- edges(img,"Robertcross")
+show.image(img.edge,main="Edges (Robertcross)")
+
 }
 \keyword{ manip }% at least one, from doc/KEYWORDS

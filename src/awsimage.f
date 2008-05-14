@@ -4,7 +4,7 @@ C   Perform one iteration in local constant  aws (gridded)
 C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       subroutine mawsimg(y,fix,mask,n1,n2,dv,hakt,lambda,theta,bi,
-     1       bi0,thnew,kern,skern,spmin,spmax,lw,wght,swjy)
+     1       bi0,thnew,kern,spmin,lw,wght,swjy)
 C   
 C   y        observed values of regression function
 C   n1,n2,n3    design dimensions
@@ -14,21 +14,20 @@ C   theta    estimates from last step   (input)
 C   bi       \sum  Wi   (output)
 C   thnew       \sum  Wi Y     (output)
 C   kern     specifies the location kernel
-C   spmax    specifies the truncation point of the stochastic kernel
 C   wght     scaling factor for second and third dimension (larger values shrink)
 C   
       implicit logical (a-z)
       external kldistd,lkern
       real*8 kldistd,lkern
-      integer n1,n2,dv,kern,skern,y(1),theta(1),thnew(1)
-      logical aws,fix(1),mask(1)
-      real*8 bi(1),bi0,lambda,spmax,spmin,wght(dv),hakt,lw(1)
+      integer n1,n2,dv,kern,y(n1,n2,dv),theta(n1,n2,dv),
+     1        thnew(n1,n2,dv)
+      logical aws,fix(n1,n2),mask(n1,n2)
+      real*8 bi(n1,n2),bi0,lambda,spmin,wght(dv),hakt,lw(1)
       integer ih,ih1,i1,i2,j1,j2,k,n,
-     1        iind,jind,jind2,jwind2,dlw,clw,jw1,jw2
+     1        jind,jind2,jwind2,dlw,clw,jw1,jw2
       real*8 bii,sij,swj,swj0,swjy(dv),z1,z2,wj,hakt2,bii0,spf
       hakt2=hakt*hakt
-C      spf=spmax/(spmax-spmin)
-      spf=spmax/(spmax-spmin)
+      spf=1.d0/(1.d0-spmin)
       ih=hakt
       dlw=2*ih+1
       clw=ih+1
@@ -40,7 +39,7 @@ C   compute location weights first
       DO j2=1,dlw
          z2=clw-j2
          z2=z2*z2
-         ih1=dsqrt(hakt2-z2)
+         ih1=sqrt(hakt2-z2)
          jind2=(j2-1)*dlw
          DO j1=clw-ih1,clw+ih1
 C  first stochastic term
@@ -55,10 +54,10 @@ C  first stochastic term
       call rchkusr()
       DO i2=1,n2
          DO i1=1,n1
-            iind=i1+(i2-1)*n1
-            IF (fix(iind)) CYCLE
+C            iind=i1+(i2-1)*n1
+            IF (fix(i1,i2)) CYCLE
 C    nothing to do, final estimate is already fixed by control 
-            bii=bi(iind)/lambda
+            bii=bi(i1,i2)/lambda
 C   scaling of sij outside the loop
             swj=0.d0
             DO k=1,dv
@@ -67,37 +66,31 @@ C   scaling of sij outside the loop
             DO jw2=1,dlw
 	       j2=jw2-clw+i2
 	       if(j2.lt.1.or.j2.gt.n2) CYCLE
-	       jind2=(j2-1)*n1
+C	       jind2=(j2-1)*n1
                jwind2=(jw2-1)*dlw
                z2=clw-jw2
-               ih1=dsqrt(hakt2-z2*z2)
+               ih1=sqrt(hakt2-z2*z2)
                DO jw1=clw-ih1,clw+ih1
 		  j1=jw1-clw+i1
 	          if(j1.lt.1.or.j1.gt.n1) CYCLE
-		  jind=j1+jind2
-		  if(.not.mask(jind)) CYCLE
+C		  jind=j1+jind2
+		  if(.not.mask(j1,j2)) CYCLE
 		  wj=lw(jw1+jwind2)
                   IF (aws) THEN
-                     sij=bii*kldistd(theta(iind),theta(jind),n,wght,dv)
-                     IF (sij.gt.spmax) CYCLE
-		     IF (skern.eq.1) THEN
-C  skern == "Triangle"
+              sij=bii*kldistd(theta(i1,i2,1),theta(j1,j2,1),n,wght,dv)
+                     IF (sij.gt.1.d0) CYCLE
                         wj=wj*(1.d0-sij)
-		     ELSE
-C  skern == "Exp"
-		        IF (sij.gt.spmin) wj=wj*dexp(-spf*(sij-spmin))
-		     ENDIF
                   END IF
                   swj=swj+wj
                   DO k=1,dv
-                     swjy(k)=swjy(k)+wj*y(jind+(k-1)*n)
+                     swjy(k)=swjy(k)+wj*y(j1,j2,k)
                   END DO
                END DO
             END DO
             DO k=1,dv
-               thnew(iind+(k-1)*n)=swjy(k)/swj
+               thnew(i1,i2,k)=swjy(k)/swj
             END DO
-            bi(iind)=swj
+            bi(i1,i2)=swj
             call rchkusr()
          END DO
       END DO
@@ -105,49 +98,39 @@ C  skern == "Exp"
       END
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C
-C   Perform one iteration in local constant  aws (gridded)
+C   Compute nonadaptive kernel estimate
 C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-      subroutine awsimg(y,n1,n2,dv,hakt,lambda,theta,bi,bi0,
-     1       thnew,kern,skern,spmin,spmax,lw,wght,swjy)
+      subroutine awsimg(y,n1,n2,dv,hakt,thnew,bi,kern,lw,swjy)
 C   
 C   y        observed values of regression function
 C   n1,n2,n3    design dimensions
 C   hakt     actual bandwidth
-C   theta    estimates from last step   (input)
 C   bi       \sum  Wi   (output)
-C   thnew       \sum  Wi Y     (output)
+C   thnew    non-adaptive estimates    (output)
 C   kern     specifies the location kernel
-C   spmax    specifies the truncation point of the stochastic kernel
 C   wght     scaling factor for second and third dimension (larger values shrink)
 C   
       implicit logical (a-z)
       external kldistd,lkern
       real*8 kldistd,lkern
-      integer n1,n2,dv,kern,skern,y(1),theta(1),thnew(1)
-      logical aws
-      real*8 bi(1),bi0,lambda,spmax,spmin,wght(dv),hakt,lw(1)
+      integer n1,n2,dv,kern,y(n1,n2,dv),thnew(n1,n2,dv)
+      real*8 bi(n1,n2),hakt,lw(1)
       integer ih,ih1,i1,i2,j1,j2,k,n,
-     1        iind,jind,jind2,jwind2,dlw,clw,jw1,jw2
-      real*8 bii,sij,swj,swj0,swjy(dv),z1,z2,wj,hakt2,bii0,spf
+     1        jind,jind2,jwind2,dlw,clw,jw1,jw2
+      real*8 swj,swj0,swjy(dv),z1,z2,wj,hakt2
       hakt2=hakt*hakt
-C      spf=spmax/(spmax-spmin)
-      spf=spmax/(spmax-spmin)
       ih=hakt
       dlw=2*ih+1
       clw=ih+1
-      aws=lambda.lt.1d40
       n=n1*n2
-      bii0=bi0
-C   compute location weights first
       swj0=0.d0
       DO j2=1,dlw
          z2=clw-j2
          z2=z2*z2
-         ih1=dsqrt(hakt2-z2)
+         ih1=sqrt(hakt2-z2)
          jind2=(j2-1)*dlw
          DO j1=clw-ih1,clw+ih1
-C  first stochastic term
             jind=j1+jind2
             z1=clw-j1
             wj=lkern(kern,(z1*z1+z2)/hakt2)
@@ -155,13 +138,9 @@ C  first stochastic term
             lw(jind)=wj
          END DO
       END DO
-      bi0=swj0
       call rchkusr()
       DO i2=1,n2
          DO i1=1,n1
-            iind=i1+(i2-1)*n1
-            bii=bi(iind)/lambda
-C   scaling of sij outside the loop
             swj=0.d0
             DO k=1,dv
                swjy(k)=0.d0
@@ -169,36 +148,23 @@ C   scaling of sij outside the loop
             DO jw2=1,dlw
 	       j2=jw2-clw+i2
 	       if(j2.lt.1.or.j2.gt.n2) CYCLE
-	       jind2=(j2-1)*n1
                jwind2=(jw2-1)*dlw
                z2=clw-jw2
-               ih1=dsqrt(hakt2-z2*z2)
+               ih1=sqrt(hakt2-z2*z2)
                DO jw1=clw-ih1,clw+ih1
 		  j1=jw1-clw+i1
 	          if(j1.lt.1.or.j1.gt.n1) CYCLE
-		  jind=j1+jind2
 		  wj=lw(jw1+jwind2)
-                  IF (aws) THEN
-                     sij=bii*kldistd(theta(iind),theta(jind),n,wght,dv)
-                     IF (sij.gt.spmax) CYCLE
-		     IF (skern.eq.1) THEN
-C  skern == "Triangle"
-                        wj=wj*(1.d0-sij)
-		     ELSE
-C  skern == "Exp"
-		        IF (sij.gt.spmin) wj=wj*dexp(-spf*(sij-spmin))
-		     ENDIF
-                  END IF
                   swj=swj+wj
                   DO k=1,dv
-                     swjy(k)=swjy(k)+wj*y(jind+(k-1)*n)
+                     swjy(k)=swjy(k)+wj*y(j1,j2,k)
                   END DO
                END DO
             END DO
             DO k=1,dv
-               thnew(iind+(k-1)*n)=swjy(k)/swj
+               thnew(i1,i2,k)=swjy(k)/swj
             END DO
-            bi(iind)=swj
+            bi(i1,i2)=swj
             call rchkusr()
          END DO
       END DO
@@ -209,9 +175,9 @@ C
 C   Perform one iteration in local constant three-variate aws (gridded)
 C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-      subroutine awsvimg(y,n1,n2,dv,vcoef,nvpar,meanvar,chcorr,
-     1                   hakt,lambda,theta,bi,bi0,thnew,kern,skern,
-     2                   spmin,spmax,wghts,lw,swjy)
+      subroutine awsvimg(y,fix,n1,n2,dv,vcoef,nvpar,meanvar,chcorr,
+     1                   hakt,hhom,lambda,theta,bi,bi0,thnew,kern,
+     2                   spmin,wghts,lw,swjy,early,homogen)
 C   
 C   y        observed values of regression function
 C   n1,n2,n3    design dimensions
@@ -221,43 +187,48 @@ C   theta    estimates from last step   (input)
 C   bi       \sum  Wi   (output)
 C   thnew       \sum  Wi Y     (output)
 C   kern     specifies the location kernel
-C   spmax    specifies the truncation point of the stochastic kernel
 C   wght     scaling factor for second and third dimension (larger values shrink)
 C   
       implicit logical (a-z)
       external kldistgc,lkern
       real*8 kldistgc,lkern
-      integer n1,n2,dv,kern,skern,nvpar,y(1),theta(1),thnew(1)
-      logical aws
-      real*8 bi(1),lambda,spmax,spmin,hakt,lw(1),wghts(dv),bi0,
-     2       vcoef(nvpar,dv),chcorr(1),meanvar(dv)
-      integer ih,ih1,i1,i2,j1,j2,ja1,je1,l,k,n,info,i2n1,kdv,
-     1        iind,jind,jind2,jwind2,dlw,clw,jw1,jw2,m0,thi(4)
+      integer n1,n2,dv,kern,nvpar,y(n1,n2,dv),theta(n1,n2,dv),
+     1        thnew(n1,n2,dv)
+      logical aws,fix(n1,n2),early,homogen,fixi
+      real*8 bi(n1,n2),lambda,spmin,hakt,lw(1),wghts(dv),bi0,
+     2       vcoef(nvpar,dv),chcorr(1),meanvar(dv),hhom(n1,n2)
+      integer ih,ih1,i1,i2,j1,j2,ja1,je1,l,k,info,kdv,
+     1        jind,jind2,jwind2,dlw,clw,jw1,jw2,m0,thi(4)
       real*8 bii,sij,swj,swjy(dv),z1,z2,wj,hakt2,spf,thij(4),
-     1       s2i(16),si(4),swj0
+     1       s2i(16),si(4),swj0,hhomi,hhommax,hfixmax,hnfix,hmax2
 C  s2i, s2ii temporay stor sigma^2_i and its inverse (nneded for KL-distance)
 C  maximaum dv = 4
       hakt2=hakt*hakt
-      spf=spmax/(spmax-spmin)
+      hnfix=max(2.d0,6.d0-hakt)
+      spf=1.d0/(1.d0-spmin)
       ih=hakt
       dlw=2*ih+1
       clw=ih+1
       aws=lambda.lt.1d40
-      n=n1*n2
+C      n=n1*n2
 C   compute location weights first
       swj0=0.d0
+      hhomi=1.d0
+      fixi=.FALSE.
+      hmax2=0.d0
       DO j2=1,dlw
          z2=clw-j2
          z2=z2*z2
-         ih1=dsqrt(hakt2-z2)
-         ja1=max0(1,clw-ih1)
-         je1=min0(dlw,clw+ih1)
+         ih1=sqrt(hakt2-z2)
+         ja1=max(1,clw-ih1)
+         je1=min(dlw,clw+ih1)
          jind2=(j2-1)*dlw
          DO j1=ja1,je1
 C  first stochastic term
             jind=j1+jind2
             z1=clw-j1
             wj=lkern(kern,(z1*z1+z2)/hakt2)
+            if(wj.gt.0) hmax2=max(hmax2,z1*z1+z2)
             swj0=swj0+wj
             lw(jind)=wj
          END DO
@@ -265,20 +236,34 @@ C  first stochastic term
       bi0=swj0
       call rchkusr()
       DO i2=1,n2
-         i2n1=(i2-1)*n1
          DO i1=1,n1
-            iind=i1+i2n1
-            bii=bi(iind)/lambda
+            if(early) fixi=fix(i1,i2)
+            if(fixi) THEN
+               DO k=1,dv
+               thnew(i1,i2,k)=theta(i1,i2,k)
+               END DO
+               CYCLE
+            END IF
+            if(homogen) THEN
+               hhomi=hhom(i1,i2)
+               hhomi=hhomi*hhomi
+            END IF
+            hhommax=hmax2
+            hfixmax=hhomi
+            bii=bi(i1,i2)/lambda
 C   scaling of sij outside the loop
             swj=0.d0
             DO k=1,dv
                swjy(k)=0.d0
-               thi(k)=theta(iind+(k-1)*n)
+               thi(k)=theta(i1,i2,k)
                si(k) = vcoef(1,k)
                if(nvpar.gt.1) THEN 
                   si(k) = si(k) + vcoef(2,k) * thi(k)
                END IF
-               si(k) = dsqrt(dmax1(si(k),0.1*meanvar(k)))
+               if(nvpar.gt.2) THEN 
+                  si(k) = si(k) + vcoef(3,k) * thi(k) * thi(k)
+               END IF
+               si(k) = sqrt(max(si(k),0.1*meanvar(k)))
 C set small variances to  0.1 * mean variance
             END DO
 C  Now fill estimated Covariancematrix in pixel i
@@ -294,9 +279,9 @@ C  Now fill estimated Covariancematrix in pixel i
                END DO
             END DO
             call dpotrf("U",dv,s2i,dv,info)
-            IF (info.ne.0) call intpr("non-definite matrix 1",21,i,1)
+         IF (info.ne.0) call intpr("non-definite matrix 1",21,info,1)
 	    call dpotri("U",dv,s2i,dv,info)
-            IF (info.ne.0) call intpr("non-definite matrix 2",21,i,1)
+         IF (info.ne.0) call intpr("non-definite matrix 2",21,info,1)
             IF(dv.gt.1) THEN
                DO k=2,dv
                   kdv = (k-1)*dv
@@ -308,39 +293,47 @@ C  Now fill estimated Covariancematrix in pixel i
             DO jw2=1,dlw
 	       j2=jw2-clw+i2
 	       if(j2.lt.1.or.j2.gt.n2) CYCLE
-	       jind2=(j2-1)*n1
+C	       jind2=(j2-1)*n1
                jwind2=(jw2-1)*dlw
                z2=clw-jw2
-               ih1=dsqrt(hakt2-z2*z2)
+               z2=z2*z2
+               ih1=sqrt(hakt2-z2)
                DO jw1=clw-ih1,clw+ih1
 		  j1=jw1-clw+i1
 	          if(j1.lt.1.or.j1.gt.n1) CYCLE
-		  jind=j1+jind2
+C		  jind=j1+jind2
+                  z1=clw-jw1
+                  z1=z1*z1+z2
                   DO k=1,dv
-                     thij(k)=thi(k)-theta(jind+(k-1)*n)
+                     thij(k)=thi(k)-theta(j1,j2,k)
                   END DO
 		  wj=lw(jw1+jwind2)
-                  IF (aws) THEN
+                  IF (aws.and.z1.ge.hhomi) THEN
                      sij=bii*kldistgc(thij,s2i,dv)
-                     IF (sij.gt.spmax) CYCLE
-		     IF (skern.eq.1) THEN
-C  skern == "Triangle"
-                        wj=wj*(1.d0-sij)
-		     ELSE
-C  skern == "Exp"
-		        IF (sij.gt.spmin) wj=wj*dexp(-spf*(sij-spmin))
-		     ENDIF
+                     IF (sij.gt.1.d0) THEN
+                        if(homogen) hhommax=min(hhommax,z1)
+                        CYCLE
+                     END IF
+                     if(early) hfixmax=max(hfixmax,z1)
+		     IF (sij.gt.spmin) THEN
+			 wj=wj*(1.d0-spf*(sij-spmin))
+                         if(homogen) hhommax=min(hhommax,z1)
+                     END IF 
                   END IF
                   swj=swj+wj
                   DO k=1,dv
-                     swjy(k)=swjy(k)+wj*y(jind+(k-1)*n)
+                     swjy(k)=swjy(k)+wj*y(j1,j2,k)
                   END DO
                END DO
             END DO
             DO k=1,dv
-               thnew(iind+(k-1)*n)=swjy(k)/swj
+               thnew(i1,i2,k)=swjy(k)/swj
             END DO
-            bi(iind)=swj
+            bi(i1,i2)=swj
+            if(homogen) hhom(i1,i2)=sqrt(hhommax)
+            IF(early.and.hakt-sqrt(hfixmax).ge.hnfix) THEN
+               fix(i1,i2)=.TRUE.
+            END IF
             call rchkusr()
          END DO
       END DO
@@ -374,6 +367,13 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       ELSE IF (kern.eq.4) THEN
          z=1.d0-xsq
          lkern=z*z*z
+      ELSE IF (kern.eq.5) THEN
+C   Plateau
+         IF(xsq.le.0.5d0) THEN
+            lkern=1.d0
+         ELSE
+            lkern=2.d0*(1.d0-xsq)
+         END IF
       ELSE
 C        use Epanechnikov
          lkern=1.d0-xsq
@@ -494,6 +494,76 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       END DO
       RETURN
       END
+      subroutine esigmaq(y,n,dv,theta,bi,quant,varcoef,mvar)
+      implicit logical (a-z)
+      integer n,dv,y(n,dv),theta(n,dv),quant(dv)
+      real*8 bi(n),varcoef(3,dv),mvar(dv),res,mat(3,3),imat(3,3)
+      integer i,k,info
+      real*8 z,bii,s0,s1,s2,s3,s4,t0,t1,t2,wght,thi,mth,mthn,tt(3)
+      DO k=1,dv
+         s0=0.d0
+         s1=0.d0
+         s2=0.d0
+         s3=0.d0
+         s4=0.d0
+         t0=0.d0
+         t1=0.d0
+         t2=0.d0
+         mth=0.d0
+         DO i=1,n
+            bii=bi(i)
+            if(theta(i,k).le.0.025*65535) CYCLE
+            if(theta(i,k).gt.0.975*65535) CYCLE
+            mth=mth+theta(i,k)
+            if(bii.le.1.d0.or.y(i,k).ge.quant(k)) CYCLE
+            wght=bii-1.d0
+            thi=theta(i,k)
+            res=(y(i,k)-thi)
+            res=res*res*bii/wght
+            s0=s0+wght
+            z=wght*thi
+            s1=s1+z
+            s2=s2+z*thi
+            s3=s3+z*thi*thi
+            s4=s4+z*thi*thi*thi
+            t0=t0+wght*res
+            t1=t1+z*res
+            t2=t2+z*thi*res
+         END DO
+         mat(1,1)=s0
+         mat(1,2)=s1
+         mat(1,3)=s2
+         mat(2,2)=s2
+         mat(2,3)=s3
+         mat(3,3)=s4
+         imat(1,1)=1.d0
+         imat(2,2)=1.d0
+         imat(3,3)=1.d0
+         imat(1,2)=0.d0
+         imat(1,3)=0.d0
+         imat(2,1)=0.d0
+         imat(2,3)=0.d0
+         imat(3,1)=0.d0
+         imat(3,2)=0.d0
+C     now calculate theta as B_i^{-1} A_i
+	 call dposv("U",3,3,mat,3,imat,3,info)
+C    if info>0 just keep the old estimate
+         IF (info.gt.0) THEN
+             call intpr("info",4,info,1)
+             CYCLE  
+         END IF 
+         tt(1)=t0
+         tt(2)=t1
+         tt(3)=t2
+         varcoef(1,k)=imat(1,1)*t0+imat(1,2)*t1+imat(1,3)*t2
+         varcoef(2,k)=imat(2,1)*t0+imat(2,2)*t1+imat(2,3)*t2
+         varcoef(3,k)=imat(3,1)*t0+imat(3,2)*t1+imat(3,3)*t2
+         varcoef(3,k)=max(0.d0,varcoef(3,k))
+         mthn=mth/n
+         mvar(k)=varcoef(1,k)+varcoef(2,k)*mthn+varcoef(3,k)*mthn*mthn
+      END DO
+      RETURN
+      END
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC 
 C
 C
@@ -521,12 +591,12 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
          z2=z2/n
          z1=z1/n
          vres(k)=n/(n-1)*(z2-z1*z1)
-         z=0.d0
          DO i=1,n1
             DO j=1,n2
                res(i,j,k)=res(i,j,k)-z1
             END DO
          END DO
+         z=0.d0
          DO i=1,n1-1
             DO j=1,n2
                z=z+res(i,j,k)*res(i+1,j,k)
@@ -553,7 +623,7 @@ C   between channels
                   z=z+res(i,j,k)*res(i,j,l)
                END DO
             END DO
-            chcorr(m)=z/n/dsqrt(vres(l)*vres(k))
+            chcorr(m)=z/n/sqrt(vres(l)*vres(k))
             m=m+1
          END DO
       END DO

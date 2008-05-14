@@ -34,6 +34,6 @@ mask.create(img,
 \references{ Polzehl, J., and Tabelow, K. (2007). Adaptive smoothing of
   digital images, Journal of Statistical Software 19 (1). 
  }
-\author{  Joerg Polzehl \email{polzehl@wias-berlin.de}  }
+\author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de}}
 \seealso{ \code{\link{awsimage}}  }
 \keyword{ manip }% at least one, from doc/KEYWORDS

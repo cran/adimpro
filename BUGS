@@ -1,0 +1,2 @@
+- make.image() on three-dimensional data does not look, whether third dimension has 3 (or 4) components, no real consistency check.
+- hsi-rgb conversions should be improved using calls to internal C-routines (R extensions Chapter 6)

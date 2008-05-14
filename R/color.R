@@ -2,13 +2,19 @@ rgb2grey <- function(obj, compress=TRUE) {
   if(!check.adimpro(obj)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
-  if (obj$type!="rgb") {
-    warning("Error: image type is not rgb\n")
+  if (!(obj$type %in% c("rgb","xyz","yuv","yiq"))) {
+    warning("Error: image type is not implemented \n")
   } else {
     if(obj$compressed) obj <- decompress.image(obj)
     dm <- obj$dim
     dim(obj$img) <- c(prod(dm),3)
+    if(obj$cspace!="sRGB") {
+       obj$img <- obj$img%*%t(xyz2rgbmat("sRGB")%*%rgb2xyzmat(obj$cspace))
+       obj$cspace <- "greyscale"
+       obj$img <- as.integer(pmax(0,pmin(65535,c(0.299, 0.587, 0.114) %*% t(obj$img))))
+    } else {
     obj$img <- as.integer(c(0.299, 0.587, 0.114) %*% t(obj$img))
+    }
     dim(obj$img) <- dm
     obj$type <- "greyscale"
   }
@@ -19,10 +25,11 @@ rgb2yiq <- function(obj) {
   if(!check.adimpro(obj)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
-  if (obj$type!="rgb") {
-    warning("Error: image type is not rgb \n")
+  if (!(obj$type %in% c("rgb","xyz","yuv","yiq"))) {
+    warning("Error: image type is not implemented \n")
   } else {
     if(obj$compressed) obj <- decompress.image(obj)
+    if(obj$gamma) obj <- invgamma.correction(obj,alg=1)
     dm <- obj$dim
     obj$img <- obj$img / 65535
     dim(obj$img) <- c(prod(dm),3)
@@ -31,15 +38,19 @@ rgb2yiq <- function(obj) {
               0.587, -0.274453, -0.522591,
               0.114, -0.321263,  0.311135)
     dim(conv) <- c(3,3)
+    if(obj$cspace!="sRGB") {
+       conv <- conv%*%xyz2rgbmat("sRGB")%*%rgb2xyzmat(obj$cspace)
+    }
     
     obj$img <- obj$img %*% t(conv)
     dim(obj$img) <- c(dm,3)
+    obj$cspace <- "yiq"
     obj$type <- "yiq"
   }
   invisible(obj)
 }
 
-yiq2rgb <- function(obj, compress=TRUE) {
+yiq2rgb <- function(obj, cspace="Adobe", compress=TRUE) {
   if(!check.adimpro(obj)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
@@ -54,10 +65,14 @@ yiq2rgb <- function(obj, compress=TRUE) {
               0.9562957, -0.2721221, -1.1069890,
               0.6210244, -0.6473806,  1.7046150)
     dim(conv) <- c(3,3)
+    if(cspace!="sRGB") {
+       conv <- xyz2rgbmat(cspace)%*%rgb2xyzmat("sRGB")%*%conv
+    }
     
     obj$img <- as.integer(65535 * pmax(0, pmin(1, obj$img %*% t(conv))))
     dim(obj$img) <- c(dm,3)
-    obj$type <- "rgb"
+    obj$cspace <- cspace
+    if(cspace %in% c("sRGB","Adobe","wGamut","kodak")) obj$type <- "rgb" else obj$type <- cspace
   }
   invisible(if(compress) compress.image(obj) else obj)
 }
@@ -66,10 +81,11 @@ rgb2yuv <- function(obj) {
   if(!check.adimpro(obj)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
-  if (obj$type!="rgb") {
-    warning("Error: image type is not rgb \n")
+  if (!(obj$type %in% c("rgb","xyz","yuv","yiq"))) {
+    warning("Error: image type is not implemented \n")
   } else {
     if(obj$compressed) obj <- decompress.image(obj)
+    if(obj$gamma) obj <- invgamma.correction(obj,alg=1)
     dm <- obj$dim
     obj$img <- obj$img / 65535
     dim(obj$img) <- c(prod(dm),3)
@@ -78,15 +94,19 @@ rgb2yuv <- function(obj) {
               0.587, -0.289, -0.515,
               0.114,  0.436, -0.100)
     dim(conv) <- c(3,3)
+    if(obj$cspace!="sRGB") {
+       conv <- conv%*%xyz2rgbmat("sRGB")%*%rgb2xyzmat(obj$cspace)
+    }
     
     obj$img <- obj$img %*% t(conv)
     dim(obj$img) <- c(dm,3)
+    obj$cspace <- "yuv"
     obj$type <- "yuv"
   }
   invisible(obj)
 }
 
-yuv2rgb <- function(obj, compress=TRUE) {
+yuv2rgb <- function(obj, cspace="Adobe", compress=TRUE) {
   if(!check.adimpro(obj)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
@@ -101,15 +121,19 @@ yuv2rgb <- function(obj, compress=TRUE) {
               -0.000039, -0.394610,  2.032000,
               1.139828, -0.580500, -0.000481)
     dim(conv) <- c(3,3)
+    if(cspace!="sRGB") {
+       conv <- xyz2rgbmat(cspace)%*%rgb2xyzmat("sRGB")%*%conv
+    }
     
     obj$img <- as.integer(65535 * pmax(0, pmin(1, obj$img %*% t(conv))))
     dim(obj$img) <- c(dm,3)
-    obj$type <- "rgb"
+    obj$cspace <- cspace
+    if(cspace %in% c("sRGB","Adobe","wGamut","kodak")) obj$type <- "rgb" else obj$type <- cspace
   }
   invisible(if(compress) compress.image(obj) else obj)
 }
 
-hsi2rgb <- function (obj, compress=TRUE) {
+hsi2rgb <- function (obj, cspace="Adobe", compress=TRUE) {
   if(!check.adimpro(obj)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
@@ -145,9 +169,16 @@ hsi2rgb <- function (obj, compress=TRUE) {
     b[ind3] <- obj$img[ind3,3] * (1 + obj$img[ind3,2] * cos(obj$img[ind3,1] - 4 * pi/3)/cos(5 * pi/3 - obj$img[ind3,1]))
     r[ind3] <- 3 * obj$img[ind3,3] - (g[ind3] + b[ind3])
     
-    obj$img <- as.integer(65535 * pmax(0, pmin(1, c(r, g, b))))
+    if(cspace!="sRGB") {
+       conv <- xyz2rgbmat(cspace)%*%rgb2xyzmat("sRGB")
+       obj$img <- cbind(r, g, b) %*% t(conv)
+       if(cspace %in% c("sRGB","Adobe","wGamut","kodak")) obj$img <- as.integer(65535 * pmax(0, pmin(1,obj$img )))
+    } else {
+       obj$img <- as.integer(65535 * pmax(0, pmin(1, cbind(r, g, b))))    
+    }
     dim(obj$img) <- c(dm, 3)
-    obj$type <- "rgb"
+    obj$cspace <- cspace
+    if(cspace %in% c("sRGB","Adobe","wGamut","kodak")) obj$type <- "rgb" else obj$type <- cspace
   }
   invisible(if(compress) compress.image(obj) else obj)
 }
@@ -156,13 +187,20 @@ rgb2hsi <- function (obj) {
   if(!check.adimpro(obj)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
-  if (obj$type!="rgb") {
-    warning("Error: image type is not rgb\n")
+  if (!(obj$type %in% c("rgb","xyz","yuv","yiq"))) {
+    warning("Error: image type is not implemented \n")
   } else {
     if(obj$compressed) obj <- decompress.image(obj)
+    if(obj$gamma) obj <- invgamma.correction(obj,alg=1)
     dm <- obj$dim
-    obj$img <- obj$img / 65535
+    if(obj$cspace %in% c("sRGB","Adobe","wGamut","kodak")) obj$img <- obj$img / 65535
     dim(obj$img) <- c(prod(dm), 3)
+    if(obj$cspace!="sRGB") {
+       conv <- xyz2rgbmat("sRGB")%*%rgb2xyzmat(obj$cspace)
+#       if(obj$type != "rgb") conv <- conv*65535
+       obj$img <- obj$img%*%t(conv)
+       obj$cspace <- "sRGB"
+    }
     
     z <- obj$img[,1] - 0.5 * obj$img[,2] - 0.5 * obj$img[,3]
     n <- (obj$img[,1] - obj$img[,2])^2 + (obj$img[,1] - obj$img[,3]) * (obj$img[,2] - obj$img[,3])
@@ -175,67 +213,161 @@ rgb2hsi <- function (obj) {
     h <- h/(2 * pi)
     
     i <- (obj$img[,1] + obj$img[,2] + obj$img[,3])/3
-    
+    i <- pmax(0,pmin(1,i))
     s <- rep(0, prod(dm))
     s[i != 0] <- 1 - 1/i[i != 0] * pmin(obj$img[,1], obj$img[,2], obj$img[,3])[i != 0] # s not defined for i==0
-    
+    s <- pmax(0,pmin(1,s))
     obj$img <- c(h, s, i)
     dim(obj$img) <- c(dm, 3)
+    obj$cspace <- "hsi"
     obj$type <- "hsi"
   }
   invisible(obj)
 }
 
+
+
+rgb2xyzmat <- function(cspace){
+#
+#  provides transfer matrix from RGB to XYZ
+#
+z <- matrix(switch(EXPR=cspace,
+              sRGB=c(0.412424,0.212656,0.0193324,
+                     0.357579,0.715158,0.119193,
+                     0.180464,0.0721856,0.950444),
+              Adobe=c(0.576700,0.297361,0.0270328,
+                      0.185556,0.627355,0.0706879,
+                      0.188212,0.0752847,0.991248),
+              wGamut=c(0.716105,0.258187,0.000000,
+                       0.100930,0.724938,0.0517813,
+                       0.147186,0.0168748,0.773429),
+              kodak=c(0.797675,0.288040,0.000000,
+                      0.135192,0.711874,0.000000,
+                      0.0313534,0.000086,0.825210),
+              xyz=diag(c(1,1,1)),
+              c(0.412424,0.212656,0.0193324,
+                     0.357579,0.715158,0.119193,
+                     0.180464,0.0721856,0.950444)),3,3)
+if(cspace %in% c("yuv","yiq")) {
+z <- z%*%matrix(switch(EXPR=cspace,
+        yuv=c( 1,         1,         1,
+              -0.000039, -0.394610,  2.032000,
+              1.139828, -0.580500, -0.000481),
+        yiq=c(1,          1,          1,
+              0.9562957, -0.2721221, -1.1069890,
+              0.6210244, -0.6473806,  1.7046150)),3,3)
+}
+z
+}
+
+xyz2rgbmat <- function(cspace){
+#
+#  provides transfer matrix from XYZ to RGB
+#
+z <- matrix(switch(EXPR=cspace,
+              sRGB=c(3.24071,-0.969258,0.0556352,
+                     -1.53726,1.87599,-0.203996,
+                     -0.498571,0.0415557,1.05707),
+              Adobe=c(2.04148,-0.969258,0.0134455,
+                      -0.564977,1.87599,-0.118373,   
+                      -0.344713,0.0415557,1.01527),
+              wGamut=c(1.46281,-0.521793,0.0349342,
+                       -0.184062,1.44724,-0.0968931,
+                       -0.274361,0.0677228,1.28841),
+              kodak=c(1.34594,-0.544599,0.000000,
+                      -0.255608,1.50817,0.000000,
+                      -0.0511118,0.0205351,1.21181),
+              xyz=diag(c(1,1,1)),
+              c(3.24071,-0.969258,0.0556352,
+                     -1.53726,1.87599,-0.203996,
+                     -0.498571,0.0415557,1.05707)),3,3)
+if(cspace %in% c("yuv","yiq")) {
+z <- matrix(switch(EXPR=cspace,
+        yuv=c(0.299, -0.147,  0.615,
+              0.587, -0.289, -0.515,
+              0.114,  0.436, -0.100),
+        yiq=c(0.299,  0.595716,  0.211456,
+              0.587, -0.274453, -0.522591,
+              0.114, -0.321263,  0.311135)),3,3)%*%z
+}
+z
+}
 rgb2xyz <- function(obj) {
   if(!check.adimpro(obj)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
-  if (obj$type!="rgb") {
-    warning("Error: image type is not rgb\n")
-  } else {
-    if(obj$compressed) obj <- decompress.image(obj)
-    dm <- obj$dim
-    obj$img <- obj$img / 65535
-    dim(obj$img) <- c(prod(dm),3)
+  if (obj$type %in% c("rgb","xyz","yuv","yiq")) {
+     if(obj$compressed) obj <- decompress.image(obj)
+     if(obj$gamma) obj <- invgamma.correction(obj,alg=1)
+     if(obj$type=="rgb") obj$img <- obj$img / 65535
+     if (obj$cspace!="xyz") {
+#      if object is already in XYZ not much to do ... 
+       dm <- obj$dim
+       dim(obj$img) <- c(prod(dm),3)
     
-    conv <- c(0.49,  0.17697, 0.0,
-              0.31,  0.81240, 0.01,
-              0.20,  0.01063, 0.99)
-    dim(conv) <- c(3,3)
-    conv <- conv/0.17697
+       conv <- rgb2xyzmat(obj$cspace)
     
-    obj$img <- obj$img %*% t(conv)
-    dim(obj$img) <- c(dm,3)
+       obj$img <- obj$img %*% t(conv)
+       dim(obj$img) <- c(dm,3)
+    } else{
+    warning("Error: incorrect image type in rgb2xyz \n")
+    } 
+    obj$cspace <- "xyz"
     obj$type <- "xyz"
   }
   invisible(obj)
 }
 
-xyz2rgb <- function(obj, compress=TRUE) {
+xyz2rgb <- function(obj, cspace="Adobe", black=0, exposure=1, compress=TRUE) {
   if(!check.adimpro(obj)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
+  if (!(cspace%in%c("sRGB","Adobe","wGamut","kodak","xyz","yuv","yiq","hsi"))){
+     warning(paste("invalid color space",cspace,"reset to Adobe"))
+     cspace <- "Adobe"
+     } 
+  rgb <- cspace%in%c("sRGB","Adobe","wGamut","kodak")
   if (obj$type!="xyz") {
     warning("Error: image type is not xyz\n")
   } else {
     if(obj$compressed) obj <- decompress.image(obj)
     dm <- obj$dim
     dim(obj$img) <- c(prod(dm),3)
+    if(black!=0) {
+       y <- obj$img[,2]
+       obj$img[,1] <- obj$img[,1]/y*(y - black)
+       obj$img[,2] <- y - black
+       obj$img[,3] <- obj$img[,3]/y*(y - black)
+       obj$img[is.na(obj$img)|obj$img<0] <- 0
+    }
+    conv <- xyz2rgbmat(cspace)*exposure
     
-    conv <- c( 0.41846571, -0.09116896,  0.0009208986,
-              -0.15866078,  0.25243144, -0.0025498125,
-              -0.08283493,  0.01570752,  0.1785989139)
-    dim(conv) <- c(3,3)
-    
-    obj$img <- as.integer(65535 * pmax(0, pmin(1, obj$img %*% t(conv))))
+    if(rgb) {
+       obj$img <- as.integer(65535 * pmax(0, pmin(1, obj$img %*% t(conv))))
+       } else {
+       obj$img <- obj$img %*% t(conv)
+       }
     dim(obj$img) <- c(dm,3)
-    obj$type <- "rgb"
+    obj$cspace <- cspace
+    obj$type <- switch(cspace,"sRGB"="rgb","Adobe"="rgb","wGamut"="rgb","kodak"="rgb",cspace)
   }
-  invisible(if(compress) compress.image(obj) else obj)
+  invisible(if(compress&&rgb) compress.image(obj) else obj)
 }
 
-gamma.correction <- function (img, ga = 2.4, bp = 0.00304,
+cam2rgbmat <- function(obj, cspace="sRGB") {
+  if(obj$compressed) obj <- decompress.image(obj)
+  cam <- extract.info(obj,"Camera")
+  cam.xyz <- raw2xyzmat(obj)
+  xyz.rgb <- rgb2xyzmat(cspace)
+  cam.rgb <- t(cam.xyz)%*%xyz.rgb
+  out.cam <- t(solve(cam.rgb/apply(cam.rgb,1,sum)))
+  out.cam
+}
+
+gamma.correction <- function (img, gammatype="ITU",
                               nbins = 65536, alg = 1, log = FALSE) {
+  ga <- switch(gammatype,None=1,ITU=20/9,sRGB=2.4,CIE=3,1)
+  bp <- switch(gammatype,None=0,ITU=0.018,sRGB=0.00304,CIE=0.008856,0)
   sls <- 1/(ga/bp^(1/ga - 1) - ga * bp + bp)
   fs <- ga/bp^(1/ga - 1)    # slope divided by sls to easy computation
   c0 <- fs * bp^(1/ga) - bp # segment offset divided by sls to easy computation
@@ -247,7 +379,10 @@ gamma.correction <- function (img, ga = 2.4, bp = 0.00304,
     cat("          Segment offset:",sls * c0,"\n")
   }
   
-  img$img <- img$img / 65535
+  if(img$type=="rgb"||img$type=="greyscale") img$img <- img$img / 65535 else {
+     for(i in 1:dim(img$img)[3])
+     img$img[,,i] <- (img$img[,,i]-min(img$img[,,i]))/(max(img$img[,,i])-min(img$img[,,i]))
+  }
   di <- dim(img$img)
   
   breaks <- seq(0,1+1/(nbins-1),length=nbins+1)
@@ -274,59 +409,184 @@ gamma.correction <- function (img, ga = 2.4, bp = 0.00304,
 if(any(img$img>65535)) cat("large values in gamma\n")
   dim(img$img) <- di
   if(ga!=1) img$gamma <- TRUE
-  
+  img$gammatype <- gammatype
+  storage.mode(img$img) <- "integer"
   invisible(img)
 }
 
+invgamma.correction <- function (img,
+                              nbins = 65536, alg = 1, log = FALSE) {
+ compress <- img$compressed
+ if(img$depth=="8Bit") warning("inverting gamma may lead to image degradation for 8 Bit images")
+ if(img$compressed) img <- decompress.image(img)
+  ga <- switch(img$gammatype,None=1,ITU=20/9,sRGB=2.4,CIE=3,1)
+  bp <- switch(img$gammatype,None=0,ITU=0.018,sRGB=0.00304,CIE=0.008856,0)
 
-white.balance <- function(img, red = 1.0, blue = 1.0, brightness =
-                          1.0, log = FALSE) {
-  if (log) cat("White balance factors - R:",brightness * red, "G:",brightness,"B:",brightness * blue,"\n")
-  max.value <- as.integer(65535)
-  if(img$type == "rgb") {
-    img$img[,,1] <- as.integer(img$img[,,1] * brightness * red )
-    img$img[,,2] <- as.integer(img$img[,,2] * brightness)
-    img$img[,,3] <- as.integer(img$img[,,3] * brightness * blue)
-    
-    img$img[,,1][img$img[,,1]>max.value] <- max.value
-    img$img[,,2][img$img[,,2]>max.value] <- max.value
-    img$img[,,3][img$img[,,3]>max.value] <- max.value
-  } else if (img$type == "greyscale") {
-    img$img <- as.integer(img$img * brightness)
-    img$img[img$img>max.value] <- max.value
-  } else {
-    warning("cannot proceed color space",img$type)
+  sls <- 1/(ga/bp^(1/ga - 1) - ga * bp + bp)
+  fs <- ga/bp^(1/ga - 1)    # slope divided by sls to easy computation
+  c0 <- fs * bp^(1/ga) - bp # segment offset divided by sls to easy computation
+  
+  img$img <- img$img / 65535
+  di <- dim(img$img)
+    ind <- (1:length(img$img))[img$img > sls*bp]
+    img$img[ind] <- ((img$img[ind]/sls + c0)/fs)^ga
+    img$img[-ind] <- img$img[-ind]/sls
+  
+  img$img <- as.integer(65535 * img$img)
+if(any(img$img>65535)) cat("large values in gamma\n")
+  dim(img$img) <- di
+  if(ga!=1) {
+     img$gamma <- FALSE
+     img$gammatype <- "None"
   }
-  
-  invisible(img)
+ invisible(if(compress)  compress.image(img) else img)
+ }
+
+whitepoint <- function(wp){
+#
+#  evaluate white point entries to get corresponding x,y in xyY
+# Adapted from Wikipedia
+# note that www.brucelindbloom.com gives slightly
+# different values
+if(is.character(wp)){
+wp <- switch(EXPR=wp,E=c(1,1)/3,
+                D50=c(.34567,.35850),
+                D55=c(.33342,.34743),
+                D65=c(.31271,.32902),
+                D75=c(.29902,.31740),
+                A=c(.44757,.40745),
+                B=c(.34842,.35161),
+                C=c(.31006,.31616),
+                F2=c(.37207,.37512),
+                F7=c(.31285,.32918),
+                F11=c(.38054,.37691),
+                NULL)
+} else if(!is.numeric(wp)||length(wp)!=2) wp <- NULL
+if(is.null(wp)) {
+warning("Incorrect whitepoint, set to D65")
+wp <- c(.31271,.32902)
+}
+wp
 }
 
-adjust.image <- function(img, color.par = NULL, alg = 1, compress=TRUE) {
+wpofT <- function(temp){
+# Approximate whitepoint coordinates for given color temperature 
+#    
+if(!is.numeric(temp)) {
+warning("Non-numeric color temperatur. Using 6500 K")
+temp <- 6500
+}
+temp <- min(10000,max(1700,temp))
+cx <- c(8.429971e-01, -2.206539e-01,  3.663518e-02, -2.921696e-03,  9.048406e-05)
+cy <- c(0.7164137115, -0.4434534157, 0.0494384240, -0.0031368040, 0.0000825464, 0.5974247702)
+tx <- (temp/1000)^(0:4)
+ty <- c(tx,log(temp/1000))
+c(sum(cx*tx),sum(ty*cy))
+}
+
+changewhitepoint <- function(wsource,wdest,kind="Bradford"){
+#
+#  provides transfer matrix from XYZ(wsource) to XYZ(wdest) 
+#
+MA <- matrix(switch(EXPR=kind,
+             Bradford=c(0.8951,-0.7502,0.0389,
+                        0.2664,1.7135,-0.0685,
+                        -0.1614,0.0367,1.0296),
+             XYZscaling=diag(c(1,1,1)),
+             VonKries=c(0.40024,-0.22630,0.00000,
+                        0.70760,1.16532,0.00000, 
+                       -0.08081,0.04570,0.91822)),3,3)
+MAinv <- matrix(switch(EXPR=kind,
+             Bradford=c(0.986993,0.432305,-0.008529,
+                        -0.147054,0.518360,0.040043,
+                        0.159963,0.049291,0.968487),
+             XYZscaling=diag(c(1,1,1)),
+             VonKries=c(1.859936,0.361191,0.000000,
+                        -1.129382,0.638812,0.000000,
+                        0.219897,-0.000006,1.089064)),3,3)
+ws <- c(wsource,1-sum(wsource))%*%MA
+wd <- c(wdest,1-sum(wdest))%*%MA
+MA%*%diag(as.vector(wd/ws))%*%MAinv
+}
+
+white.balance <- function(img,wdest,kind="Bradford"){
+mat <- changewhitepoint(whitepoint(img$whitep),whitepoint(wdest),kind=kind)
+dm <- img$dim
+dim(img$img) <- c(prod(dm[1:2]),3)
+img$img <- img$img%*%mat
+dim(img$img) <- c(dm,3)
+img$whitep <- wdest
+img
+}
+
+adjust.image <- function(img, gammatype=NULL, cspace=NULL, whitep=NULL, temp=NULL, black=0, exposure=1, kind="Bradford", alg = 1, compress=TRUE) {
   
   if(!check.adimpro(img)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
+  if(abs(black)>1) black <- black/65535
   if(img$compressed) img <- decompress.image(img)
-  cp <- colorpar(color.par)
-  
-  # white balance
-  if ( (cp[3] != 1.0) || (cp[4] != 1.0) || (cp[5] != 1.0)) {
-    img <- white.balance(img, red = cp[3], blue = cp[4], brightness = cp[5])
+  if(is.null(cspace)) cspace <- img$cspace
+  if(cspace %in% c("xyz","yuv","yiq","hsi")) {
+     gammatype <- "None"
+     rgb <- FALSE
   }
-  
-  # gamma correction
-  if (!img$gamma) {
-    img <- gamma.correction(img, ga = cp[1], bp = cp[2], alg = alg)
+  dogamma <- !is.null(gammatype)&&img$gammatype!=gammatype
+  if(img$type=="greyscale"){
+     if(exposure<.1) {
+        warning("misspecified value of exposure, set value to 1")
+        exposure <- 1
+     }
+     if(dogamma||exposure!=1||black!=0){
+        if(is.null(gammatype)) gammatype <- img$gammatype
+        gamma <- gammatype!="None"
+        if(img$gamma) img <- invgamma.correction(img,alg=alg)
+        if(black!=0) img$img <- as.integer(pmax(0,img$img-black))
+        if(exposure!=1) img$img <- as.integer(pmin(65535,img$img*exposure)) 
+        dim(img$img) <- img$dim
+        if(gamma) img <- gamma.correction(img,gammatype=gammatype,alg=alg)
+     }
+  } else {
+  if(is.null(whitep)) if(is.null(temp)) whitep <- img$whitep else whitep <- wpofT(temp)
+  dowhite <- !is.null(whitep)&&any(whitepoint(img$whitep)!=whitepoint(whitep))
+  docspace <- !is.null(cspace)&&img$cspace!=cspace
+  dimg <- dim(img$img)
+  if(exposure<.1) {
+     warning("misspecified value of exposure, set value to 1")
+     exposure <- 1
   }
-  
+  if(dogamma||dowhite||docspace||black!=0){
+     if(is.null(gammatype)) gammatype <- img$gammatype
+     gamma <- gammatype!="None"
+     if(img$gamma) img <- invgamma.correction(img,alg=alg)
+#  transfer to XYZ
+     if(dowhite||docspace||black!=0){
+     if(img$type=="hsi"){
+        img <- hsi2rgb(img,"xyz",compress=FALSE)
+     } else if(img$cspace!="xyz") img <- rgb2xyz(img)
+     if(black!=0){
+       y <- img$img[,,2]
+       img$img[,,1] <- img$img[,,1]/y*(y - black)
+       img$img[,,2] <- y - black
+       img$img[,,3] <- img$img[,,3]/y*(y - black)
+       img$img[is.na(img$img)|img$img<0] <- 0
+     }
+     if(dowhite) img <- white.balance(img,whitep,kind)
+     if(cspace=="hsi"){
+        if(exposure!=1) img$img <- img$img*exposure
+        img <- rgb2hsi(img)
+     } else if(cspace %in% c("grey","gray","grayscale")) {
+        if(exposure!=1) img$img <- img$img*exposure
+        img <- rgb2grey(img)
+     } else img <- xyz2rgb(img,cspace=cspace,exposure=exposure,compress=FALSE)
+     }
+     if(gamma) img <- gamma.correction(img,gammatype=gammatype,alg=alg)
+  } else if(exposure!=1) {
+    img$img <- as.integer(img$img*exposure)
+    img$img[img$img>65535] <- as.integer(65535)
+    dim(img$img) <- dimg
+  }
+  }
+  if(img$type %in% c("greyscale","rgb")) storage.mode(img$img) <- "integer"
   invisible(if(compress) compress.image(img) else img)
-}
-
-colorpar <- function(color.par = NULL) {
-  ga <- if (is.null(color.par$ga)) 2.4 else color.par$ga
-  bp <- if (is.null(color.par$bp)) 0.00304 else color.par$bp
-  red <- if (is.null(color.par$red)) 1. else color.par$red
-  blue <- if (is.null(color.par$blue)) 1. else color.par$blue
-  brightness <- if (is.null(color.par$brightness)) 1. else color.par$brightness
-  c(ga, bp, red, blue, brightness)
 }

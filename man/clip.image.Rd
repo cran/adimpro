@@ -8,7 +8,7 @@ or interactively by mouseclicks. A new image is created by cutting out
 the clipping region.
 }
 \usage{
-clip.image(img, xind = NULL, yind = NULL, compress=NULL)
+clip.image(img, xind = NULL, yind = NULL, compress=NULL, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -19,12 +19,14 @@ clip.image(img, xind = NULL, yind = NULL, compress=NULL)
   \item{yind}{ \code{yind} defines the vertical extension of the clipping region. }
   \item{compress}{image data are stored as raw-vector (TRUE) or array of integers (FALSE). \code{compress=NULL} 
   keeps the format used in img. }
+  \item{\dots}{ additional arguments to \code{\link{show.image}} can be
+    passed here. }
 }
 \details{
   If both \code{xind==NULL} and \code{yind==NULL}, \code{\link{show.image}} is called and the clipping region
   can be set by two left mouse clicks to opposite corners. 
 }
 \value{ An object of class "adimpro". }
-\author{ Joerg Polzehl \email{polzehl@wias-berlin.de} }
+\author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de}}
 \seealso{ \code{\link{read.image}}, \code{\link{read.raw}}, \code{\link{make.image}}, \code{\link{awsimage}}, \code{\link{awspimage}}}
 \keyword{ manip }% at least one, from doc/KEYWORDS

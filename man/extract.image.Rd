@@ -15,8 +15,6 @@ extract.image(object)
 \value{
   array or matrix of image data
 }
-\author{ Joerg Polzehl \email{polzehl@wias-berlin.de} }
+\author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de}}
 \seealso{  \code{\link{make.image}} }
-\examples{
-}
 \keyword{ manip }% at least one, from doc/KEYWORDS

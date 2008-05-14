@@ -15,18 +15,24 @@
 \usage{
 rgb2grey(obj, compress=TRUE)
 rgb2hsi(obj)
-hsi2rgb(obj, compress=TRUE)
+hsi2rgb(obj, cspace = "Adobe", compress=TRUE)
 rgb2yuv(obj)
-yuv2rgb(obj, compress=TRUE)
+yuv2rgb(obj, cspace = "Adobe", compress=TRUE)
 rgb2yiq(obj)
-yiq2rgb(obj, compress=TRUE)
+yiq2rgb(obj, cspace = "Adobe", compress=TRUE)
 rgb2xyz(obj)
-xyz2rgb(obj, compress=TRUE)
+xyz2rgb(obj, cspace = "Adobe", black= 0, exposure=1, compress=TRUE)
 }
 \arguments{
   \item{obj}{an object of class "adimpro", \code{obj$type} should coincide with 
     the first three letters of the function name, that is \code{obj$img} containes 
     color values in the corresponding color space.}
+  \item{cspace}{Target color space, one of \code{c("sRGB","Adobe","wGamut","kodak","xyz")}.
+  For function \code{xyz2rgb} also \code{c("yuv","yiq")} are implemented.}
+  \item{exposure}{Multiplicative factor for all color channels (in xyz or rgb spaces). Applied
+  in linear color space, i.e. if the image is gamma corrected the gamma correction is reversed first. }
+  \item{black}{Adjustment for black color. Color values with luminance <= black will be assigned to
+   black in RGB.}
   \item{compress}{ logical, determines if image data are returned in raw-format. }
 }
 \value{
@@ -51,6 +57,9 @@ xyz2rgb(obj, compress=TRUE)
 
   \code{rgb2xyz} and \code{xyz2rgb} convert from RGB to CIE XYZ and vice
   versa.
+
+  Conversion to \code{XYZ}, \code{YIQ}, \code{YUV} and \code{HSI}
+  involves an inverse gamma correction if required.
 }
 \references{
   Gonzalez, R.C., and Woods, R.E. (2002). Digital Image
@@ -59,7 +68,7 @@ xyz2rgb(obj, compress=TRUE)
   Polzehl, J., and Tabelow, K. (2007). Adaptive smoothing of digital
   images, Journal of Statistical Software 19 (1). 
 }
-\author{ Karsten Tabelow \email{tabelow@wias-berlin.de} }
+\author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de}}
 \examples{
 img <- read.image(system.file("img/wias.ppm",package="adimpro"))
 img.hsi <- rgb2hsi(img)

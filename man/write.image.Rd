@@ -6,8 +6,8 @@
   Write an image file.
 }
 \usage{
-write.image(img, file = "tmp.ppm", max.x=NULL, max.y=NULL, depth = NULL,color.par = NULL,
-            alg = 1, convert.path = "convert")
+write.image(img, file = "tmp.ppm", max.x=NULL, max.y=NULL, depth = NULL, gammatype="ITU", 
+        whitep = NULL, temp = NULL, cspace = NULL, black = 0, exposure = 1)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -17,22 +17,20 @@ write.image(img, file = "tmp.ppm", max.x=NULL, max.y=NULL, depth = NULL,color.pa
   \item{max.y}{ maximum value of pixels in y dimension. }
   \item{depth}{ color depth, either 8 or 16 (bit)! The value
        is reset to 8 if the specified image file format does not allow for 16 Bit encoding. }
-  \item{color.par}{ list of parameters for the gamma correction and some
-    white balance. list entries:
-    \tabular{rll}{
-      ga \tab gamma value \tab default 2.4\cr
-      bp  \tab break point \tab default 0.00304\cr
-      alg \tab algorithm for gamma correction \tab default 1\cr
-      red \tab factor to multiply with red channel. \tab default 1.0\cr
-      blue \tab factor to multiply with blue channel. \tab default 1.0\cr
-      brightness \tab factor to multiply with all channels \tab default 1.0}
-  }  
-  \item{alg}{ chooses computing algorithms which differ in speed and precision. }
-  \item{convert.path}{ Windows system calls seem to change environment
-    variable PATH, such that "convert" points to
-    c:\\windows\\system32\\convert.exe instead of
-    ImageMagick-x.x.x\\convert. Therefore here the full path must be
-    provided. Backslash needs to be escaped: c:\\\\programs\\\\imagemagick-6.3.0\\\\convert }
+  \item{gammatype}{ character, determines the type of gamma correction within the image.
+     "ITU" stands for ITU-R BT.709-3 as e.g. used by \code{dcraw}. Alternatives recognized
+     within the package are "None", "sRGB" and "CIE" (CIE L*). \code{NULL} keeps the actual setting.}
+  \item{cspace}{ defines the output color space, default is \code{img$cspace} can be set to "sRGB", "Adobe" (Adobe 1998), "wGamut" (Wide Gamut), "kodak" (Kodak ProPhoto)
+     "xyz", "yuv", "yiq" and "hsi"}
+  \item{whitep}{White point in \code{xyY} space. Can be given as one of (character)
+  \code{c("A","B","C","E","D50","D55","D65","D75","F2","F7","F11")} or as a two element numeric
+   vector of chromatic \code{xy} coordinates. \code{"D65"} corresponds to the default white point of \code{"sRGB"} and \code{"Adobe"} RGB-spaces. \code{NULL} keeps the actual setting.}
+  \item{temp}{Color temperature. Can be used to specify chromatic \code{xy} coordinates of the
+   whitepoint. Only used if \code{is.null(whitep)}. }
+  \item{black}{Adjustment for black color. Color values with luminance <= black will be assigned to
+   black in RGB. Adjustment ist done in xyY space.}
+  \item{exposure}{Multiplicative factor for all color channels (in xyz or rgb spaces). Applied
+  in linear color space, i.e. if the image is gamma corrected the gamma correction is reversed first. }
 }
 \details{
   This function writes the image data in \code{img} to the file
@@ -41,24 +39,19 @@ write.image(img, file = "tmp.ppm", max.x=NULL, max.y=NULL, depth = NULL,color.pa
   all target formats support 16bit coding. The target format is
   determined from the file extension, and should be one of the many that
   ImageMagick supports.
-
-  If \code{color.par$red} or \code{color.par$blue} or \code{color.par$brightness} differ from 1.0 the
-  corresponding channels are multiplied with the provided
-  values. Saturated values are set to 1.
-
-  If \code{img$gamma} is FALSE, perform gamma correction with
-  \code{color.par$ga} and \code{color.par$bp}. \code{alg} chooses between three different
-  computing algorithms (approximations) with increasing computation time
-  and precision (\code{alg} is 1,2, or 3).
-
+  
+  Note that write image by default  applies a gamma correction with \code{gammatype="ITU"}.
+  This provides a good standard for display on a screen. For printing 
+  \code{cspace="Adobe"} should be prefered. Images that are intended for further editing should preferably be saved in an image format that allows for
+  16Bit depth (tiff, png) using either  \code{cspace="Adobe"},  \code{cspace="wGamut"} or \code{cspace="kodak"} and preferably no gamma
+  correction to prevent from additional loss of information.
 }
 \value{
   Nothing is returned.}
-\author{ Karsten Tabelow \email{tabelow@wias-berlin.de} }
+\author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de}}
 \note{ ImageMagick has to be installed on the system to write "tif", "tiff",
-  "png", "gif", "jpg" or "jpeg" files.
-}
+  "png", "gif", "jpg" or "jpeg" files.}
 
-\seealso{ \code{\link{read.image}} }
+\seealso{ \code{\link{read.image}}, \code{\link{adjust.image}} }
 \keyword{ IO }% at least one, from doc/KEYWORDS
 \keyword{ utilities }% __ONLY ONE__ keyword per line

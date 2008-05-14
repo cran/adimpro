@@ -1,0 +1,80 @@
+version 0.4.6: 16.4.2008
+
+estimation of local anisotropy
+visualization of local anisotropy
+first code for anisotropic smoothing 
+
+version 0.6.1: 14.5.2008
+
+this version incorporates several new features from the development version
+
+Input/Output:
+
+- we now keep exif information as comment of an image 
+  this information is evaluated to recover the original adimpro-object
+  used to produce the image file, see demo(io).
+  This may be changed to using rpm-profiles.
+- new function write.raw provides a possibility to store 
+  RAW sensor data as a greyscale png-image
+  these images are recognized by read.raw, see demo(raw).
+- write.image now keeps color space by default
+- read.image/write.image now also handles xyz, yuv, yiq and 
+  hsi color spaces correctly
+- the location of ImageMagick is now automatically determined 
+  using function Sys.which and set as an environment variable 
+  ImageMagick when the package is loaded (This requires R >=2.6.0). 
+  The argument convert.path in read.image and write.image is no 
+  longer needed and has been removed.
+- make.image no longer has an argument gamma
+
+Adaptive smoothing:
+
+- functions awsimage, awspimage:
+
+- value of ladjust      1.0 -- 1.25, different lseq
+- new arguments plateau=NULL, homogen=TRUE, earlystop=TRUE
+- new varmodel "Quadratic"
+- location kernel with choice "Plateau"
+- statistical kernel changed to Plateau with spmin=0.25
+- FORTRAN subroutine awsimg has fewer parameters
+- lseq extended (if it is to short) by last element rather than by 1 
+- FORTRAN subroutine awsvimage has differing parameters
+- FORTRAN subroutine mawsimg has fewer parameters
+- FORTRAN subroutine awspimg has fewer parameters
+- handles lower/uppercase for some arguments
+
+- new function awsprop for testing propagation condition
+
+- new function awsaniso for anisotropic structural adaptive smoothing
+
+Color space conversions: 
+
+- increased and changed functionality of adjust.image
+- rgb2xxx  also accepts colorspaces xyz , yuv and yiq
+- xxx2rgb - functions now allow to specify RGB-color space (default "Adobe")
+- new function cam2rgb for conversion of camera color spaces to RGB
+- new funcions rgb2xyzmat and xyz2rgbmat 
+- function gamma.correction  now uses gammatype instead of arguments ga and bp
+- new function for inverse gamma correction
+- new function whitepoint, wpofT, changewhitepoint  for white point definitions and manipulation
+- whitebalance no uses whitepoint and color temperature 
+- adjust.image  now allows to set gammatype, cspace, whitep, color temperature blackpoint and exposure
+- new function demosaic.raw to convert RAW sensor data to RGB
+
+
+Image manipulations and diagnostics:
+
+- function edges has a new argument abs
+- functions shrink.image, rotate.image, clip.image also accept "RAW"
+- rotate.image has new argument compress
+- new function extract.info for extracting EXIF-Information
+
+Bug fixes: e.g. in make.image, invgamma.correction (internal),
+           read.ppm(internal), read.pgm(internal),
+
+Demos:
+
+We added an extensive set of demos. 
+demo(adimpro) just runs all demos sequentially. Especially
+demo(awspimage) (local polynomial smoothing) is time consuming.
+

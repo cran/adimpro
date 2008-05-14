@@ -1,4 +1,4 @@
-edges <- function(img, type="Laplacian", ltype=1){
+edges <- function(img, type="Laplacian", ltype=1, abs=FALSE){
   if(!check.adimpro(img)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
@@ -8,7 +8,14 @@ edges <- function(img, type="Laplacian", ltype=1){
                  "Sobel" = sobel(img$img),
                  "Robertcross" = robertcross(img$img), 
                  warning("Wrong type: must be Laplacian, Sobel or Robertcross"))
-  
+  deimg <- dim(eimg)
+  if(abs)   eimg <- array(abs(eimg),deimg)
+  if(length(deimg)==2){
+   if((z <- diff(range(eimg))) > 0) eimg <- (eimg - min(eimg))/z
+  } else {
+     for( i in 1:deimg[3])
+   if((z <- diff(range(eimg[,,i]))) > 0) eimg[,,i] <- (eimg[,,i] - min(eimg[,,i]))/z
+   }
   invisible(make.image(eimg))
 }
 
@@ -132,13 +139,20 @@ shrink.image <- function(img, method = "gap", xt = img$dim[1], yt = img$dim[2], 
     return(invisible(img)) 
   }
   if(img$compressed) img <- decompress.image(img)
-  type <- switch(img$type,rgb="rgb",yuv="csp",yiq="csp",hsi="csp",xyz="csp",greyscale="grey")
+  if(img$type=="RAW") {
+     warning("Can not shrink RAW images, return original")
+     return(invisible(img))
+  }
+  type <- switch(img$type,rgb="rgb",yuv="csp",yiq="csp",hsi="csp",xyz="csp",greyscale="grey",RAW="grey")
   dimg <- img$dim
 
   #    check for discrepancies in xt, yt and ratio
   if(is.null(xt)||xt<10||xt>dimg[1]) xt <- dimg[1]
   if(is.null(yt)||yt<10||yt>dimg[2]) yt <- dimg[2]
-  if(xt==dimg[1]&&yt==dimg[2]) return(invisible(img))
+  if(xt==dimg[1]&&yt==dimg[2]) {
+     warning("specified target size does not define a shrinkage operation, return original")
+     return(invisible(img))
+  }
   if(ratio){
     xratio <- xt/dimg[1]
     yratio <- yt/dimg[2]
@@ -191,15 +205,15 @@ shrink.image <- function(img, method = "gap", xt = img$dim[1], yt = img$dim[2], 
   invisible(if(compress) compress.image(img) else img)
 }
 
-rotate.image <- function(img,angle=90) {
+rotate.image <- function(img,angle=90,compress=NULL) {
   # rotate image by 0, 90, 180 or 270 degrees
   if(!check.adimpro(img)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
   dimg <- img$dim
-  compress <- img$compressed
+  if(is.null(compress)) compress <- img$compressed
   if(img$compressed) img <- decompress.image(img)
-  if (img$type=="greyscale") {
+  if (img$type=="greyscale"||img$type=="RAW") {
     img$img <- switch(as.character(angle),
                       "0"=img$img,
                       "90"=t(img$img)[,dimg[1]:1],
@@ -232,34 +246,47 @@ rotate.image <- function(img,angle=90) {
     
   }
   img$dim <- dim(img$img)[1:2]
+  img$rotate <- if(is.null(img$rotate)) angle/90 else (angle/90+img$rotate)%%4
   invisible(if(compress) compress.image(img) else img)
 }
 
-clip.image <- function(img,xind=NULL,yind=NULL,compress=NULL) {
+clip.image <- function(img,xind=NULL,yind=NULL,compress=NULL,...) {
   if(!check.adimpro(img)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
   #  if(is.null(compress))  compress <- img$compressed 
   #  if(img$compressed) img <- decompress.image(img)
   dimg <- img$dim
-  ldimg <- switch(img$type,greyscale=2,3)
+  ldimg <- switch(img$type,greyscale=2,RAW=2,3)
   if(!is.null(xind)||!is.null(yind)){
+    if(is.numeric(xind)) xind <- as.integer(xind)
     if(is.null(xind)||!valid.index(xind,dimg[1])) xind <- 1:dimg[1] else xind <- (1:dimg[1])[xind]
+    if(is.numeric(yind)) yind <- as.integer(yind)
     if(is.null(yind)||!valid.index(yind,dimg[2])) yind <- 1:dimg[2] else yind <- (1:dimg[2])[yind]
   } else {
-    show.image(img,main="Identify the corners of the clipping region by left mouse clicks")
+    show.image(img,main="Identify the corners of the clipping region by left mouse clicks",...)
     cat("Identify the corners of the clipping region by left mouse clicks\n")
     coord <- locator(2,type="p")
+    if(img$type=="RAW"){
+#  require coordinates with same location of Bayer mask
+    xa <- 2*(max(min(coord$x),1)%/%2)-1
+    xe <- 2*(min(max(coord$x),dimg[1])%/%2)
+    xind <- as.integer(xa:xe)
+    ya <- 2*(max(min(coord$y),1)%/%2)-1
+    ye <- 2*(min(max(coord$y),dimg[2])%/%2)
+    yind <- as.integer(ya:ye)
+    } else {
     xind <- as.integer(max(min(coord$x),1):min(max(coord$x),dimg[1]))
     yind <- as.integer(max(min(coord$y),1):min(max(coord$y),dimg[2]))
+    }
     lines(c(min(xind),max(xind)),c(max(yind),max(yind)))
     lines(c(min(xind),max(xind)),c(min(yind),min(yind)))
     lines(c(min(xind),min(xind)),c(min(yind),max(yind)))
     lines(c(max(xind),max(xind)),c(min(yind),max(yind)))
   }
   if(img$compressed){
-    dim(img$img) <- switch(img$type,greyscale=c(2,dimg),rgb=c(2,dimg,3),c(4,dimg,3))
-    img$img <- as.vector(switch(img$type,greyscale=img$img[,xind,yind],img$img[,xind,yind,]))
+    dim(img$img) <- switch(img$type,greyscale=c(2,dimg),RAW=c(2,dimg),rgb=c(2,dimg,3),c(4,dimg,3))
+    img$img <- as.vector(switch(img$type,greyscale=img$img[,xind,yind],RAW=img$img[,xind,yind],img$img[,xind,yind,]))
     if(!is.null(img$ni)) {
       dim(img$ni) <- c(4,dimg)
       img$ni <- as.vector(img$ni[,xind,yind])
@@ -271,7 +298,7 @@ clip.image <- function(img,xind=NULL,yind=NULL,compress=NULL) {
   img$dim <- c(length(xind),length(yind))
   if(is.null(img$xind)) img$xind <- xind else img$xind <- img$xind[xind]
   if(is.null(img$yind)) img$yind <- yind else img$yind <- img$yind[yind]
-  show.image(img,main="Clipped image")
+  show.image(img,main="Clipped image",...)
   invisible(img)
 }
 

@@ -19,8 +19,6 @@ extract.ni(object, gamma = FALSE, compress = TRUE)
 }
 \value{ an object of class "adimpro". 
 }
-\author{ Joerg Polzehl \email{polzehl@wias-berlin.de} }
+\author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de}}
 \seealso{ \code{\link{awsimage}}, \code{\link{awspimage}}, \code{\link{show.image}}, \code{\link{write.image}} }
-\examples{
-}
 \keyword{ manip }% at least one, from doc/KEYWORDS

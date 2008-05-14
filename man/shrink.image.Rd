@@ -36,7 +36,7 @@ shrink.image(img, method = "gap",
 \value{
   shrinked image
 }
-\author{ Karsten Tabelow \email{tabelow@wias-berlin.de}, Joerg Polzehl \email{polzehl@wias-berlin.de} }
+\author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de} }
 \examples{
 img <- read.image(system.file("img/wias.ppm",package="adimpro"))
 X11(height=3,width=9)

@@ -4,7 +4,7 @@ C   Perform one iteration in local constant  aws (gridded)
 C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       subroutine awspimg(y,n1,n2,dv,degr,hw,vcoef,nv,mvar,hakt,lambda,
-     1           theta,bi,bi0,ai,kern,skern,spmin,spmax,lw,w,slw,sw,
+     1           theta,bi,bi0,ai,kern,spmin,lw,w,slw,sw,
      2           wght,ind)
 C   
 C   y        observed values of regression function
@@ -20,7 +20,6 @@ C   bi       Matrix Bi dim(n1,n2,dp2)
 C   bi0      Matrix Bi0 dim(n1,n2,dp2) (with location weights only)
 C   ai       \sum  Wi Y     (output) dim(n1,n2,dp1,dv)
 C   kern     specifies the location kernel
-C   spmax    specifies the truncation point of the stochastic kernel
 C   lw       array of location weights dim(dlw,dlw) dlw=2*ih+1
 C   w        array of weights dim(dlw,dlw)
 C   sw       array of "smoothed" weights dim(dls,dls) dls=2*(ih+ihw)+1
@@ -31,9 +30,9 @@ C
       implicit logical (a-z)
       external kldistp2,lkern
       real*8 kldistp2,lkern
-      integer n1,n2,dv,kern,skern,nv,degr,ind(1),y(1)
+      integer n1,n2,dv,kern,nv,degr,ind(1),y(1)
       logical aws
-      real*8 theta(1),bi(1),bi0,ai(1),lambda,spmax,spmin,mvar(dv),
+      real*8 theta(1),bi(1),bi0,ai(1),lambda,spmin,mvar(dv),
      1       wght(dv),hakt,lw(1),w(1),hw,sw(1),slw(1),vcoef(nv,dv)
       integer ih,ih1,i1,i2,j1,j2,k,n,km1dp1,
      1        iind,jind,jind2,jwind,jwind2,dlw,clw,jw1,jw2,
@@ -46,7 +45,7 @@ C   bi(n1,n2,dp2)
 C   arrays of fixed length correspond to degr=2
 C   first set dimensions for arrays depending on degree
       aws=lambda.lt.1.d20
-      spf=spmax/(spmax-spmin)
+      spf=1.d0/(1.d0-spmin)
       if(degr.eq.0) THEN
          dp1=1
 	 dp2=1
@@ -72,7 +71,7 @@ C   compute location weights first  sum in slw
       DO j2=1,dlw
          z2=j2-clw
          z2=z2*z2
-         ih1=dsqrt(hakt2-z2)
+         ih1=sqrt(hakt2-z2)
          jind2=(j2-1)*dlw
          DO j1=clw-ih1,clw+ih1
 C  first stochastic term
@@ -101,7 +100,7 @@ C  now stochastic term
                thi(k)=theta(iind+(k-1)*n*dp1)
                si = vcoef(1,k)
                if(nv.gt.1) si = si + vcoef(2,k) * thi(k)
-               si = dmax1(si,0.1*mvar(k))
+               si = max(si,0.1*mvar(k))
                wghti(k)=wght(k)/si
 C               call dblepr("si",2,si,1)
             END DO
@@ -129,7 +128,7 @@ C  get directional differences that only depend on i2-j2
                   zz(3)=z2
 	          zz(6)=z2*z2
                END IF
-               ih1=dsqrt(hakt2-z2*z2)
+               ih1=sqrt(hakt2-z2*z2)
                DO jw1=clw-ih1,clw+ih1
 		  j1=jw1-clw+i1
 	          if(j1.lt.1.or.j1.gt.n1) CYCLE
@@ -170,12 +169,12 @@ C
                      END DO
                    sij=kldistp2(dp1,thij,bii,wghti,dv,ind)
                      w(jwind)=0.d0
-                     IF (sij.gt.spmax) CYCLE
-		     IF (skern.eq.1) THEN
-                        w(jwind)=wj*(1.d0-sij)
-		     ELSE
-		 IF (sij.gt.spmin) w(jwind)=wj*dexp(-spf*(sij-spmin))
-		     ENDIF
+                     IF (sij.gt.1.d0) CYCLE
+                        IF(sij.gt.spmin) THEN
+                           w(jwind)=wj*spf*(1.d0-sij)
+                        ELSE
+                           w(jwind)=wj
+                        END IF
 		  ELSE
 		     w(jwind)=wj		     
                   END IF
@@ -185,8 +184,8 @@ C
 C      Smooth the weights
 C   
             call testwght(w,dlw,dp1,hw,z)
-	    z=dmax1(.1d0,dmin1(z,hw))
-	    cc=dmin1(z-1.d0,1.d0/hakt2)
+	    z=max(.1d0,min(z,hw))
+	    cc=min(z-1.d0,1.d0/hakt2)
 	    call smwghts2(w,hakt,z,sw,dlw,dsw,cc)
             DO k=1,dp2
                swj(k)=0.d0
@@ -209,7 +208,7 @@ C
 		  zz(10)=z2*zz(6)
 		  zz(15)=z2*zz(10)  
 	       END IF
-               ih1=dsqrt(hs2-z2*z2)
+               ih1=sqrt(hs2-z2*z2)
                DO jw1=csw-ih1,csw+ih1
 		  j1=jw1-csw+i1
 	          if(j1.lt.1.or.j1.gt.n1) CYCLE
@@ -330,9 +329,9 @@ C
          DO i1=1,dsw
 	    z1=i1-csw
 	    i10=i1-cdiff
-	    ja1=max0(i1-2*cdiff,1)
-	    je1=min0(i1,dw)
-	    id=dsqrt(hsw2-z1*z1)
+	    ja1=max(i1-2*cdiff,1)
+	    je1=min(i1,dw)
+	    id=sqrt(hsw2-z1*z1)
 	    if(csw-id.lt.1) CYCLE
             DO i2=csw-id,csw+id
 	    i20=i2-cdiff
@@ -342,9 +341,9 @@ C
 	          z1=(i10-j1)
 	          z1=z1*z1
 	          if(hw2-z1.lt.0.d0) CYCLE
-	          jd=dsqrt(hw2-z1)
-	          ja2=max0(i20-jd,1)
-	          je2=min0(i20+jd,dw)
+	          jd=sqrt(hw2-z1)
+	          ja2=max(i20-jd,1)
+	          je2=min(i20+jd,dw)
 	          DO j2=ja2,je2
 	             z2=(i20-j2)
 		     ww=(1.d0-(z1+z2*z2)/hw2)
@@ -353,7 +352,7 @@ C
                   END DO
 	       END DO
 	       sw(i1,i2)=z
-	       zmax=dmax1(zmax,z)
+	       zmax=max(zmax,z)
             END DO
          END DO
          DO i1=1,dsw
