@@ -82,17 +82,7 @@ make.image(x,compress=TRUE, gammatype="None", whitep = "D65", cspace="Adobe", sc
 \note{ The function requires dcraw to be installed.}
 \seealso{ \code{\link{read.image}} }
 \examples{
-img1 <- read.raw(system.file("img/rawimage.png",package="adimpro"),type="RAW")
-img2 <- develop.raw(img1)
-img3 <- read.raw(system.file("img/rawimage.png",package="adimpro"))
-X11(width=7,height=3)
-par(mfrow=c(1,3),mar=c(2,2,2,.5),mgp=c(2,1,0))
-show.image(img1) 
-title("RAW image")
-show.image(img2) 
-title("result of demosaicing")
-show.image(img3) 
-title("Default result of read.raw")
+\dontrun{demo(io)}
 }
 \keyword{ IO }% at least one, from doc/KEYWORDS
 \keyword{ utilities }% __ONLY ONE__ keyword per line

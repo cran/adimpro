@@ -29,14 +29,7 @@ develop.raw(object, method = "BILINEAR", wb = c(1, 1, 1), compress = TRUE)
 \note{ The function requires dcraw to be installed.}
 \seealso{ \code{\link{read.image}} }
 \examples{
-img1 <- read.raw(system.file("img/rawimage.png",package="adimpro"),type="RAW")
-img2 <- develop.raw(img1)
-X11(width=5,height=3)
-par(mfrow=c(1,2),mar=c(2,2,2,.5),mgp=c(2,1,0))
-show.image(img1) 
-title("RAW image")
-show.image(img2) 
-title("result of demosaicing")
+\dontrun{demo(io)}
 }
 \keyword{ IO }% at least one, from doc/KEYWORDS
 \keyword{ utilities }% __ONLY ONE__ keyword per line

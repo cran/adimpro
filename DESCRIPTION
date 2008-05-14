@@ -1,5 +1,5 @@
 Package: adimpro
-Version: 0.6.1
+Version: 0.6.2
 Date: 2008-05-14
 Title: Adaptive Smoothing of Digital Images
 Author: Karsten Tabelow <tabelow@wias-berlin.de>,
@@ -14,4 +14,4 @@ License: GPL (>=2)
 Copyright: This package is Copyright (C) 2006-2008 
          Weierstrass Institute for Applied Analysis and Stochastics.
 URL: http://www.wias-berlin.de/project-areas/stat/
-Packaged: Mon May 19 14:39:27 2008; tabelow
+Packaged: Tue May 20 13:50:06 2008; tabelow
