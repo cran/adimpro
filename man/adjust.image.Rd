@@ -51,8 +51,12 @@ adjust.image(img, gammatype=NULL, cspace = NULL, whitep = NULL,
 \author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de}}
 \seealso{ \code{\link{show.image}}, \code{\link{write.image}} }
 \examples{
+if(Sys.getenv("ImageMagick")==""){
+cat("Please install ImageMagick\n")
+} else {
 img <- read.image(system.file("img/wias.ppm",package="adimpro"))
 img2 <- adjust.image(img,cspace="wGamut",whitep="D50")
 show.image(img2)
+}
 }
 \keyword{ manip }% at least one, from doc/KEYWORDS

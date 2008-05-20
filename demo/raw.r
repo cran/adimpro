@@ -1,4 +1,7 @@
 require(adimpro)
+if(Sys.getenv("ImageMagick")==""){
+cat("Please install ImageMagick\n")
+} else {
 #
 #     I/O functions
 #
@@ -51,4 +54,5 @@ graphics.off()
 if(toupper(z)!="N"){
 file.remove("rawtest.png")
 rm(img,img1,img2,img3,img4)
+}
 }

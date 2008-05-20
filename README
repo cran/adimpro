@@ -1,8 +1,8 @@
-version 0.4.6: 16.4.2008
+version 0.6.3: 20.5.2008
 
-estimation of local anisotropy
-visualization of local anisotropy
-first code for anisotropic smoothing 
+- adimpro now writes temporary files into the directory used by function tempfile()
+- corrected handling (identification)  of greyvalue images in read.image 
+
 
 version 0.6.1: 14.5.2008
 
@@ -26,6 +26,7 @@ Input/Output:
   The argument convert.path in read.image and write.image is no 
   longer needed and has been removed.
 - make.image no longer has an argument gamma
+
 
 Adaptive smoothing:
 
@@ -77,4 +78,10 @@ Demos:
 We added an extensive set of demos. 
 demo(adimpro) just runs all demos sequentially. Especially
 demo(awspimage) (local polynomial smoothing) is time consuming.
+
+version 0.4.6: 16.4.2008
+
+estimation of local anisotropy
+visualization of local anisotropy
+first code for anisotropic smoothing 
 

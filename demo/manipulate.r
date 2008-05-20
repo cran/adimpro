@@ -1,4 +1,7 @@
 require(adimpro)
+if(Sys.getenv("ImageMagick")==""){
+cat("Please install ImageMagick\n")
+} else {
 #
 #      changing the size of an image
 #
@@ -52,6 +55,6 @@ graphics.off()
 if(toupper(z)!="N"){
 rm(img, img1, img2, img3, img4, img5, img6, img7, ttt, z)
 }
-
+}
 
 

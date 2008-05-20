@@ -26,11 +26,15 @@ rotate.image(img, angle = 90, compress=NULL)
 \author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de}}
 \seealso{ \code{\link{show.image}} }
 \examples{
+if(Sys.getenv("ImageMagick")==""){
+cat("Please install ImageMagick\n")
+} else {
 img <- read.image(system.file("img/wias.ppm",package="adimpro"))
 X11(height=5,width=10)
 par(mfrow=c(1,2))
 show.image(img,main="Original Image")
 img.rot <- rotate.image(img)
 show.image(img.rot,main="Rotated Image")
+}
 }
 \keyword{ manip }% at least one, from doc/KEYWORDS

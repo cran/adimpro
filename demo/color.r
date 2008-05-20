@@ -1,4 +1,7 @@
 require(adimpro)
+if(Sys.getenv("ImageMagick")==""){
+cat("Please install ImageMagick\n")
+} else {
 #
 #      Color space transformations
 #
@@ -74,4 +77,5 @@ z <- readline("End of demo, remove created objects (Y/N) :")
 graphics.off()
 if(toupper(z)!="N"){
 rm(img, z)
+}
 }

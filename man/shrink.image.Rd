@@ -38,6 +38,9 @@ shrink.image(img, method = "gap",
 }
 \author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de} }
 \examples{
+if(Sys.getenv("ImageMagick")==""){
+cat("Please install ImageMagick\n")
+} else {
 img <- read.image(system.file("img/wias.ppm",package="adimpro"))
 X11(height=3,width=9)
 par(mfrow=c(1,3))
@@ -46,5 +49,6 @@ img.shrink1 <- shrink.image(img,method="gap")
 img.shrink2 <- shrink.image(img,method="nearest",xt=20,yt=20)
 show.image(img.shrink1,main="Shrinked Image (gap)")
 show.image(img.shrink2,main="Shrinked Image (nearest)")
+}
 }
 \keyword{ manip }% at least one, from doc/KEYWORDS

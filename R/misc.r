@@ -8,6 +8,10 @@ warning("could not determine path to Imagemagick \n
 please set the correct path manually using \n
 'Sys.setenv(ImageMagick='path2imagemagick')'")
 }
+dcraw <- Sys.which("dcraw")
+if(dcraw=="") cat("Reading RAW images requires to install dcraw, see \n
+   http://cybercom.net/~dcoffin/dcraw/ for LINUX and http://www.insflug.org/raw/ 
+for MAC OS and Windows \n")
 }
 
 check.adimpro <- function(object){

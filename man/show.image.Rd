@@ -55,7 +55,11 @@ show.image(img, max.x = 1000, max.y = 1000, gammatype = "ITU",
 \author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de}}
 \seealso{ \code{\link{read.image}}, \code{\link{write.image}}, \code{\link{adjust.image}} }
 \examples{
+if(Sys.getenv("ImageMagick")==""){
+cat("Please install ImageMagick\n")
+} else {
 img <- read.image(system.file("img/wias.ppm",package="adimpro"))
 show.image(img)
+}
 }
 \keyword{ hplot }% at least one, from doc/KEYWORDS

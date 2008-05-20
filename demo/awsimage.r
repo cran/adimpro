@@ -1,4 +1,7 @@
 require(adimpro)
+if(Sys.getenv("ImageMagick")==""){
+cat("Please install ImageMagick\n")
+} else {
 #
 #     smoothing images
 #
@@ -47,4 +50,5 @@ z <- readline("End of demo, remove created objects (Y/N) :")
 graphics.off()
 if(toupper(z)!="N"){
 rm(img,img0,imghat,imghat2, z)
+}
 }

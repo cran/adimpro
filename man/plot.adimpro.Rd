@@ -43,8 +43,12 @@
 \author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de}}
 \seealso{ \code{\link{summary.adimpro}}, \code{\link{adjust.image}} }
 \examples{
+if(Sys.getenv("ImageMagick")==""){
+cat("Please install ImageMagick\n")
+} else {
 img.noise <- read.image(system.file("img/wias-noise.ppm",package="adimpro"))
 plot(img.noise)
+}
 }
 \keyword{ hplot }% at least one, from doc/KEYWORDS
 \keyword{ iplot }% at least one, from doc/KEYWORDS

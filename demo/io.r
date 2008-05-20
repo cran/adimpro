@@ -1,4 +1,7 @@
 require(adimpro)
+if(Sys.getenv("ImageMagick")==""){
+cat("Please install ImageMagick\n")
+} else {
 system1 <- function(command){
 # start a process in the background and return the process ID if .Platform$OS=="unix"
 if(capabilities("X11")) {
@@ -136,5 +139,5 @@ for(i in c("test.png","testimage.png","testAdobe.png","testAdobegam.png","testwG
 file.remove(i)
 rm(img,img2, img3, img4, img5, img6, img7, img8, img9, img10, imgdata2, imgdata4, imgdata7, imgdata10, z, system1)
 }
-
+}
 

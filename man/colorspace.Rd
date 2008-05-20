@@ -70,8 +70,12 @@ xyz2rgb(obj, cspace = "Adobe", black= 0, exposure=1, compress=TRUE)
 }
 \author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de}}
 \examples{
+if(Sys.getenv("ImageMagick")==""){
+cat("Please install ImageMagick\n")
+} else {
 img <- read.image(system.file("img/wias.ppm",package="adimpro"))
 img.hsi <- rgb2hsi(img)
 plot(img.hsi)
+}
 }
 \keyword{color}

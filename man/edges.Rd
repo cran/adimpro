@@ -52,6 +52,9 @@ edges(img, type = "Laplacian", ltype=1, abs=FALSE)
 }
 \author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de} }
 \examples{
+if(Sys.getenv("ImageMagick")==""){
+cat("Please install ImageMagick\n")
+} else {
 img <- read.image(system.file("img/wias.ppm",package="adimpro"))
 X11(height=5,width=10)
 par(mfrow=c(2,4),mar=c(2,2,2,.2),mgp=c(2,1,0))
@@ -68,6 +71,6 @@ img.edge <- edges(img,"Sobel")
 show.image(img.edge,main="Edges (Sobel)")
 img.edge <- edges(img,"Robertcross")
 show.image(img.edge,main="Edges (Robertcross)")
-
+}
 }
 \keyword{ manip }% at least one, from doc/KEYWORDS

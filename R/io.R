@@ -6,7 +6,14 @@ read.image <- function(filename, compress=TRUE) {
   
   if (ext %in% c("tif","tiff","pgm","ppm","png","pnm","gif","jpg","jpeg","bmp")) {
     if (ext %in% c("tif","tiff","png","gif","jpg","jpeg","bmp")) {
-      tmpfile <- paste(c(fileparts[-length(fileparts)],"ppm"),collapse=".")
+      imgctype <- system(paste(Sys.getenv("ImageMagick"),"identify -format %r \"",filename,"\"",sep=""),intern=TRUE)
+      if(regexpr("Gray",imgctype)!=-1){
+      tmpfile <- paste(tempfile("pgm"),".pgm",sep="")
+      tmpext <- "pgm"
+      } else {
+      tmpfile <- paste(tempfile("ppm"),".ppm",sep="")
+      tmpext <- "ppm"
+      }
       if (file.exists(filename)) {
             system(paste(convert.path," -compress None \"",filename,"\" \"",tmpfile,"\"",sep=""),wait=TRUE)
             filename <- tmpfile            
@@ -14,10 +21,10 @@ read.image <- function(filename, compress=TRUE) {
         stop(paste("Error: file",filename,"does not exist!"))
       }
     }
-    
+    if(ext%in%c("pgm","ppm")) tmpext <- ext
     object <- list()
     
-    if (ext == "pgm") {
+    if (tmpext == "pgm") {
       if (file.exists(filename)) {
         object$img <- read.pgm(filename)
       } else {
@@ -140,9 +147,9 @@ write.image <- function(img, file="tmp.ppm", max.x = NULL, max.y =NULL, depth=NU
   fileparts <- strsplit(file,"\\.")[[1]]
   ext <- tolower(fileparts[length(fileparts)])
   if (img$type == "greyscale") {
-    tmpfile <- paste(c(fileparts[-length(fileparts)],"pgm"),collapse=".")
+     tmpfile <- paste(tempfile("pgm"),".pgm",sep="")
   } else {
-    tmpfile <- paste(c(fileparts[-length(fileparts)],"ppm"),collapse=".")
+     tmpfile <- paste(tempfile("ppm"),".ppm",sep="")
   }
   
   # white balance
@@ -183,7 +190,6 @@ write.image <- function(img, file="tmp.ppm", max.x = NULL, max.y =NULL, depth=NU
     }
     ptype <- switch(img$type,
                     "greyscale" = "P5","P6")
-    
     con <- file(tmpfile, "wb")
     writeChar(ptype,con,eos=NULL)
     writeBin(charToRaw("\n"),con)
@@ -235,7 +241,7 @@ write.raw <- function(img, filename="tmp.png") {
   dimg <- dim(img$img)
   
   # determine file name for PPM intermediate
-    tmpfile <- paste(c(fileparts[-length(fileparts)],"pgm"),collapse=".")
+    tmpfile <- paste(tempfile("pgm"),".pgm",sep="")
     pimg <- img$img[,dimg[2]:1]
   # now write
     maximg <- 65535
@@ -502,8 +508,8 @@ read.raw <- function (filename,type="PPM",wb="CAMERA",cspace="Adobe",interp="Bil
 # containing RAW-data 
 # otherwise just take it as a color image without gamma correction
     fileparts <- strsplit(filename,"\\.")[[1]]
-    ext <- tolower(fileparts[length(fileparts)])
-    if(ext == "png"){
+    ext <- fileparts[length(fileparts)]
+    if(tolower(ext) == "png"){
     img <- read.image(filename)
     if(img$type=="RAW") {
        img$depth <- "16bit"
@@ -523,20 +529,23 @@ read.raw <- function (filename,type="PPM",wb="CAMERA",cspace="Adobe",interp="Bil
   opt3 <- switch(cspace,RAW="-o 0",sRGB=NULL,Adobe="-o 2",wGamut="-o 3",kodak="-o 4",XYZ="-o 5",NULL)
   opt4 <- switch(interp,Bilinear="-q 0",VNG="-q 2",AHD="-q 3",FourC="-f","-q 0")
   #  VNG seems to provide minimal spatial correlation
-  system(paste("dcraw", opt1, opt2, opt3, opt4, filename))
+  tmpfile0 <- tempfile("raw")
+  tmpfile <- paste(c(tmpfile,ext),collapse=".")
+  file.copy(filename,tmpfile)
+  system(paste("dcraw", opt1, opt2, opt3, opt4, tmpfile))
 
   object <- list()
   
   if(opt1 != "-i -v") {
     if(opt1 == "-4 -d") {
-      filenamep <- paste(strsplit(filename,"\\.")[[1]][1],".pgm",sep="") 
+      filenamep <- paste(tmpfile0,".pgm",sep="") 
       object$img <- read.pgm(filenamep)
       object$type <- "RAW"
       interp <- "None"
       cspace <- "CAMERA"
       wb <- "None"
     } else {
-      filenamep <- paste(strsplit(filename,"\\.")[[1]][1],".ppm",sep="") 
+      filenamep <- paste(tmpfile0,".ppm",sep="") 
       if (file.exists(filenamep)) {
         object$img <- read.ppm(filenamep)
         } else {
