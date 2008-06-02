@@ -530,7 +530,7 @@ read.raw <- function (filename,type="PPM",wb="CAMERA",cspace="Adobe",interp="Bil
   opt4 <- switch(interp,Bilinear="-q 0",VNG="-q 2",AHD="-q 3",FourC="-f","-q 0")
   #  VNG seems to provide minimal spatial correlation
   tmpfile0 <- tempfile("raw")
-  tmpfile <- paste(c(tmpfile,ext),collapse=".")
+  tmpfile <- paste(c(tmpfile0,ext),collapse=".")
   file.copy(filename,tmpfile)
   system(paste("dcraw", opt1, opt2, opt3, opt4, tmpfile))
 

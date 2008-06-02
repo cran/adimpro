@@ -7,9 +7,12 @@ system1 <- function(command){
 if(capabilities("X11")) {
 system(paste(command,"&"))
 if(.Platform$OS=="unix"){
+# need a few milliseconds for the process to start
+for(i in 1:1000) x <- runif(1)
+# this's just to have some time before issuing the next command 
 ttt <- strsplit(system(paste("ps aux|grep '",command,"'",sep=""),intern=TRUE)," +")
 zzz <- grep("grep",ttt)
-if(length(zzz) > 0) ttt[-zzz][[1]][2] else ttt[[1]][2]
+if(length(ttt[-zzz]) > 0) ttt[-zzz][[1]][2] else NULL
 }
 } else {
 cat("Sorry no X-server on Windows\n")

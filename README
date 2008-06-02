@@ -1,3 +1,12 @@
+version 0.6.3.1: 02.6.2008
+
+bug-fixes only
+- read.raw: typo in file name manipulations
+- demo(io) needed some time between issuing two system calls. 
+  Sometimes the process started with the first system call
+  was unnkown to the second that asks for the process ID
+  of the first. 
+
 version 0.6.3: 20.5.2008
 
 - adimpro now writes temporary files into the directory used by function tempfile()
