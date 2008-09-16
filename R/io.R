@@ -275,7 +275,7 @@ show.image <- function (img, max.x = 1e+03, max.y =1e+03, gammatype = "ITU", whi
   if(cspace %in% c("grey","gray","grayscale")) cspace <- "greyscale" 
   dimg0 <- img$dim
   if(dimg0[1]>=max.x||dimg0[2]>=max.y){
-  img <- shrink.image(img,xt=max.x,yt=max.y,method="gap",compress=FALSE)
+  img <- shrink.image(img,xt=max.x,yt=max.y,method="nearest",compress=FALSE)
   } else if(img$compressed) img <- decompress.image(img)
   dimg <- img$dim
   
@@ -503,7 +503,7 @@ read.pgm <- function(filename) {
   invisible(img)
 }
 
-read.raw <- function (filename,type="PPM",wb="CAMERA",cspace="Adobe",interp="Bilinear",rm.ppm=TRUE,compress=TRUE) {
+read.raw <- function (filename,type="PPM",wb="CAMERA",cspace="Adobe",interp="Bilinear",maxrange=TRUE,rm.ppm=TRUE,compress=TRUE) {
 # check the image to be a grey-value png that can be interpreted as
 # containing RAW-data 
 # otherwise just take it as a color image without gamma correction
@@ -519,7 +519,7 @@ read.raw <- function (filename,type="PPM",wb="CAMERA",cspace="Adobe",interp="Bil
        img$whitep <- "D65"
        img$wb <- "CAMERA"
        if(type!="RAW"){
-          img <- develop.raw(img,"BILINEAR")
+          img <- develop.raw(img,"BILINEAR",maxrange=TRUE)
        }
     }
   return(invisible(img))
@@ -877,14 +877,14 @@ img
 
 
 
-develop.raw <- function(object,method="BILINEAR",wb=c(1,1,1),compress=TRUE){
+develop.raw <- function(object,method="BILINEAR",wb=c(1,1,1),maxrange=TRUE,compress=TRUE){
 #
 #   converts Sensor data into RGB-images 
 #   white balance is applied as a correction on the sensor data
 #   in contrast to other functions where white balance is done in XYZ
 #
   method <- toupper(method)
-  if(!(method %in% c("FULL","HALF","BILINEAR"))) stop("Method not implemented")
+  if(!(method %in% c("FULL","HALF","BILINEAR","MEDIAN16","MEDIAN4"))) stop("Method not implemented")
   if(object$type!="RAW") stop("object does not contain RAW sensor data, 
                     please read the image by read.raw(filename,type=''RAW'')")
   if(object$compressed) object <- decompress.image(object)
@@ -909,8 +909,13 @@ develop.raw <- function(object,method="BILINEAR",wb=c(1,1,1),compress=TRUE){
                               DUP=FALSE,
                               PACKAGE="adimpro")$sensor,n1,n2)
   }
-  h1 <- switch(method,FULL=n1-4,HALF=n1%/%2-1,n1)
-  h2 <- switch(method,FULL=n2-4,HALF=n2%/%2-1,n2)
+  if(maxrange){
+     minimg <- min(object$img)
+     rangeimg <- max(object$img)-minimg
+     object$img <- matrix(as.integer((object$img-minimg)/rangeimg*65535),n1,n2)
+  }
+  h1 <- switch(method,FULL=n1-4,HALF=n1%/%2-1,MEDIAN16=n1-6,MEDIAN16=n1-2,n1)
+  h2 <- switch(method,FULL=n2-4,HALF=n2%/%2-1,MEDIAN16=n2-6,MEDIAN16=n1-2,n2)
   theta <- array(switch(method,
                    FULL=.Fortran("fullsize",
                    as.integer(object$img),
@@ -940,6 +945,26 @@ develop.raw <- function(object,method="BILINEAR",wb=c(1,1,1),compress=TRUE){
                    as.integer(bayer),
                    as.integer(rep(1,3*n1*n2)),
                    integer(3*n1*n2),
+                   DUP=FALSE,
+                   PACKAGE="adimpro")$theta,
+                   MEDIAN16=.Fortran("demmed16",
+                   as.integer(object$img),
+                   theta=integer(h1*h2*3),
+                   as.integer(n1),
+                   as.integer(n2),
+                   as.integer(h1),
+                   as.integer(h2),
+                   as.integer(bayer),
+                   DUP=FALSE,
+                   PACKAGE="adimpro")$theta,
+                   MEDIAN4=.Fortran("demmed4",
+                   as.integer(object$img),
+                   theta=integer(h1*h2*3),
+                   as.integer(n1),
+                   as.integer(n2),
+                   as.integer(h1),
+                   as.integer(h2),
+                   as.integer(bayer),
                    DUP=FALSE,
                    PACKAGE="adimpro")$theta),c(h1,h2,3))
   n <- h1*h2

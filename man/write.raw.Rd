@@ -29,5 +29,8 @@ image is read by functions \code{\link{read.raw}} or \code{\link{read.image}}
   "png" files.}
 
 \seealso{ \code{\link{read.raw}}, \code{\link{develop.raw}} }
+\examples{
+\dontrun{demo(raw)}
+}
 \keyword{ IO }% at least one, from doc/KEYWORDS
 \keyword{ utilities }% __ONLY ONE__ keyword per line

@@ -3,7 +3,7 @@
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{ Image Processing }
 \description{ Color space transformations, change of white balance and exposure,
-  gamma correction.
+  gamma correction and histogram equalization.
 }
 \usage{
 adjust.image(img, gammatype=NULL, cspace = NULL, whitep = NULL, 
@@ -15,7 +15,8 @@ adjust.image(img, gammatype=NULL, cspace = NULL, whitep = NULL,
   \item{img}{ image object, class"adimpro". }
   \item{gammatype}{ character, determines the type of gamma correction within the image.
      "ITU" stands for ITU-R BT.709-3 as e.g. used by \code{dcraw}. Alternatives recognized
-     within the package are "None", "sRGB" and "CIE" (CIE L*). \code{NULL} keeps the actual setting.}
+     within the package are "None", "sRGB" and "CIE" (CIE L*). \code{NULL} keeps the actual setting.
+     \code{gammatype="histogram"} forces histogram equalization based on the corresponding greyvalue image.}
   \item{cspace}{ defines the output color space, default "sRGB" (sRGB D65), alternatives are 
      "Adobe" (Adobe 1998 D65), "wGamut" (Wide Gamut  D65), "kodak" (Kodak ProPhoto D65)
      "xyz", "yuv", "yiq" and "hsi". \code{NULL} keeps the actual setting.}
@@ -51,12 +52,6 @@ adjust.image(img, gammatype=NULL, cspace = NULL, whitep = NULL,
 \author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de}}
 \seealso{ \code{\link{show.image}}, \code{\link{write.image}} }
 \examples{
-if(Sys.getenv("ImageMagick")==""){
-cat("Please install ImageMagick\n")
-} else {
-img <- read.image(system.file("img/wias.ppm",package="adimpro"))
-img2 <- adjust.image(img,cspace="wGamut",whitep="D50")
-show.image(img2)
-}
+\dontrun{demo(color)}
 }
 \keyword{ manip }% at least one, from doc/KEYWORDS

@@ -64,18 +64,16 @@ C   scaling of sij outside the loop
                swjy(k)=0.d0
             END DO
             DO jw2=1,dlw
-	       j2=jw2-clw+i2
-	       if(j2.lt.1.or.j2.gt.n2) CYCLE
-C	       jind2=(j2-1)*n1
+               j2=jw2-clw+i2
+               if(j2.lt.1.or.j2.gt.n2) CYCLE
                jwind2=(jw2-1)*dlw
                z2=clw-jw2
                ih1=sqrt(hakt2-z2*z2)
                DO jw1=clw-ih1,clw+ih1
-		  j1=jw1-clw+i1
-	          if(j1.lt.1.or.j1.gt.n1) CYCLE
-C		  jind=j1+jind2
-		  if(.not.mask(j1,j2)) CYCLE
-		  wj=lw(jw1+jwind2)
+                  j1=jw1-clw+i1
+                  if(j1.lt.1.or.j1.gt.n1) CYCLE
+                  if(.not.mask(j1,j2)) CYCLE
+                  wj=lw(jw1+jwind2)
                   IF (aws) THEN
               sij=bii*kldistd(theta(i1,i2,1),theta(j1,j2,1),n,wght,dv)
                      IF (sij.gt.1.d0) CYCLE
@@ -102,7 +100,7 @@ C   Compute nonadaptive kernel estimate
 C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       subroutine awsimg(y,n1,n2,dv,hakt,thnew,bi,kern,lw,swjy)
-C   
+C
 C   y        observed values of regression function
 C   n1,n2,n3    design dimensions
 C   hakt     actual bandwidth
@@ -110,7 +108,7 @@ C   bi       \sum  Wi   (output)
 C   thnew    non-adaptive estimates    (output)
 C   kern     specifies the location kernel
 C   wght     scaling factor for second and third dimension (larger values shrink)
-C   
+C
       implicit logical (a-z)
       external kldistd,lkern
       real*8 kldistd,lkern
@@ -146,15 +144,15 @@ C
                swjy(k)=0.d0
             END DO
             DO jw2=1,dlw
-	       j2=jw2-clw+i2
-	       if(j2.lt.1.or.j2.gt.n2) CYCLE
+               j2=jw2-clw+i2
+               if(j2.lt.1.or.j2.gt.n2) CYCLE
                jwind2=(jw2-1)*dlw
                z2=clw-jw2
                ih1=sqrt(hakt2-z2*z2)
                DO jw1=clw-ih1,clw+ih1
-		  j1=jw1-clw+i1
-	          if(j1.lt.1.or.j1.gt.n1) CYCLE
-		  wj=lw(jw1+jwind2)
+                  j1=jw1-clw+i1
+                  if(j1.lt.1.or.j1.gt.n1) CYCLE
+                  wj=lw(jw1+jwind2)
                   swj=swj+wj
                   DO k=1,dv
                      swjy(k)=swjy(k)+wj*y(j1,j2,k)
@@ -178,7 +176,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       subroutine awsvimg(y,fix,n1,n2,dv,vcoef,nvpar,meanvar,chcorr,
      1                   hakt,hhom,lambda,theta,bi,bi0,thnew,kern,
      2                   spmin,wghts,lw,swjy,early,homogen)
-C   
+C
 C   y        observed values of regression function
 C   n1,n2,n3    design dimensions
 C   hakt     actual bandwidth
@@ -188,7 +186,7 @@ C   bi       \sum  Wi   (output)
 C   thnew       \sum  Wi Y     (output)
 C   kern     specifies the location kernel
 C   wght     scaling factor for second and third dimension (larger values shrink)
-C   
+C
       implicit logical (a-z)
       external kldistgc,lkern
       real*8 kldistgc,lkern
@@ -224,7 +222,7 @@ C   compute location weights first
          je1=min(dlw,clw+ih1)
          jind2=(j2-1)*dlw
          DO j1=ja1,je1
-C  first stochastic term
+C  first location weight
             jind=j1+jind2
             z1=clw-j1
             wj=lkern(kern,(z1*z1+z2)/hakt2)
@@ -280,7 +278,7 @@ C  Now fill estimated Covariancematrix in pixel i
             END DO
             call dpotrf("U",dv,s2i,dv,info)
          IF (info.ne.0) call intpr("non-definite matrix 1",21,info,1)
-	    call dpotri("U",dv,s2i,dv,info)
+            call dpotri("U",dv,s2i,dv,info)
          IF (info.ne.0) call intpr("non-definite matrix 2",21,info,1)
             IF(dv.gt.1) THEN
                DO k=2,dv
@@ -291,23 +289,21 @@ C  Now fill estimated Covariancematrix in pixel i
                END DO
             END IF
             DO jw2=1,dlw
-	       j2=jw2-clw+i2
-	       if(j2.lt.1.or.j2.gt.n2) CYCLE
-C	       jind2=(j2-1)*n1
+               j2=jw2-clw+i2
+               if(j2.lt.1.or.j2.gt.n2) CYCLE
                jwind2=(jw2-1)*dlw
                z2=clw-jw2
                z2=z2*z2
                ih1=sqrt(hakt2-z2)
                DO jw1=clw-ih1,clw+ih1
-		  j1=jw1-clw+i1
-	          if(j1.lt.1.or.j1.gt.n1) CYCLE
-C		  jind=j1+jind2
+                  j1=jw1-clw+i1
+                  if(j1.lt.1.or.j1.gt.n1) CYCLE
                   z1=clw-jw1
                   z1=z1*z1+z2
                   DO k=1,dv
                      thij(k)=thi(k)-theta(j1,j2,k)
                   END DO
-		  wj=lw(jw1+jwind2)
+                  wj=lw(jw1+jwind2)
                   IF (aws.and.z1.ge.hhomi) THEN
                      sij=bii*kldistgc(thij,s2i,dv)
                      IF (sij.gt.1.d0) THEN
@@ -315,8 +311,8 @@ C		  jind=j1+jind2
                         CYCLE
                      END IF
                      if(early) hfixmax=max(hfixmax,z1)
-		     IF (sij.gt.spmin) THEN
-			 wj=wj*(1.d0-spf*(sij-spmin))
+                     IF (sij.gt.spmin) THEN
+                         wj=wj*(1.d0-spf*(sij-spmin))
                          if(homogen) hhommax=min(hhommax,z1)
                      END IF 
                   END IF
@@ -358,16 +354,14 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       IF (xsq.ge.1) THEN
          lkern=0.d0
       ELSE IF (kern.eq.1) THEN
-         lkern=1.d0
-      ELSE IF (kern.eq.2) THEN
          lkern=1.d0-xsq
-      ELSE IF (kern.eq.3) THEN
+      ELSE IF (kern.eq.2) THEN
          z=1.d0-xsq
          lkern=z*z
-      ELSE IF (kern.eq.4) THEN
+      ELSE IF (kern.eq.3) THEN
          z=1.d0-xsq
          lkern=z*z*z
-      ELSE IF (kern.eq.5) THEN
+      ELSE IF (kern.eq.4) THEN
 C   Plateau
          IF(xsq.le.0.5d0) THEN
             lkern=1.d0
@@ -453,7 +447,11 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
             sumres=sumres+res*wght
             sumwght=sumwght+wght
          END DO
-         z=sumres/sumwght
+         if(sumwght.gt.0.d0) THEN
+            z=sumres/sumwght
+         ELSE
+            z=1d-2
+         END IF
          varcoef(k)=z
          mvar(k)=z
       END DO
@@ -488,8 +486,13 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
             t1=t1+z*res
          END DO
          d=s2*s0-s1*s1
-         varcoef(1,k)=(s2*t0-s1*t1)/d
-         varcoef(2,k)=(-s1*t0+s0*t1)/d
+         IF(d.gt.0.d0) THEN
+            varcoef(1,k)=(s2*t0-s1*t1)/d
+            varcoef(2,k)=(-s1*t0+s0*t1)/d
+         ELSE
+            varcoef(1,k)=1d-2
+            varcoef(2,k)=0d0
+         END IF
          mvar(k)=varcoef(1,k)+varcoef(2,k)*mth/n
       END DO
       RETURN
@@ -546,10 +549,14 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
          imat(3,1)=0.d0
          imat(3,2)=0.d0
 C     now calculate theta as B_i^{-1} A_i
-	 call dposv("U",3,3,mat,3,imat,3,info)
+         call dposv("U",3,3,mat,3,imat,3,info)
 C    if info>0 just keep the old estimate
          IF (info.gt.0) THEN
              call intpr("info",4,info,1)
+             varcoef(1,k)=1d-2
+             varcoef(2,k)=0d0
+             varcoef(3,k)=0d0
+             mvar(k)=1d-2
              CYCLE  
          END IF 
          tt(1)=t0
@@ -591,6 +598,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
          z2=z2/n
          z1=z1/n
          vres(k)=n/(n-1)*(z2-z1*z1)
+C  just to avoid problems with images without noise !!!
          DO i=1,n1
             DO j=1,n2
                res(i,j,k)=res(i,j,k)-z1

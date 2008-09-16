@@ -133,7 +133,7 @@ robertcross <- function(img) {
   invisible(sqrt(ximg^2 + yimg^2))
 }
 
-shrink.image <- function(img, method = "gap", xt = img$dim[1], yt = img$dim[2], ratio = TRUE, compress=TRUE) {
+shrink.image.old <- function(img, method = "gap", xt = img$dim[1], yt = img$dim[2], ratio = TRUE, compress=TRUE) {
   if(!check.adimpro(img)) {
     cat(" Consistency check for argument object failed (see warnings). object is returned.\n")
     return(invisible(img)) 
@@ -201,6 +201,74 @@ shrink.image <- function(img, method = "gap", xt = img$dim[1], yt = img$dim[2], 
                                          PACKAGE="adimpro")$imgnew,xt,yt))
   img$dim <- c(xt,yt)
   if(!is.null(img$ni)) img$ni<-NULL
+  if(!is.null(img$hmax)) img$hmax<-NULL
+  if(!is.null(img$ni0)) img$ni0<-NULL
+
+#  img$ni  has an incompatible dimension
+  invisible(if(compress) compress.image(img) else img)
+}
+
+shrink.image <- function(img, method = "median", xt = img$dim[1], yt = img$dim[2], ratio = TRUE, compress=TRUE) {
+  if(!check.adimpro(img)) {
+    cat(" Consistency check for argument object failed (see warnings). object is returned.\n")
+    return(invisible(img)) 
+  }
+  if(img$compressed) img <- decompress.image(img)
+  if(img$type=="RAW") {
+     warning("Can not shrink RAW images, return original")
+     return(invisible(img))
+  }
+  type <- switch(img$type,rgb="color",yuv="color",yiq="color",hsi="color",xyz="color",greyscale="grey",RAW="grey")
+  dimg <- img$dim
+
+  #    check for discrepancies in xt, yt and ratio
+  if(is.null(xt)||xt<10) xt <- dimg[1]
+  if(is.null(yt)||yt<10) yt <- dimg[2]
+ # if(xt==dimg[1]&&yt==dimg[2]) {
+ #   warning("specified target size does not define a shrinkage operation, return original")
+ #  return(invisible(img))
+ #}
+  if(ratio){
+    xratio <- xt/dimg[1]
+    yratio <- yt/dimg[2]
+    if(xratio <= yratio) yt <- trunc(dimg[2]*xratio) else xt <- trunc(dimg[1]*yratio)
+  }
+  nz <- as.integer((dimg[1]/xt+2)*(dimg[2]/yt+2))
+#  this is probably to much
+  imethod <- switch(method,nearest=1,median=2,mean=3,1)
+  dv <- 3
+  img$img <- switch(type,
+                    color=array(.Fortran("shrinkc",
+                                       as.integer(img$img),
+                                       as.integer(dimg[1]),
+                                       as.integer(dimg[2]),
+                                       imgnew=integer(xt*yt*dv),
+                                       as.integer(xt),
+                                       as.integer(yt),
+                                       as.double(1.e-3),
+                                       double(nz*dv),
+                                       as.integer(nz),
+                                       as.integer(imethod),
+                                       DUP=FALSE,
+                                       PACKAGE="adimpro")$imgnew,c(xt,yt,dv)),
+                    grey=matrix(.Fortran("shrinkg",
+                                       as.integer(img$img),
+                                       as.integer(dimg[1]),
+                                       as.integer(dimg[2]),
+                                       imgnew=integer(xt*yt),
+                                       as.integer(xt),
+                                       as.integer(yt),
+                                       as.double(1.e-3),
+                                       double(nz),
+                                       as.integer(nz),
+                                       as.integer(imethod),
+                                       DUP=FALSE,
+                                       PACKAGE="adimpro")$imgnew,xt,yt))
+  img$dim <- c(xt,yt)
+  if(!is.null(img$ni)) img$ni<-NULL
+  if(!is.null(img$hmax)) img$hmax<-NULL
+  if(!is.null(img$ni0)) img$ni0<-NULL
+
 #  img$ni  has an incompatible dimension
   invisible(if(compress) compress.image(img) else img)
 }
@@ -227,6 +295,13 @@ rotate.image <- function(img,angle=90,compress=NULL) {
                       "180"=img$img[dimg[1]:1,dimg[2]:1,],
                       "270"=aperm(img$img,c(2,1,3))[dimg[2]:1,,],
                       stop("Error: rotation by 0, 90, 180 or 270 degrees only"))
+  }
+  if(!is.null(img$ni)) {
+    img$ni <- switch(as.character(angle),
+                      "0"=img$ni,
+                      "90"=t(img$ni)[,dimg[1]:1],
+                      "180"=img$ni[dimg[1]:1,dimg[2]:1],
+                      "270"=t(img$ni)[dimg[2]:1,])
   }
   if(!is.null(img$xind)||!is.null(img$yind)) {
     xind <- img$xind

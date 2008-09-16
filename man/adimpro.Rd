@@ -10,7 +10,7 @@
 }
 \usage{
 read.raw(filename, type="PPM",
-         wb="CAMERA",cspace="Adobe",interp="Bilinear",
+         wb="CAMERA",cspace="Adobe",interp="Bilinear",maxrange=TRUE,
          rm.ppm=TRUE, compress=TRUE)
 read.image(filename, compress=TRUE)
 make.image(x,compress=TRUE, gammatype="None", whitep = "D65", cspace="Adobe", scale="Original",xmode="RGB")
@@ -30,6 +30,7 @@ make.image(x,compress=TRUE, gammatype="None", whitep = "D65", cspace="Adobe", sc
   \item{interp}{ defines the interpolation method, default "Bilinear", Alternatives are
    "VNG", "AHD", "FourC" (Four color interpolation) and "Halfsize", see manpages of dcraw. 
    "VNG" seems to provide the smallest spatial correlations.}
+  \item{maxrange}{If TRUE increase range of values to maximum.}
   \item{rm.ppm}{ remove intermediate tmp file? default \code{TRUE}}
   \item{gammatype}{ character, determines the type of gamma correction within the image.
      "ITU" stands for ITU-R BT.709-3 as e.g. used by \code{dcraw}. Alternatives recognized
@@ -79,7 +80,7 @@ make.image(x,compress=TRUE, gammatype="None", whitep = "D65", cspace="Adobe", sc
   \item{compressed}{ image data are stored as raw-vector (TRUE) or array of integers (FALSE).}
 }
 \author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de} }
-\note{ The function requires dcraw to be installed.}
+\note{ The function \code{read.raw} requires dcraw to be installed.}
 \seealso{ \code{\link{read.image}} }
 \examples{
 \dontrun{demo(io)}

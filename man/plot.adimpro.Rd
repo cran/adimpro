@@ -15,7 +15,8 @@
   \item{new}{ should new X11() be opened? default \code{FALSE}}
   \item{gammatype}{ character, determines the type of gamma correction within the image.
      "ITU" stands for ITU-R BT.709-3 as e.g. used by \code{dcraw}. Alternatives recognized
-     within the package are "None", "sRGB" and "CIE" (CIE L*). \code{NULL} keeps the actual setting.}
+     within the package are "None", "sRGB" and "CIE" (CIE L*). \code{NULL} keeps the actual setting.
+     \code{gammatype="histogram"} forces histogram equalization based on the corresponding greyvalue image.}
   \item{cspace}{ defines the output color space, default "sRGB" (sRGB D65), alternatives are 
      "Adobe" (Adobe 1998 D65), "wGamut" (Wide Gamut  D65), "kodak" (Kodak ProPhoto D65)
      "xyz", "yuv", "yiq" and "hsi". \code{NULL} keeps the actual setting.}
@@ -43,12 +44,7 @@
 \author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de}}
 \seealso{ \code{\link{summary.adimpro}}, \code{\link{adjust.image}} }
 \examples{
-if(Sys.getenv("ImageMagick")==""){
-cat("Please install ImageMagick\n")
-} else {
-img.noise <- read.image(system.file("img/wias-noise.ppm",package="adimpro"))
-plot(img.noise)
-}
+\dontrun{demo(color)}
 }
 \keyword{ hplot }% at least one, from doc/KEYWORDS
 \keyword{ iplot }% at least one, from doc/KEYWORDS

@@ -1,3 +1,34 @@
+version 0.7: 16.9.2008
+
+Demosaicing: 
+- new demosaicing algorithm in demosaic.raw based on multivariate medians (methods="Median4")
+- adaptive smoothing of raw images controled by new demosaicing algorithm.
+
+Manipulation:
+- new option gammatype="histogram" allows for (greyvalue) histogram equalization (and to reverse
+equalization) in adjust.image, write.image, show.image and plot. Histogram information is stored as
+component hequal .
+- new argument maxrange in read.raw, develop.raw and awsraw allows to increase range of
+sensor values as far as possible by a linear transform.
+
+version 0.7: 14.7.2008
+
+Smoothing:
+
+- awsimage, awspimage and awsaniso now use a sequence of bandwidths
+  that provides an possible decrease in variance of 1.25 from step to step.
+  This sequence depends on the kernel.
+  This also solves a problem of underestimating variances for the 
+  "Quadratic" and "Cubic" location kernel.
+  awsaniso now also allows for "Plateau" as location kernel.
+  "Uniform" location kernel does not work in this context and is therefore no longer supported
+test code for segmentation in files segment.r and segment.f
+
+bug-fixes: 
+- rotate.image now handles sums of weights correctly
+- awsaniso did not return component ni0 causing an possible error in plot
+  for objects created by the function
+
 version 0.6.3.1: 02.6.2008
 
 bug-fixes only
@@ -6,6 +37,7 @@ bug-fixes only
   Sometimes the process started with the first system call
   was unnkown to the second that asks for the process ID
   of the first. 
+- shrink.image caused error if applied to an image created by awsimage
 
 version 0.6.3: 20.5.2008
 

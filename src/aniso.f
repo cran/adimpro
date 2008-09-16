@@ -43,7 +43,7 @@
             END DO
             xhat(1,i1,i2)=b(1)/sw
             xhat(2,i1,i2)=b(2)/sw
-            xhat(3,i1,i2)=b(3)/sw            
+            xhat(3,i1,i2)=b(3)/sw
          END DO
       END DO
       return
@@ -52,9 +52,6 @@
       implicit logical (a-z)
       integer ja,je
       real*8 a(3),h,z
-C      d=a(1)*a(3)-a(2)*a(2)
-C      z=sqrt(a(3)/d)*h
-C      d==1
       z=sqrt(a(3))*h
       ja=-z
       je=z
@@ -64,10 +61,7 @@ C      d==1
       implicit logical (a-z)
       integer ix,ja,je
       real*8 a(3),h,z1,z2
-C      d=a(1)*a(3)-a(2)*a(2)
       z1=-a(2)/a(3)*ix
-C      z2=sqrt(a(3)*h*h-d*ix*ix)/a(3)
-C      d==1
       z2=sqrt(a(3)*h*h-ix*ix)/a(3)
       ja=z1-z2
       if(z1-z2.gt.0.d0) ja=ja+1
@@ -96,7 +90,7 @@ C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       subroutine aniawsim(y,n1,n2,dv,ani,hakt,lambda,theta,bi,
      1       thnew,kern,skern,spmin,spmax,wght,swjy)
-C   
+C
 C   y        observed values of regression function
 C   n1,n2,n3    design dimensions
 C   hakt     actual bandwidth
@@ -106,7 +100,7 @@ C   thnew       \sum  Wi Y     (output)
 C   kern     specifies the location kernel
 C   spmax    specifies the truncation point of the stochastic kernel
 C   wght     scaling factor for second and third dimension (larger values shrink)
-C   
+C
       implicit logical (a-z)
       external kldistd,lkern,adist2
       real*8 kldistd,lkern,adist2
@@ -154,18 +148,18 @@ C   scaling of sij outside the loop
                DO j2=ja2,je2
                   jy=i2+j2
                   if(jy.lt.1.or.jy.gt.n2) CYCLE
-		  wj=lkern(kern,adist2(a,j1,j2)/hakt2)
+                  wj=lkern(kern,adist2(a,j1,j2)/hakt2)
                   IF (aws) THEN
                      sij=bii*kldistd(theta(i1,i2,1),theta(jx,jy,1),n,
      1                               wght,dv)
                      IF (sij.gt.spmax) CYCLE
-		     IF (skern.eq.1) THEN
+                     IF (skern.eq.1) THEN
 C  skern == "Triangle"
                         IF (sij.gt.spmin) wj=wj*spf*(1.d0-sij)
-		     ELSE
+                     ELSE
 C  skern == "Exp"
-		        IF (sij.gt.spmin) wj=wj*dexp(-spf*(sij-spmin))
-		     ENDIF
+                     IF (sij.gt.spmin) wj=wj*dexp(-spf*(sij-spmin))
+                     ENDIF
                   END IF
                   swj=swj+wj
                   DO k=1,dv
@@ -190,7 +184,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       subroutine aniawsv(y,n1,n2,dv,ani,vcoef,nvpar,meanvar,chcorr,
      1                   hakt,lambda,theta,bi,thnew,kern,skern,
      2                   spmin,spmax,wghts,swjy)
-C   
+C
 C   y        observed values of regression function
 C   n1,n2,n3    design dimensions
 C   hakt     actual bandwidth
@@ -201,7 +195,7 @@ C   thnew       \sum  Wi Y     (output)
 C   kern     specifies the location kernel
 C   spmax    specifies the truncation point of the stochastic kernel
 C   wght     scaling factor for second and third dimension (larger values shrink)
-C   
+C
       implicit logical (a-z)
       external kldistgc,lkern,adist2
       real*8 kldistgc,lkern,adist2
@@ -265,7 +259,7 @@ C  Now fill estimated Covariancematrix in pixel i
             END DO
             call dpotrf("U",dv,s2i,dv,info)
             IF (info.ne.0) call intpr("non-definite matrix 1",21,i,1)
-	    call dpotri("U",dv,s2i,dv,info)
+            call dpotri("U",dv,s2i,dv,info)
             IF (info.ne.0) call intpr("non-definite matrix 2",21,i,1)
             IF(dv.gt.1) THEN
                DO k=2,dv
@@ -283,20 +277,20 @@ C  Now fill estimated Covariancematrix in pixel i
                DO j2=ja2,je2
                   jy=i2+j2
                   if(jy.lt.1.or.jy.gt.n2) CYCLE
-		  wj=lkern(kern,adist2(a,j1,j2)/hakt2)
+                  wj=lkern(kern,adist2(a,j1,j2)/hakt2)
                   DO k=1,dv
                      thij(k)=thi(k)-theta(jx,jy,k)
                   END DO
                   IF (aws) THEN
                      sij=bii*kldistgc(thij,s2i,dv)
                      IF (sij.gt.spmax) CYCLE
-		     IF (skern.eq.1) THEN
+                     IF (skern.eq.1) THEN
 C  skern == "Triangle"
                         if (sij.gt.spmin) wj=wj*spf*(1.d0-sij)
-		     ELSE
+                     ELSE
 C  skern == "Exp"
-		        IF (sij.gt.spmin) wj=wj*dexp(-spf*(sij-spmin))
-		     ENDIF
+                     IF (sij.gt.spmin) wj=wj*dexp(-spf*(sij-spmin))
+                     ENDIF
                   END IF
                   swj=swj+wj
                   DO k=1,dv

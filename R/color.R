@@ -1,3 +1,15 @@
+colorize <- function(obj, compress=TRUE) {
+  if(!check.adimpro(obj)) {
+    stop(" Consistency check for argument object failed (see warnings).\n")
+  }
+  if (obj$type %in% c("greyscale","grayscale")) {
+     img <- extract.image(obj)
+     img <- array(c(img,img,img),c(obj$dim,3))
+     obj <- make.image(img,gammatype=obj$gammatype,compress=compress)
+}
+obj
+}
+
 rgb2grey <- function(obj, compress=TRUE) {
   if(!check.adimpro(obj)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
@@ -86,6 +98,34 @@ rgb2yuv <- function(obj) {
   } else {
     if(obj$compressed) obj <- decompress.image(obj)
     if(obj$gamma) obj <- invgamma.correction(obj,alg=1)
+    dm <- obj$dim
+    obj$img <- obj$img / 65535
+    dim(obj$img) <- c(prod(dm),3)
+    
+    conv <- c(0.299, -0.147,  0.615,
+              0.587, -0.289, -0.515,
+              0.114,  0.436, -0.100)
+    dim(conv) <- c(3,3)
+    if(obj$cspace!="sRGB") {
+       conv <- conv%*%xyz2rgbmat("sRGB")%*%rgb2xyzmat(obj$cspace)
+    }
+    
+    obj$img <- obj$img %*% t(conv)
+    dim(obj$img) <- c(dm,3)
+    obj$cspace <- "yuv"
+    obj$type <- "yuv"
+  }
+  invisible(obj)
+}
+
+rgb2yuvhist <- function(obj) {
+  if(!check.adimpro(obj)) {
+    stop(" Consistency check for argument object failed (see warnings).\n")
+  }
+  if (!(obj$type %in% c("rgb","xyz","yuv","yiq"))) {
+    warning("Error: image type is not implemented \n")
+  } else {
+    if(obj$compressed) obj <- decompress.image(obj)
     dm <- obj$dim
     obj$img <- obj$img / 65535
     dim(obj$img) <- c(prod(dm),3)
@@ -308,6 +348,8 @@ rgb2xyz <- function(obj) {
        conv <- rgb2xyzmat(obj$cspace)
     
        obj$img <- obj$img %*% t(conv)
+       obj$img[obj$img>1] <- 1
+       obj$img[obj$img<0] <- 0
        dim(obj$img) <- c(dm,3)
     } else{
     warning("Error: incorrect image type in rgb2xyz \n")
@@ -366,6 +408,7 @@ cam2rgbmat <- function(obj, cspace="sRGB") {
 
 gamma.correction <- function (img, gammatype="ITU",
                               nbins = 65536, alg = 1, log = FALSE) {
+  if(gammatype=="histogram") return(hequalize(img,compress=FALSE))
   ga <- switch(gammatype,None=1,ITU=20/9,sRGB=2.4,CIE=3,1)
   bp <- switch(gammatype,None=0,ITU=0.018,sRGB=0.00304,CIE=0.008856,0)
   sls <- 1/(ga/bp^(1/ga - 1) - ga * bp + bp)
@@ -418,6 +461,7 @@ invgamma.correction <- function (img,
                               nbins = 65536, alg = 1, log = FALSE) {
  compress <- img$compressed
  if(img$depth=="8Bit") warning("inverting gamma may lead to image degradation for 8 Bit images")
+ if(img$gammatype=="histogram") return(invhequalize(img))
  if(img$compressed) img <- decompress.image(img)
   ga <- switch(img$gammatype,None=1,ITU=20/9,sRGB=2.4,CIE=3,1)
   bp <- switch(img$gammatype,None=0,ITU=0.018,sRGB=0.00304,CIE=0.008856,0)
@@ -589,4 +633,239 @@ adjust.image <- function(img, gammatype=NULL, cspace=NULL, whitep=NULL, temp=NUL
   }
   if(img$type %in% c("greyscale","rgb")) storage.mode(img$img) <- "integer"
   invisible(if(compress) compress.image(img) else img)
+}
+
+combine <- function(img1,img2,fun="+",rescale=TRUE,compress=TRUE, gammatype="None", whitep = "D65", cspace="Adobe",xmode="RGB",...){
+  ff <- match.fun(fun)
+  z <- formals(ff)
+  if(!(length(z) == 0||length(z) == 2|| length(z) == 3)) {
+    stop(" function specified in argument fun needs two arguments.\n")
+  }
+  if(!check.adimpro(img1)) {
+    stop(" Consistency check for argument img1 failed (see warnings).\n")
+  }
+  if(!check.adimpro(img2)) {
+    stop(" Consistency check for argument img2 failed (see warnings).\n")
+  }
+  if(any(img1$dim != img2$dim)) {
+     stop(" images need to have same dimension .\n")
+  }
+  img1 <- adjust.image(img1,gammatype="None", whitep = "D65", cspace="Adobe")
+  img2 <- adjust.image(img2,gammatype="None", whitep = "D65", cspace="Adobe")
+  if(img1$cspace!=img2$cspace) {
+        warning("Combining Color and greyvalued image \n")
+        if(img1$cspace=="greyscale"){
+           img1 <- colorize(img1)
+        }
+        if(img2$cspace=="greyscale"){
+           img2 <- colorize(img2)
+        }
+  }
+  if(length(z) == 0||length(z) == 2){
+  img3 <- ff(extract.image(img1),extract.image(img2))
+  } else {
+  img3 <- ff(extract.image(img1),extract.image(img2),...)
+  }
+  if(rescale){
+  img3 <- 65535*(img3-min(img3))/(max(img3)-min(img3))
+  } else {
+  img3[img3<0] <- 0
+  img3[img3>65535] <- 65535
+  }
+  if(img1$cspace=="greyscale"&&img2$cspace=="greyscale"){
+     dim(img3) <- img1$dim
+     cpace <- "greyscale"
+  } else {
+     dim(img3) <- c(img1$dim,3)
+  }
+  make.image(img3,compress=compress, gammatype=gammatype, whitep = whitep,
+             cspace="Adobe", scale="Combined",xmode=xmode)
+}
+
+hequalize <- function(img,compress=TRUE){
+  if(!check.adimpro(img)) {
+    stop(" Consistency check for argument object failed (see warnings).\n")
+  }
+  if(img$compress) img <- decompress.image(img)
+  gammatype <- img$gammatype
+  if(img$gamma) img <- invgamma.correction(img)
+  if(img$type=="greyscale"){
+     n1 <- img$dim[1]
+     n2 <- img$dim[2]
+     z <- .Fortran("hequalg",
+                    as.integer(img$img),
+                    as.integer(n1*n2),
+                    img=integer(n1*n2),
+                    cumhist=integer(65536),
+                    DUPL=FALSE,
+                    PACKAGE="adimpro")[c("img","cumhist")]
+     img$img <- matrix(z$img,n1,n2)
+     img$hequal <- z$cumhist
+  } else {
+     type <- img$type
+     cspace <- img$cspace
+     if(type%in%c("rgb","xyz")){
+        img1 <- rgb2grey(img,compress=FALSE)
+        n1 <- img1$dim[1]
+        n2 <- img1$dim[2]
+        cumhist <- .Fortran("cumhist",
+                    as.integer(img1$img),
+                    as.integer(n1*n2),
+                    cumhist=integer(65536),
+                    DUPL=FALSE,
+                    PACKAGE="adimpro")$cumhist
+        img$img <- array(.Fortran("hequalc",
+                    as.integer(img$img),
+                    as.integer(n1*n2),
+                    img=integer(n1*n2*3),
+                    as.integer(cumhist),
+                    DUPL=FALSE,
+                    PACKAGE="adimpro")$img,c(n1,n2,3))
+        img$hequal <- cumhist
+     } else {
+      warning(paste("not yet implemented for type",type)) 
+     }
+  }
+  img$gamma <- TRUE
+  img$gammatype <- "histogram"
+#  if(gammatype!="None") img <- gamma.correction(img,gammatype=gammatype)
+  if(compress) compress.image(img) else img
+}
+hequalize.old <- function(img,compress=TRUE){
+  if(!check.adimpro(img)) {
+    stop(" Consistency check for argument object failed (see warnings).\n")
+  }
+  if(img$compress) img <- decompress.image(img)
+  gammatype <- img$gammatype
+  if(img$gamma) img <- invgamma.correction(img)
+  if(img$type=="greyscale"){
+     n1 <- img$dim[1]
+     n2 <- img$dim[2]
+     z <- .Fortran("hequalg",
+                    as.integer(img$img),
+                    as.integer(n1*n2),
+                    img=integer(n1*n2),
+                    cumhist=integer(65536),
+                    DUPL=FALSE,
+                    PACKAGE="adimpro")[c("img","cumhist")]
+     img$img <- matrix(z$img,n1,n2)
+     img$hequal <- z$cumhist
+  } else {
+     type <- img$type
+     cspace <- img$cspace
+     if(type%in%c("rgb","xyz")){
+        img <- rgb2yuv(img)
+        n1 <- img$dim[1]
+        n2 <- img$dim[2]
+        z <- .Fortran("hequalg",
+                    as.integer(img$img[,,1]*65535),
+                    as.integer(n1*n2),
+                    img=integer(n1*n2),
+                    cumhist=integer(65536),
+                    DUPL=FALSE,
+                    PACKAGE="adimpro")[c("img","cumhist")]
+        img$img[,,1] <- z$img/65535
+        img$hequal <- z$cumhist
+        img <- yuv2rgb(img,cspace=cspace,compress=FALSE)
+     } else {
+      warning(paste("not yet implemented for type",type)) 
+     }
+  }
+  img$gamma <- TRUE
+  img$gammatype <- "histogram"
+#  if(gammatype!="None") img <- gamma.correction(img,gammatype=gammatype)
+  if(compress) compress.image(img) else img
+}
+
+invhequalize <- function(img){
+  if(!check.adimpro(img)) {
+    stop(" Consistency check for argument object failed (see warnings).\n")
+  }
+  if(img$gammatype!="histogram") {
+    stop(" gammatype != 'histogram'.\n")
+  }
+  hist <- img$hequal
+  if(img$compress) img <- decompress.image(img)
+  if(img$type=="greyscale"){
+     n1 <- img$dim[1]
+     n2 <- img$dim[2]
+     img$img <- matrix(.Fortran("ihequal",
+                    as.integer(img$img),
+                    as.integer(n1*n2),
+                    img=integer(n1*n2),
+                    as.integer(hist),
+                    DUPL=FALSE,
+                    PACKAGE="adimpro")$img,n1,n2)
+     img$hequal <- NULL
+     img$gamma <- FALSE
+     img$gammatype <- "None"
+  } else {
+     type <- img$type
+     cspace <- img$cspace
+     if(type%in%c("rgb","xyz")){
+        n1 <- img$dim[1]
+        n2 <- img$dim[2]
+        img$img <- array(.Fortran("ihequalc",
+                    as.integer(img$img),
+                    as.integer(n1*n2),
+                    img=integer(n1*n2*3),
+                    as.integer(hist),
+                    DUPL=FALSE,
+                    PACKAGE="adimpro")$img,c(n1,n2,3))
+        img$hequal <- NULL
+        img$gamma <- FALSE
+        img$gammatype <- "None"
+     } else {
+      warning(paste("not yet implemented for type",type)) 
+     }
+  }
+  img
+}
+invhequalize.old <- function(img){
+  if(!check.adimpro(img)) {
+    stop(" Consistency check for argument object failed (see warnings).\n")
+  }
+  if(img$gammatype!="histogram") {
+    stop(" gammatype != 'histogram'.\n")
+  }
+  hist <- img$hequal
+  if(img$compress) img <- decompress.image(img)
+  if(img$type=="greyscale"){
+     n1 <- img$dim[1]
+     n2 <- img$dim[2]
+     img$img <- matrix(.Fortran("ihequal",
+                    as.integer(img$img),
+                    as.integer(n1*n2),
+                    img=integer(n1*n2),
+                    as.integer(hist),
+                    DUPL=FALSE,
+                    PACKAGE="adimpro")$img,n1,n2)
+     img$hequal <- NULL
+     img$gamma <- FALSE
+     img$gammatype <- "None"
+  } else {
+     type <- img$type
+     cspace <- img$cspace
+     if(type%in%c("rgb","xyz")){
+        img <- rgb2yuvhist(img)
+#   no need to revers the gamma correction here,
+#   so we can't use rgb2yuv
+        n1 <- img$dim[1]
+        n2 <- img$dim[2]
+        img$img[,,1] <- .Fortran("ihequal",
+                    as.integer(img$img[,,1]*65535),
+                    as.integer(n1*n2),
+                    img=integer(n1*n2),
+                    as.integer(hist),
+                    DUPL=FALSE,
+                    PACKAGE="adimpro")$img/65535
+        img$hequal <- NULL
+        img$gamma <- FALSE
+        img$gammatype <- "None"
+        img <- yuv2rgb(img,cspace=cspace,compress=FALSE)
+     } else {
+      warning(paste("not yet implemented for type",type)) 
+     }
+  }
+  img
 }

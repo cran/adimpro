@@ -52,25 +52,7 @@ edges(img, type = "Laplacian", ltype=1, abs=FALSE)
 }
 \author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de} }
 \examples{
-if(Sys.getenv("ImageMagick")==""){
-cat("Please install ImageMagick\n")
-} else {
-img <- read.image(system.file("img/wias.ppm",package="adimpro"))
-X11(height=5,width=10)
-par(mfrow=c(2,4),mar=c(2,2,2,.2),mgp=c(2,1,0))
-show.image(img,main="Original Image")
-img.edge <- edges(img)
-show.image(img.edge,main="Edges in red channel",channel=1)
-show.image(img.edge,main="Edges in green channel",channel=2)
-show.image(img.edge,main="Edges in blue channel",channel=3)
-img.edge <- edges(img)
-show.image(img.edge,main="Edges (Laplacian)")
-img.edge <- edges(img,abs=TRUE)
-show.image(img.edge,main="Edges (abs(Laplacian))")
-img.edge <- edges(img,"Sobel")
-show.image(img.edge,main="Edges (Sobel)")
-img.edge <- edges(img,"Robertcross")
-show.image(img.edge,main="Edges (Robertcross)")
-}
+\dontrun{demo(manipulate)}
+\dontrun{demo(awspimage)}
 }
 \keyword{ manip }% at least one, from doc/KEYWORDS

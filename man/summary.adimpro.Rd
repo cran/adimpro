@@ -19,4 +19,8 @@
   color space, value range, etc.
 }
 \author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de}}
+\examples{
+\dontrun{demo(io)}
+\dontrun{demo(manipulate)}
+}
 \keyword{ print }% at least one, from doc/KEYWORDS

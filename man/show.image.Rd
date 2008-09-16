@@ -17,7 +17,8 @@ show.image(img, max.x = 1000, max.y = 1000, gammatype = "ITU",
   \item{max.y}{ maximum value of pixels in y dimension to be displayed. }
   \item{gammatype}{ character, determines the type of gamma correction within the image.
      "ITU" stands for ITU-R BT.709-3 as e.g. used by \code{dcraw}. Alternatives recognized
-     within the package are "None", "sRGB" and "CIE" (CIE L*). }
+     within the package are "None", "sRGB" and "CIE" (CIE L*). 
+     \code{gammatype="histogram"} forces histogram equalization based on the corresponding greyvalue image.}
   \item{cspace}{ defines the output color space, default "sRGB" (sRGB D65), alternatives are 
      "Adobe" (Adobe 1998 D65), "wGamut" (Wide Gamut  D65), "kodak" (Kodak ProPhoto D65)
      "xyz", "yuv", "yiq" and "hsi". \code{NULL} keeps the actual setting. If \code{color.space\%in\%c("hsi","yuv","yiq","xyz")} the individual channels are rescaled to provide maximum 
@@ -55,11 +56,6 @@ show.image(img, max.x = 1000, max.y = 1000, gammatype = "ITU",
 \author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de}}
 \seealso{ \code{\link{read.image}}, \code{\link{write.image}}, \code{\link{adjust.image}} }
 \examples{
-if(Sys.getenv("ImageMagick")==""){
-cat("Please install ImageMagick\n")
-} else {
-img <- read.image(system.file("img/wias.ppm",package="adimpro"))
-show.image(img)
-}
+\dontrun{demo(io)}
 }
 \keyword{ hplot }% at least one, from doc/KEYWORDS

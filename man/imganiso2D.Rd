@@ -32,13 +32,7 @@ an object (image) of class \code{adimpro}.
 \author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de}}
 \seealso{ \code{\link{awsaniso}},\code{\link{read.image}}, \code{\link{read.raw}}, \code{\link{make.image}}, \code{\link{show.image}}, \code{\link{clip.image}} }
 \examples{
-if(Sys.getenv("ImageMagick")==""){
-cat("Please install ImageMagick\n")
-} else {
-img.noise <- read.image(system.file("img/wias-noise.ppm",package="adimpro"))
-X11(width=7,height=7)
-img.hat.c <- awsaniso(img.noise,hmax=15,graph=TRUE,g=0.1,rho=3)
-show.image(imganiso2D(img.hat.c,g=0.,rho=1000^2))
-}
+\dontrun{demo(awsimage)}
+\dontrun{demo(manipulate)}
 }
 \keyword{ manip }% at least one, from doc/KEYWORDS

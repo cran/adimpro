@@ -17,4 +17,8 @@ extract.image(object)
 }
 \author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de}}
 \seealso{  \code{\link{make.image}} }
+\examples{
+\dontrun{demo(io)}
+\dontrun{demo(manipulate)}
+}
 \keyword{ manip }% at least one, from doc/KEYWORDS

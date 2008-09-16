@@ -10,7 +10,6 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
   #
   #   sequence of factors for lambda obtained by new propagation condition 
   #
-  lseq <- c(2.52,3.25,1.59,1.69,1.1,0.9,1.03,1.23,0.99,0.95,1.06,0.99,0.96,0.99,0.96)
   #####################################################################################
   ###    
   ###    function body
@@ -96,16 +95,15 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
   #
   if (aws) qlambda <- .9994 else qlambda <- 1
   #
-  #  qlambda = .9994 makes greyvalue and color images comparable (same lseq)
+  #  qlambda = .9994 makes greyvalue and color images comparable 
   #
 #  ladjust <- max(1,ladjust)
   lkern <- switch(lkern,
-                  Triangle=2,
-                  Quadratic=3,
-                  Cubic=4,
-                  Uniform=1,
-                  Plateau=5,
-                  2)
+                  Triangle=1,
+                  Quadratic=2,
+                  Cubic=3,
+                  Plateau=4,
+                  1)
   if (is.null(hmax)) hmax <- 4
   wghts <- wghts/sum(wghts)
   dgf <- sum(wghts)^2/sum(wghts^2)
@@ -117,6 +115,7 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
                    "greyscale" = IQRdiff(object$img)^2,
                    "rgb" = apply(object$img,3,IQRdiff)^2,
                    IQRdiff(object$img)^2)
+  sigma2 <- pmax(.01,sigma2)
   cat("Estimated variance (assuming independence): ", signif(sigma2/65635^2,4),"\n")
   if (!estvar) {
     if (length(sigma2)==1) {
@@ -129,37 +128,41 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
     # set the support of the statistical kernel to (0,1), set spmin 
     spmin <- plateau
     if(is.null(spmin)) spmin <- .25
-  #     now set hinit and hincr if not provided
-  if(aws) hinit <- 1 else {
+# determine maximum volume (variance reduction)
+  maxvol <- getvofh2(hmax,lkern)
+  kstar <- as.integer(log(maxvol)/log(1.25))  
+  if(aws){ 
+     k <- if(estvar) 6 else 1 
+     }
+  else {
     cat("No adaptation method specified. Calculate kernel estimate with bandwidth hmax.\n")
-    hinit <- hmax
+    k <- kstar
   }
-  hincr <- sqrt(1.25)
   if (demo && !graph) graph <- TRUE
   if(graph){
     oldpar <- par(mfrow=c(1,3),mar=c(1,1,3,.25),mgp=c(2,1,0))
     on.exit(par(oldpar))
     graphobj0 <- object[-(1:length(object))[names(object)=="img"]]
     graphobj0$dim <- c(n1,n2)
+    if(exists(".adimpro")&&!is.null(.adimpro$xsize)) max.x <- trunc(.adimpro$xsize/3.3)  else max.x <- 500
+    if(exists(".adimpro")&&!is.null(.adimpro$xsize)) max.y <- trunc(.adimpro$xsize/1.2)  else max.y <- 1000
+#  specify settings for show.image depending on geometry (mfrow) and maximal screen size
   }
   # now check which procedure is appropriate
   #
   #    Initialize  list for theta
   #
-  hmax <- hmax
   bi <- rep(1,n)
   theta <- switch(imgtype,greyscale=object$img[xind,yind],rgb=object$img[xind,yind,])
   bi0 <- 1
   #
   #  if varmodel specified prepare for initial variance estimation
   #
-#  if(estvar){
     coef <- matrix(0,nvarpar,dv)
     coef[1,] <- sigma2
     vobj <- list(coef=coef,meanvar=sigma2)
     imgq995 <- switch(imgtype,greyscale=quantile(object$img[xind,yind],.995),
                       rgb=apply(object$img[xind,yind,],3,quantile,.995))
-#  } 
   if(scorr){
     twohp1 <- 2*trunc(hpre)+1
     pretheta <- .Fortran("awsimg",
@@ -212,23 +215,21 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
   ###
   ###              gridded   2D
   ###
-  steps <- as.integer(log(hmax/hinit)/log(hincr)+1)
-  if (length(lseq)<steps) lseq <- c(lseq,rep(lseq[length(lseq)],steps-length(lseq)))
-  hakt0 <- hakt <- hinit
-  if(estvar) { 
-    if(aws) hakt <- hakt*hincr
-    step <- 1
-  } else step <- 0 
   lambda0 <- 1e50
   if(earlystop) fix <- rep(FALSE,n) else fix <- FALSE
   if(homogen) hhom <- rep(0,n) else hhom <- 0
-  progress <- 0
-  total <- (hincr^(2*ceiling(log(hmax/hinit)/log(hincr)))-1)/(hincr^2-1)
-  if (total == 0) total <- hincr^(2*step) # for (hmax == hinit)
   #
   #   run single steps to display intermediate results
   #
-  while (hakt<=hmax) {
+   total <- cumsum(1.25^(1:kstar))/sum(1.25^(1:kstar))
+#
+#
+#   Start main loop
+#
+#
+   while (k<=kstar) {
+    hakt0 <- geth2(1,10,lkern,1.25^(k-1),1e-4)
+    hakt <- geth2(1,10,lkern,1.25^k,1e-4)
     twohp1 <- 2*trunc(hakt)+1
     spcorr <- pmax(apply(spcorr,1,mean),0)
     if(any(spcorr>0)) {
@@ -246,7 +247,6 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
       if(varmodel=="None") 
         lambda0 <- lambda0*Varcor.gauss(h0)
     } 
-    hakt0 <- hakt
     if(is.null(mask)){
         zobj <- .Fortran("awsvimg",
                          as.integer(switch(imgtype,
@@ -314,21 +314,20 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
       graphobj$img <- switch(imgtype,
                              greyscale=object$img[xind,yind],
                              rgb=object$img[xind,yind,])
-      show.image(graphobj,max.x=max.pixel,xaxt="n",yaxt="n")
+      show.image(graphobj,max.x=max.x,max.y=max.y,xaxt="n",yaxt="n")
       title("Observed Image")
       graphobj$img <- array(as.integer(theta),dimg)
-      show.image(graphobj,max.x=max.pixel,xaxt="n",yaxt="n")
+      show.image(graphobj,max.x=max.x,max.y=max.y,xaxt="n",yaxt="n")
       title(paste("Reconstruction  h=",signif(hakt,3)))
       graphobj$img <- matrix(as.integer(65534*bi/bi0),n1,n2)
       graphobj$type <- "greyscale"
       graphobj$gamma <- FALSE
-      show.image(graphobj,max.x=max.pixel,xaxt="n",yaxt="n")
+      show.image(graphobj,max.x=max.x,max.y=max.y,xaxt="n",yaxt="n")
       title(paste("Adaptation (rel. weights):",signif(mean(bi)/bi0,3)))
       rm(graphobj)
       gc()
     }
-    progress <- progress + hincr^(2*step)
-    cat("Bandwidth",signif(hakt,3)," Progress",signif(progress/total,2)*100,"% ")
+    cat("Bandwidth",signif(hakt,3)," Progress",signif(total[k],2)*100,"% ")
     if(earlystop) cat(" pixels fixed: ",sum(fix))
     if(homogen) cat("  mean radius of homog. regions ",signif(mean(hhom),3))
     if(homogen) cat("  min radius of homog. regions ",signif(min(hhom),3))
@@ -393,13 +392,27 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
                        DUP=FALSE,
                        PACKAGE="adimpro")[c("coef","meanvar")]
       dim(vobj$coef) <- c(nvarpar,dv)
+       for(i in 1:dv){
+      if(any(spcorr[,i]>.1) & vobj$meanvar[i]<sigma2[i]) {
+            vobj$coef[,i] <- vobj$coef[,i]*sigma2[i]/vobj$meanvar[i]
+            vobj$meanvar[i] <- sigma2[i]
+      }
+ #   In case of (positive) spatial correlation sigma2 is smaller than the true variance.
+#  For the first iterrations (small hakt) the variance estimate obtained in vobj 
+#  may be even smaller than that, leading to random segmentation.
+#  The effect vanishes for larger bandwidths, but may persist in case of small
+# homogeneous regions 
+      }
       cat("Estimated mean variance",signif(vobj$meanvar/65635^2,3),"\n")
     }
-    step <- step + 1
     if (demo) readline("Press return")
-    hakt <- hakt*hincr
-    lambda0 <- lambda*lseq[step]
+    lambda0 <- lambda
+    k <- k+1
   }
+#
+#   END main loop
+#
+#
   ###                                                                       
   ###            end cases                                                  
   ###                                 .....................................
@@ -414,7 +427,7 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
   ni[xind,yind] <- bi
   object$ni <- ni
   object$ni0 <- bi0
-  object$hmax <- hakt/hincr
+  object$hmax <- hakt
   object$call <- args
   if(estvar) {
     if(varmodel=="Quadratic") {
@@ -543,20 +556,24 @@ awspimage <- function(object, hmax=12, aws=TRUE, degree=1, varmodel=NULL,
   #
   dp1 <- switch(degree+1,1,3,6)
   dp2 <- switch(degree+1,1,6,15)
-  if(aws) hinit <- 1 else {
-    cat("No adaptation method specified. Calculate local polynomial estimate with bandwidth hmax.\n")
-    hinit <- hmax
-  }
-  if (aws) qlambda <- switch(degree,.9,.995) else qlambda <- 1
   lkern <- switch(lkern,
-                  Triangle=2,
-                  Quadratic=3,
-                  Cubic=4,
-                  Uniform=1,
-                  Plateau=5,
-                  2)
+                  Triangle=1,
+                  Quadratic=2,
+                  Cubic=3,
+                  Plateau=4,
+                  1)
   if (is.null(hmax)) hmax <- 12
   wghts <- wghts/max(wghts)
+  maxvol <- getvofh2(hmax,lkern)
+  kstar <- as.integer(log(maxvol)/log(1.25))  
+  if(aws){ 
+     k <- if(estvar) 6 else 1 
+     }
+  else {
+    cat("No adaptation method specified. Calculate kernel estimate with bandwidth hmax.\n")
+    k <- kstar
+  }
+  if (aws) qlambda <- switch(degree,.9,.995) else qlambda <- 1
   #
   #    Initialize  list for theta
   #
@@ -663,7 +680,18 @@ awspimage <- function(object, hmax=12, aws=TRUE, degree=1, varmodel=NULL,
                        PACKAGE="adimpro")[c("coef","meanvar")]
       if(any(is.na(vobj$coef))) vobj <- oldvobj
       dim(vobj$coef) <- c(nvarpar,dv)
-      cat("Estimated mean variance",signif(vobj$meanvar/65635^2,3),"\n")
+      for(i in 1:dv){
+      if(any(spcorr[,i]>.1) & vobj$meanvar[i]<sigma2[i]) {
+            vobj$coef[,i] <- vobj$coef[,i]*sigma2[i]/vobj$meanvar[i]
+            vobj$meanvar[i] <- sigma2[i]
+      }
+#   In case of (positive) spatial correlation sigma2 is smaller than the true variance.
+#  For the first iterrations (small hakt) the variance estimate obtained in vobj 
+#  may be even smaller than that, leading to random segmentation.
+#  The effect vanishes for larger bandwidths, but may persist in case of small
+# homogeneous regions 
+      }
+     cat("Estimated mean variance",signif(vobj$meanvar/65635^2,3),"\n")
     }
   rm(prebi)
   #
@@ -676,18 +704,19 @@ awspimage <- function(object, hmax=12, aws=TRUE, degree=1, varmodel=NULL,
     on.exit(par(oldpar))
     graphobj0 <- object[-(1:length(object))[names(object)=="img"]]
     graphobj0$dim <- c(n1,n2)
+    if(exists(".adimpro")&&!is.null(.adimpro$xsize)) max.x <- trunc(.adimpro$xsize/3.3)  else max.x <- 500
+    if(exists(".adimpro")&&!is.null(.adimpro$xsize)) max.y <- trunc(.adimpro$xsize/1.2)  else max.y <- 1000
+#  specify settings for show.image depending on geometry (mfrow) and maximal screen size
   }
   hw <- degree+.1
-  steps <- as.integer(log(hmax/hinit)/log(hincr)+1)
-  hakt0 <- hakt <- hinit
   lambda0 <- 1e50
-  progress <- 0
-  step <- 0
-  total <- (hincr^(2*ceiling(log(hmax/hinit)/log(hincr)))-1)/(hincr^2-1)
+   total <- cumsum(1.25^(1:kstar))/sum(1.25^(1:kstar))
   #
   #   run single steps to display intermediate results
   #
-  while (hakt<=hmax) {
+   while (k<=kstar) {
+    hakt0 <- geth2(1,10,lkern,1.25^(k-1),1e-4)
+    hakt <- geth2(1,10,lkern,1.25^k,1e-4)
     twohp1 <- 2*trunc(hakt)+1
     twohhwp1 <- 2*trunc(hakt+hw)+1
     spcorr <- pmax(apply(spcorr,1,mean),0)
@@ -747,23 +776,22 @@ awspimage <- function(object, hmax=12, aws=TRUE, degree=1, varmodel=NULL,
       graphobj$img <- switch(imgtype,
                              greyscale=object$img[xind,yind],
                              rgb=object$img[xind,yind,])
-      show.image(graphobj,max.x=max.pixel,xaxt="n",yaxt="n")
+      show.image(graphobj,max.x=max.x,max.y=max.y,xaxt="n",yaxt="n")
       title("Observed Image")
       graphobj$img <- switch(imgtype,
                              greyscale=array(pmin(65535,pmax(0,as.integer(theta[,,1,]))),dimg[1:2]),
                              rgb=array(pmin(65535,pmax(0,as.integer(theta[,,1,]))),dimg))
-      show.image(graphobj,max.x=max.pixel,xaxt="n",yaxt="n")
+      show.image(graphobj,max.x=max.x,max.y=max.y,xaxt="n",yaxt="n")
       title(paste("Reconstruction  h=",signif(hakt,3)))
       graphobj$img <- matrix(pmin(65535,pmax(0,as.integer(65534*bi[,,1]/bi0))),n1,n2)
       graphobj$type <- "greyscale"
       graphobj$gamma <- FALSE
-      show.image(graphobj,max.x=max.pixel,xaxt="n",yaxt="n")
+      show.image(graphobj,max.x=max.x,max.y=max.y,xaxt="n",yaxt="n")
       title(paste("Adaptation (rel. weights):",signif(mean(bi[,,1])/bi0,3)))
       rm(graphobj)
       gc()
     }
-    progress <- progress + hincr^(2*step)
-    cat("Bandwidth",signif(hakt,3)," Progress",signif(progress/total,2)*100,"% \n")
+    cat("Bandwidth",signif(hakt,3)," Progress",signif(total[k],2)*100,"% \n")
     if (scorr) {
       #
       #   Estimate Correlations
@@ -827,9 +855,8 @@ awspimage <- function(object, hmax=12, aws=TRUE, degree=1, varmodel=NULL,
       cat("Estimated mean variance",signif(vobj$meanvar/65635^2,3),"\n")
     }
     if (demo) readline("Press return")
-    step <- step + 1
-    hakt <- hakt*hincr
     lambda0 <- lambda
+    k <- k+1
   }
   ###                                                                       
   ###            end cases                                                  
@@ -846,7 +873,7 @@ awspimage <- function(object, hmax=12, aws=TRUE, degree=1, varmodel=NULL,
   ni[xind,yind] <- bi[,,1]
   object$ni <- ni
   object$ni0 <- bi0
-  object$hmax <- hakt/hincr
+  object$hmax <- hakt
   object$call <- args
   if(estvar) {
     if(varmodel=="Linear") {
@@ -922,12 +949,11 @@ awsprop <- function (object, hmax=4, lambda=10, wghts=c(1,1,1,1), lkern="Triangl
   #     set approriate defaults
   #
   lkern <- switch(lkern,
-                  Triangle=2,
-                  Quadratic=3,
-                  Cubic=4,
-                  Uniform=1,
-                  Plateau=5,
-                  2)
+                  Triangle=1,
+                  Quadratic=2,
+                  Cubic=3,
+                  Plateau=4,
+                  1)
   if (is.null(hmax)) hmax <- 4
   wghts <- wghts/sum(wghts)
   dgf <- sum(wghts)^2/sum(wghts^2)
@@ -938,6 +964,7 @@ awsprop <- function (object, hmax=4, lambda=10, wghts=c(1,1,1,1), lkern="Triangl
                    "greyscale" = IQRdiff(object$img)^2,
                    "rgb" = apply(object$img,3,IQRdiff)^2,
                    IQRdiff(object$img)^2)
+  sigma2 <- pmax(0.01,sigma2)
   cat("Estimated variance (assuming independence): ", signif(sigma2/65635^2,4),"\n")
     # set the support of the statistical kernel to (0,1), set spmin 
     spmin <- plateau
@@ -979,7 +1006,7 @@ awsprop <- function (object, hmax=4, lambda=10, wghts=c(1,1,1,1), lkern="Triangl
   hakt <- hakt*hincr
   step <- 1
   lambda0 <- lambda[1]
-  sigma2 <- rep(IQRdiff(object$img)^2,dv)
+  sigma2 <- pmax(0.01,rep(IQRdiff(object$img)^2,dv))
   vobj <- list(coef=sigma2,meanvar=sigma2)
   progress <- 0
   total <- (hincr^(2*ceiling(log(hmax/hinit)/log(hincr)))-1)/(hincr^2-1)

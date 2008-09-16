@@ -148,22 +148,13 @@ awsaniso(object, hmax = 4, g = 3, rho = 0, aws = TRUE, varmodel = NULL,
   \index{adaptive smoothing} by
   Propagation-Separation-methods. WIAS-Preprint No. 1068.
   
-  Polzehl, J. and Tabelow, K. (2006). Adaptive smoothing of digital
-  images, manuscript.  
+  Polzehl, J. and Tabelow, K. (2007). Adaptive smoothing of digital
+  images, Journal of Statistical Software 19 (1). 
 }
 \author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de}}
 \seealso{ \code{\link{read.image}}, \code{\link{read.raw}}, \code{\link{make.image}}, \code{\link{show.image}}, \code{\link{clip.image}} }
 \examples{
-if(Sys.getenv("ImageMagick")==""){
-cat("Please install ImageMagick\n")
-} else {
-img.noise <- read.image(system.file("img/wias-noise.ppm",package="adimpro"))
-X11(width=7,height=3)
-img.hat.c <- awsimage(img.noise,hmax=15,graph=TRUE)
-X11(width=7,height=7)
-img.hat.a <- awsaniso(img.noise,hmax=15,graph=TRUE,g=0.1,rho=3)
-show.image(imganiso2D(img.hat.a,g=0.1,rho=1000^2))
-}
+\dontrun{demo(awsimage)}
 }
 \keyword{ manip }% at least one, from doc/KEYWORDS
 \keyword{ smooth }% __ONLY ONE__ keyword per line

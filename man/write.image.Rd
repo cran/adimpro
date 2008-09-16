@@ -19,7 +19,8 @@ write.image(img, file = "tmp.ppm", max.x=NULL, max.y=NULL, depth = NULL, gammaty
        is reset to 8 if the specified image file format does not allow for 16 Bit encoding. }
   \item{gammatype}{ character, determines the type of gamma correction within the image.
      "ITU" stands for ITU-R BT.709-3 as e.g. used by \code{dcraw}. Alternatives recognized
-     within the package are "None", "sRGB" and "CIE" (CIE L*). \code{NULL} keeps the actual setting.}
+     within the package are "None", "sRGB" and "CIE" (CIE L*). \code{NULL} keeps the actual setting.
+     \code{gammatype="histogram"} forces histogram equalization based on the corresponding greyvalue image.}
   \item{cspace}{ defines the output color space, default is \code{img$cspace} can be set to "sRGB", "Adobe" (Adobe 1998), "wGamut" (Wide Gamut), "kodak" (Kodak ProPhoto)
      "xyz", "yuv", "yiq" and "hsi"}
   \item{whitep}{White point in \code{xyY} space. Can be given as one of (character)
@@ -53,5 +54,8 @@ write.image(img, file = "tmp.ppm", max.x=NULL, max.y=NULL, depth = NULL, gammaty
   "png", "gif", "jpg" or "jpeg" files.}
 
 \seealso{ \code{\link{read.image}}, \code{\link{adjust.image}} }
+\examples{
+\dontrun{demo(io)}
+}
 \keyword{ IO }% at least one, from doc/KEYWORDS
 \keyword{ utilities }% __ONLY ONE__ keyword per line

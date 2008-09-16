@@ -132,13 +132,12 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
   #
   if (aws) qlambda <- .9 else qlambda <- 1
   ladjust <- max(1,ladjust)
-  lseq <- pmax(1,c(1,1,1,1,1,1,1,1.6,1.5,1.4,1.3,1.2,1.1)/ladjust)
   lkern <- switch(lkern,
-                  Triangle=2,
-                  Quadratic=3,
-                  Cubic=4,
-                  Uniform=1,
-                  2)
+                  Triangle=1,
+                  Quadratic=2,
+                  Cubic=3,
+                  Plateau=4,
+                  1)
   if (is.null(hmax)) hmax <- 4
   wghts <- wghts/sum(wghts)
   dgf <- sum(wghts)^2/sum(wghts^2)
@@ -146,10 +145,10 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
   #
   #      in case of colored noise get the corresponding bandwidth (for Gaussian kernel)
   #
-  sigma2 <- switch(imgtype,
+  sigma2 <- pmax(0.01,switch(imgtype,
                    "greyscale" = IQRdiff(object$img)^2,
                    "rgb" = apply(object$img,3,IQRdiff)^2,
-                   IQRdiff(object$img)^2)
+                   IQRdiff(object$img)^2))
   cat("Estimated variance (assuming independence): ", signif(sigma2/65635^2,4),"\n")
   if (!estvar) {
     if (length(sigma2)==1) {
@@ -164,24 +163,30 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
     lambda <- 2*lambda
     spmin <- 0
     spmax <- 1
-  #     now set hinit and hincr if not provided
-  if(aws) hinit <- 1 else {
+# determine maximum volume (variance reduction)
+  maxvol <- getvofh2(hmax,lkern)
+  kstar <- as.integer(log(maxvol)/log(1.25))  
+  if(aws){ 
+     k <- if(estvar) 6 else 1 
+     }
+  else {
     cat("No adaptation method specified. Calculate kernel estimate with bandwidth hmax.\n")
-    hinit <- hmax
+    k <- kstar
   }
-  hincr <- sqrt(1.25)
   if (demo && !graph) graph <- TRUE
   if(graph){
     oldpar <- par(mfrow=c(2,2),mar=c(1,1,3,.25),mgp=c(2,1,0))
     on.exit(par(oldpar))
     graphobj0 <- object[-(1:length(object))[names(object)=="img"]]
     graphobj0$dim <- c(n1,n2)
+    if(exists(".adimpro")&&!is.null(.adimpro$xsize)) max.x <- trunc(.adimpro$xsize/3.3)  else max.x <- 500
+    if(exists(".adimpro")&&!is.null(.adimpro$xsize)) max.y <- trunc(.adimpro$xsize/1.2)  else max.y <- 1000
+#  specify settings for show.image depending on geometry (mfrow) and maximal screen size
   }
   # now check which procedure is appropriate
   #
   #    Initialize  list for theta
   #
-  hmax <- hmax
   bi <- rep(1,n)
   theta <- switch(imgtype,greyscale=object$img[xind,yind],rgb=object$img[xind,yind,])
   #
@@ -245,22 +250,14 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
   ###
   ###              gridded   2D
   ###
-  steps <- as.integer(log(hmax/hinit)/log(hincr)+1)
-  if (length(lseq)<steps) lseq <- c(lseq,rep(1,steps-length(lseq)))
-  lseq <- lseq[1:steps]
-  hakt0 <- hakt <- hinit
-  if(estvar) { 
-    if(aws) hakt <- hakt*hincr
-    step <- 1
-  } else step <- 0 
   lambda0 <- 1e50
-  progress <- 0
-  total <- (hincr^(2*ceiling(log(hmax/hinit)/log(hincr)))-1)/(hincr^2-1)
-  if (total == 0) total <- hincr^(2*step) # for (hmax == hinit)
+  total <- cumsum(1.25^(1:kstar))/sum(1.25^(1:kstar))
   #
   #   run single steps to display intermediate results
   #
-  while (hakt<=hmax) {
+   while (k<=kstar) {
+    hakt0 <- geth2(1,10,lkern,1.25^(k-1),1e-4)
+    hakt <- geth2(1,10,lkern,1.25^k,1e-4)
     twohp1 <- 2*trunc(hakt)+1
     spcorr <- pmax(apply(spcorr,1,mean),0)
     if(any(spcorr>0)) {
@@ -344,23 +341,22 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
       graphobj$img <- switch(imgtype,
                              greyscale=object$img[xind,yind],
                              rgb=object$img[xind,yind,])
-      show.image(graphobj,max.x=max.pixel,xaxt="n",yaxt="n")
+      show.image(graphobj,max.x=max.x,max.y=max.y,xaxt="n",yaxt="n")
       title("Observed Image")
       graphobj$img <- array(as.integer(theta),dimg)
-      show.image(graphobj,max.x=max.pixel,xaxt="n",yaxt="n")
+      show.image(graphobj,max.x=max.x,max.y=max.y,xaxt="n",yaxt="n")
       title(paste("Reconstruction  h=",signif(hakt,3)))
-      show.image(imganiso2D(anisoimg,satexp=satexp),max.x=max.pixel,xaxt="n",yaxt="n")
+      show.image(imganiso2D(anisoimg,satexp=satexp),max.x=max.x,max.y=max.y,xaxt="n",yaxt="n")
       title(paste("Estimated anisotropy  g=",signif(g,3)))
       graphobj$img <- matrix(as.integer(65534*bi/max(bi)),n1,n2)
       graphobj$type <- "greyscale"
       graphobj$gamma <- FALSE
-      show.image(graphobj,max.x=max.pixel,xaxt="n",yaxt="n")
+      show.image(graphobj,max.x=max.x,max.y=max.y,xaxt="n",yaxt="n")
       title(paste("Adaptation (rel. weights):",signif(mean(bi)/max(bi),3)))
       rm(graphobj)
       gc()
     }
-    progress <- progress + hincr^(2*step)
-    cat("Bandwidth",signif(hakt,3)," Progress",signif(progress/total,2)*100,"% \n")
+    cat("Bandwidth",signif(hakt,3)," Progress",signif(total[k],2)*100,"% \n")
     if (scorr) {
       #
       #   Estimate Correlations  (keep old estimates until hmax > hpre)
@@ -422,12 +418,17 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
                        DUP=FALSE,
                        PACKAGE="adimpro")[c("coef","meanvar")]
       dim(vobj$coef) <- c(nvarpar,dv)
+       for(i in 1:dv){
+      if(any(spcorr[,i]>.1) & vobj$meanvar[i]<sigma2[i]) {
+            vobj$coef[,i] <- vobj$coef[,i]*sigma2[i]/vobj$meanvar[i]
+            vobj$meanvar[i] <- sigma2[i]
+      }
+     }
       cat("Estimated mean variance",signif(vobj$meanvar/65635^2,3),"\n")
     }
-    step <- step + 1
+    k <- k + 1
     if (demo) readline("Press return")
-    hakt <- hakt*hincr
-    lambda0 <- lambda*lseq[step]
+    lambda0 <- lambda*ladjust
   }
   ###                                                                       
   ###            end cases                                                  
@@ -442,7 +443,8 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
   ni <- array(1,dimg0[1:2])
   ni[xind,yind] <- bi
   object$ni <- ni
-  object$hmax <- hakt/hincr
+  object$ni0 <- max(ni)
+  object$hmax <- hakt
   object$call <- args
   if(estvar) {
     if(varmodel=="Linear") {

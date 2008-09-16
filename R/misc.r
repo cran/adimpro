@@ -12,7 +12,16 @@ dcraw <- Sys.which("dcraw")
 if(dcraw=="") cat("Reading RAW images requires to install dcraw, see \n
    http://cybercom.net/~dcoffin/dcraw/ for LINUX and http://www.insflug.org/raw/ 
 for MAC OS and Windows \n")
+#if(capabilities("X11")) X11.options("type"="Xlib")
+adimpro.options()
 }
+
+adimpro.options <- function(xsize=1280,ysize=1024,X11.type="Xlib"){
+if(capabilities("X11")) X11.options("type"="Xlib")
+assign(".adimpro",list(xsize=xsize,ysize=ysize),pos=1)
+invisible(NULL)
+}
+#.adimpro <- adimpro.options()
 
 check.adimpro <- function(object){
   # Returns true if object is of class adimpro, has
@@ -79,7 +88,11 @@ check.adimpro <- function(object){
       break
     }
     if(wb == "USER" & is.null(object$whitep)) {
-      check <- 8
+      check <- 9
+      break
+    }
+    if(object$gammatype=="histogram"&&(is.null(object$hequal)||length(object$hequal)!=65536)) {
+      check <- 10
       break
     }
     break
@@ -95,7 +108,8 @@ check.adimpro <- function(object){
                    "object$gamma is not logical",
                    "object$depth is not '8bit' or '16bit'",
                    "object$wb is not one of 'NONE', 'Unknown', 'AUTO', 'CAMERA', 'Image', 'MAKE.IMAGE' or 'USER'",
-                   "object$wb 'USER' but object$whitep not specified"))
+                   "object$wb 'USER' but object$whitep not specified",
+                   "object$gammatype is 'histogram' but object$hequal is invalid"))
   }
   adimpro
 }
@@ -254,5 +268,42 @@ decompress.image <- function(img){
     img$compressed <- FALSE
   }
   invisible(img)
+}
+
+getvofh2 <- function(bw,lkern){
+.Fortran("getvofh2",
+         as.double(bw),
+         as.integer(lkern),
+         vol=double(1),
+         PACKAGE="adimpro")$vol
+}
+geth2 <- function(x,y,lkern,value,eps=1e-2){
+.Fortran("geth2",
+         as.double(x),
+         as.double(y),
+         as.integer(lkern),
+         as.double(value),
+         as.double(eps),
+         bw=double(1),
+         PACKAGE="adimpro")$bw
+}
+
+median1 <- function(x,tol=1e-8){
+   if(!is.null(dim(x))&&dim(x)[2]==3) {
+      z <- .Fortran("median3",
+                    as.double(x),
+                    as.integer(dim(x)[1]),
+                    median=double(3),
+                    as.double(tol),
+                    PACKAGE="adimpro")$median
+   } else {
+      z <- .Fortran("median1",
+                    as.double(x),
+                    as.integer(length(x)),
+                    median=double(1),
+                    as.double(tol),
+                    PACKAGE="adimpro")$median
+   }
+z
 }
 

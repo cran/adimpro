@@ -29,4 +29,7 @@ clip.image(img, xind = NULL, yind = NULL, compress=NULL, ...)
 \value{ An object of class "adimpro". }
 \author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de}}
 \seealso{ \code{\link{read.image}}, \code{\link{read.raw}}, \code{\link{make.image}}, \code{\link{awsimage}}, \code{\link{awspimage}}}
+\examples{
+\dontrun{demo(manipulate)}
+}
 \keyword{ manip }% at least one, from doc/KEYWORDS
