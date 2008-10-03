@@ -119,7 +119,6 @@ C   scaling of sij outside the loop
                   wj=wj
                   swj=swj+wj
                   swjy=swjy+wj*y(j1,j2)
-                  wj=wj
                   swjw=swjw+wj*s2i(i1,i2)
                   swjw2=swjw2+wj*wj*s2i(i1,i2)
                END DO
@@ -129,7 +128,7 @@ C   scaling of sij outside the loop
             bi(i1,i2)=swj
             si=swjw2/swjw/swjw
             varest(i1,i2)=si
-            cofh = 2.d0*log(2.d0*si/s2i(i1,i2)*fov)
+            cofh = 2.d0*log(2.d0*si*s2i(i1,i2)*fov)
             si=sqrt(si)
             cofh=sqrt(cofh)
             IF((thi-a)/si+cofh.lt.-ext) THEN

@@ -8,18 +8,21 @@
   opended by functions from the package. 
 }
 \usage{
-adimpro.options(xsize = 1280, ysize = 1024, X11.type = "Xlib")
+adimpro.options(xsize = 1280, ysize = 1024)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{xsize}{ display width in pt }
   \item{ysize}{ display height in pt }
-  \item{X11.type}{ sets X11.options(type=X11.type if the system was build with X11 capabilities. We strongly suggest to use \code{X11.type = "Xlib"} which turns out to be
-up to 30 times faster than the default X11.options(type="cairo") of R. }
 }
 \details{
-   The function assignes the specified values to as a list to the varaiable name
+   The function assignes the specified values to as a list to the variable name
    ".adimpro". This variable is, if it exists, evaluated by several other functions.
+
+   On some systems the default \code{X11.options()$type} ''cairo'' leads to significant slower 
+   image display. You may try to use \code{X11.options(type=''Xlib'')} instead. To automatically 
+   choose this option set the system environment variable \code{R_X11type} (\code{setenv R_X11type Xlib} 
+   or \code{export R_X11type=Xlib}) before loading the package.
 }
 \value{ returns \code{invisible(NULL)} }
 \author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de} }

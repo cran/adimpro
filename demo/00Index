@@ -1,0 +1,9 @@
+adimpro	- A general tour of the package, runs all demos (time consuming)
+awsimage - local constant smoothing of images
+awspimage - local polynomial smoothing of images (time consuming)
+color - color space transformations
+io - input/output and diagnostics
+manipulate - image manipulations
+raw - handling RAW images
+combine - image manipulations that involve combining two images
+segment - image segmentation

@@ -16,7 +16,7 @@ segment(object, level=0.5, delta = 0, thresh = 3, ext = 1, fov = NULL, channel =
   \code{level-delta} and \code{level+delta} are within the interval (0,1) or such that they are within the interval (0,65535) (2 Byte integers).}
   \item{delta}{ half width of gray/color-values of the second segment, nay be increased if \code{select=TRUE}. May be specified such that either 
   \code{level-delta} and \code{level+delta} are within the interval (0,1) or such that they are within the interval (0,65535) (2 Byte integers).}
-  \item{thresh}{ factor for critical value for final assignment to segment 1 or 3 , should be specified as a quantile of the standard Gaussian distribution.}
+  \item{thresh}{ Critical value for final assignment to segment 1 or 3 , should be specified as a quantile of the standard Gaussian distribution.}
   \item{ext}{ factor for critical value for temporal assignment to segment 1 or 3, should be specified as a quantile of the standard Gaussian distribution. }
   \item{fov}{ size of field of view in pixel }
   \item{channel}{ specifies which information to use for segmentation. 

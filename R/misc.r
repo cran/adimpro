@@ -1,25 +1,36 @@
 .onLoad <- function(lib, pkg){
-# we need the path to Imagemagick
-path2imagemagick <- strsplit(Sys.which("mogrify"),"mogrify")[[1]][1]
-if(!is.na(path2imagemagick)) {
-Sys.setenv(ImageMagick=path2imagemagick)
-} else {
-warning("could not determine path to Imagemagick \n
-please set the correct path manually using \n
-'Sys.setenv(ImageMagick='path2imagemagick')'")
-}
-dcraw <- Sys.which("dcraw")
-if(dcraw=="") cat("Reading RAW images requires to install dcraw, see \n
-   http://cybercom.net/~dcoffin/dcraw/ for LINUX and http://www.insflug.org/raw/ 
-for MAC OS and Windows \n")
-#if(capabilities("X11")) X11.options("type"="Xlib")
-adimpro.options()
+  # we need the path to Imagemagick
+  path2imagemagick <- strsplit(Sys.which("mogrify"),"mogrify")[[1]][1]
+  if(!is.na(path2imagemagick)) {
+    Sys.setenv(ImageMagick=path2imagemagick)
+  } else {
+    warning("could not determine path to Imagemagick \n
+    please set the correct path manually using \n
+    'Sys.setenv(ImageMagick='path2imagemagick')'")
+  }
+  dcraw <- Sys.which("dcraw")
+  if(dcraw=="") cat("Reading RAW images requires to install dcraw, see \n
+    http://cybercom.net/~dcoffin/dcraw/ for LINUX and http://www.insflug.org/raw/ 
+    for MAC OS and Windows \n")
+  adimpro.options()
 }
 
-adimpro.options <- function(xsize=1280,ysize=1024,X11.type="Xlib"){
-if(capabilities("X11")) X11.options("type"="Xlib")
-assign(".adimpro",list(xsize=xsize,ysize=ysize),pos=1)
-invisible(NULL)
+adimpro.options <- function(xsize=1280,ysize=1024){
+  if(exists("X11.options")) {
+    if(is.na(Sys.getenv("R_X11type",NA)[["R_X11type"]])) {
+      if(grDevices::X11.options()$type=="cairo") {
+        cat("You may want to use X11.options(type=''Xlib'') for a probably faster display of images. To set this option automatically when package adimpro is loaded you may set the  system environment variable R_X11type setenv R_X11type Xlib    or   export R_X11type=Xlib\n")
+      }
+    } else {
+      type <- Sys.getenv("R_X11type",NA)[["R_X11type"]]
+      if(type %in% c("Xlib","cairo","nbcairo")){
+        cat("Using X11.options(''type''=",type,")\n")
+        grDevices::X11.options("type"=type)
+      }
+    }
+  }
+  assign(".adimpro",list(xsize=xsize,ysize=ysize),pos=1)
+  invisible(NULL)
 }
 #.adimpro <- adimpro.options()
 
