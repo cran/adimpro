@@ -130,7 +130,6 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
   #
   #     set approriate defaults
   #
-  if (aws) qlambda <- .9 else qlambda <- 1
   ladjust <- max(1,ladjust)
   lkern <- switch(lkern,
                   Triangle=1,
@@ -141,7 +140,7 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
   if (is.null(hmax)) hmax <- 4
   wghts <- wghts/sum(wghts)
   dgf <- sum(wghts)^2/sum(wghts^2)
-  if (qlambda<1) lambda <- ladjust*2*qchisq(qlambda,dgf)/dgf else lambda <- 1e50
+  if (aws) lambda <- ladjust*switch(imgtype, "greyscale" = 8.1, "rgb" = 4.4, 4.4) else lambda <- 1e50
   #
   #      in case of colored noise get the corresponding bandwidth (for Gaussian kernel)
   #

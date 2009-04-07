@@ -1,6 +1,6 @@
 awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
                       ladjust=1.25 , mask = NULL, xind = NULL, 
-                      yind = NULL, wghts=c(1,1,1,1), scorr=TRUE, lkern="Triangle", 
+                      yind = NULL, wghts=c(1,1,1,1), scorr=TRUE, lkern="Plateau", 
                       plateau=NULL, homogen=TRUE, earlystop=TRUE, demo=FALSE, graph=FALSE, max.pixel=4.e2,clip=FALSE,compress=TRUE) {
   #
   #
@@ -93,11 +93,6 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
   #
   #     set approriate defaults
   #
-  if (aws) qlambda <- .9994 else qlambda <- 1
-  #
-  #  qlambda = .9994 makes greyvalue and color images comparable 
-  #
-#  ladjust <- max(1,ladjust)
   lkern <- switch(lkern,
                   Triangle=1,
                   Quadratic=2,
@@ -107,7 +102,7 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
   if (is.null(hmax)) hmax <- 4
   wghts <- wghts/sum(wghts)
   dgf <- sum(wghts)^2/sum(wghts^2)
-  if (qlambda<1) lambda <- ladjust*qchisq(qlambda,dgf)/dgf else lambda <- 1e50
+  if (aws) lambda <- ladjust*switch(imgtype,greyscale=16,rgb=7) else lambda <- 1e50
   #
   #      in case of colored noise get the corresponding bandwidth (for Gaussian kernel)
   #
@@ -456,7 +451,7 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
 #########################################################################################  
 awspimage <- function(object, hmax=12, aws=TRUE, degree=1, varmodel=NULL, 
                       ladjust=1.0, xind = NULL, yind = NULL, wghts=c(1,1,1,1), 
-                      scorr=TRUE, lkern="Triangle", plateau=NULL, homogen=TRUE,
+                      scorr=TRUE, lkern="Plateau", plateau=NULL, homogen=TRUE,
                       earlystop=TRUE, demo=FALSE,
                       graph=FALSE, max.pixel=4.e2, clip=FALSE, compress=TRUE){
   #
@@ -573,11 +568,10 @@ awspimage <- function(object, hmax=12, aws=TRUE, degree=1, varmodel=NULL,
     cat("No adaptation method specified. Calculate kernel estimate with bandwidth hmax.\n")
     k <- kstar
   }
-  if (aws) qlambda <- switch(degree,.9,.995) else qlambda <- 1
   #
   #    Initialize  list for theta
   #
-  if (qlambda<1) lambda <- ladjust*2.e0*qchisq(qlambda,sum(wghts)^2/sum(wghts^2)*dp2) else lambda <- 1e50
+  lambda <- if (aws) ladjust*switch(imgtype, greyscale=switch(degree,18.5,32), rgb = switch(degree,38,120)) else 1e50
   sigma2 <- switch(imgtype,
                    "greyscale" = IQRdiff(object$img)^2,
                    "rgb" = apply(object$img,3,IQRdiff)^2, IQRdiff(object$img)^2)
@@ -589,8 +583,7 @@ awspimage <- function(object, hmax=12, aws=TRUE, degree=1, varmodel=NULL,
     #
     # set the support of the statistical kernel to (0,1), set spmin
     #
-    lambda <- 2*lambda
-    spmin <- 0
+  spmin <- 0
   bi <- array(rep(1,n*dp2),c(dimg[1:2],dp2))
   theta <- array(0,c(dimg,dp1))
   theta[,,,1] <- switch(imgtype,greyscale=object$img[xind,yind],rgb=object$img[xind,yind,])
@@ -891,13 +884,13 @@ awspimage <- function(object, hmax=12, aws=TRUE, degree=1, varmodel=NULL,
 }
 
 
-  #####################################################################################
-  ###    
-  ###    Test propagation condition
-  ###    
-  #####################################################################################    
-awsprop <- function (object, hmax=4, lambda=10, wghts=c(1,1,1,1), lkern="Triangle", 
-                     plateau=NULL, earlystop=TRUE, homogen=TRUE, graph=FALSE, max.pixel=4.e2) {
+#####################################################################################
+###    
+###    Test propagation condition
+###    
+#####################################################################################    
+awsprop <- function (object, hmax=10, lambda=10, wghts=c(1,1,1,1), lkern="Plateau", 
+                     plateau=NULL, earlystop=FALSE, homogen=FALSE, graph=FALSE, max.pixel=4.e2) {
 #
 #  set defaults
 #

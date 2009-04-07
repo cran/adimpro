@@ -1,8 +1,8 @@
-segment <- function(object, level=0.5, delta=0, thresh= 3,ext=1,
+segment <- function(object, level=0.5, delta=0, thresh= 3,
                     fov=NULL,channel=0, hmax=4, aws=TRUE, varmodel=NULL,
-                    ladjust=1.25 , xind = NULL, 
-                    yind = NULL, wghts=c(0.299, 0.587, 0.114, 0), 
-                    scorr=TRUE, lkern="Triangle", 
+                    ladjust=1.25 , xind = NULL,
+                    yind = NULL, wghts=c(0.299, 0.587, 0.114, 0),
+                    scorr=TRUE, lkern="Triangle",
                     plateau=NULL, homogen=TRUE, earlystop=TRUE, demo=FALSE, select=FALSE, sext=1.4, connected=FALSE,
                     graph=FALSE, max.pixel=4.e2,compress=TRUE) {
   #
@@ -39,11 +39,12 @@ segment <- function(object, level=0.5, delta=0, thresh= 3,ext=1,
      if(channel > dimg[3] || channel==0){
         dim(img) <- c(dimg[1]*dimg[2],dimg[3])
         img <- wghts[1:dimg[3]] %*% t(img)
-        dim(img) <- object$dim  
+        dim(img) <- object$dim
   } else  {
         img <- img[,,channel]
   }
   }
+  imgtype <- object$type 
   if(!is.null(object$call)) { 
     warning("argument object is result of awsimage or awspimage. You should know what you do.")
   }
@@ -65,6 +66,7 @@ cat("Specified level: ",level,"  delta: ",delta,"\n")
 # coefficients for  bias correction for spatial correlation
   estvar <- toupper(varmodel) %in% c("CONSTANT","LINEAR","QUADRATIC")
   hpre <- 2.
+  hvest <- 3.5
   if(estvar) {
     dlw<-(2*trunc(hpre)+1)
     nvarpar <- switch(toupper(varmodel),CONSTANT=1,LINEAR=2,QUADRATIC=3,1)
@@ -86,10 +88,6 @@ cat("Specified level: ",level,"  delta: ",delta,"\n")
   #
   #     set approriate defaults
   #
-  if (aws) qlambda <- .9994 else qlambda <- 1
-  #
-  #  qlambda = .9994 makes greyvalue and color images comparable 
-  #
 #  ladjust <- max(1,ladjust)
   lkern <- switch(lkern,
                   Triangle=1,
@@ -99,7 +97,7 @@ cat("Specified level: ",level,"  delta: ",delta,"\n")
                   1)
   if (is.null(hmax)) hmax <- 4
   wghts <- wghts/sum(wghts)
-  if (qlambda<1) lambda <- ladjust*qchisq(qlambda,1) else lambda <- 1e50
+  if (aws) lambda <- ladjust*switch(imgtype,greyscale=16,rgb=7) else lambda <- 1e50
   #
   #      in case of colored noise get the corresponding bandwidth (for Gaussian kernel)
   #
@@ -126,7 +124,7 @@ cat("Specified level: ",level,"  delta: ",delta,"\n")
   }
   if (demo && !graph) graph <- TRUE
   if(graph){
-    oldpar <- par(mfrow=c(2,3),mar=c(1,1,3,.25),mgp=c(2,1,0))
+    oldpar <- par(mfrow=c(2,2),mar=c(1,1,3,.25),mgp=c(2,1,0))
     on.exit(par(oldpar))
     if(exists(".adimpro")&&!is.null(.adimpro$xsize)) max.x <- trunc(.adimpro$xsize/3.3)  else max.x <- 500
     if(exists(".adimpro")&&!is.null(.adimpro$xsize)) max.y <- trunc(.adimpro$xsize/1.2)  else max.y <- 1000
@@ -139,7 +137,6 @@ cat("Specified level: ",level,"  delta: ",delta,"\n")
   bi <- rep(1,n)
   theta <- img[xind,yind]
   segment <- matrix(0,n1,n2)
-  fix <- matrix(FALSE,n1,n2)
   bi0 <- 1
   #
   #  if varmodel specified prepare for initial variance estimation
@@ -185,9 +182,6 @@ cat("Specified level: ",level,"  delta: ",delta,"\n")
   } else {
     spcorr <- rep(0,2)
   }
-  #
-  #         fix values of the image in inactiv pixel
-  #
   ###
   ###              gridded   2D
   ###
@@ -223,7 +217,6 @@ cat("Specified level: ",level,"  delta: ",delta,"\n")
     } 
       zobj <- .Fortran("segment",
                        as.integer(img[xind,yind]),
-                       fix=as.logical(fix),
                        as.double(level),
                        as.double(delta),
                        as.integer(n1),
@@ -243,19 +236,16 @@ cat("Specified level: ",level,"  delta: ",delta,"\n")
                        pvalues=double(n1*n2),# array for pvalues
                        segment=as.integer(segment),# array for segment (-1,0,1)
                        as.double(thresh),
-                       as.double(ext),
                        as.double(fov),
                        varest=as.double(varest),
                        DUP=FALSE,
-                       PACKAGE="adimpro")[c("bi","theta","hakt","pvalues","segment","fix","varest")]
+                       PACKAGE="adimpro")[c("bi","theta","hakt","pvalues","segment","varest")]
     varest <- pmin(.01,zobj$varest)
     theta <- zobj$theta
     bi <- zobj$bi
     pvalues <- zobj$pvalues
     segment <- zobj$segment
     dim(theta) <- dim(pvalues) <- dim(segment) <- dim(bi) <- c(n1,n2)
-    fix <- zobj$fix
-    dim(fix) <- c(n1,n2)
     rm(zobj)
     gc()
     if (graph) {
@@ -271,24 +261,18 @@ cat("Specified level: ",level,"  delta: ",delta,"\n")
       graphobj$img <- matrix(as.integer(65534*bi/max(bi)),n1,n2)
       show.image(graphobj,max.x=max.x,max.y=max.y,xaxt="n",yaxt="n")
       title(paste("Adaptation (rel. weights):",signif(mean(bi)/max(bi),3)))
-      graphobj <- make.image(matrix(as.integer(fix),n1,n2),compress=FALSE)
-      show.image(graphobj,max.x=max.x,max.y=max.y,xaxt="n",yaxt="n")
-      title(paste("fixed:",sum(fix)))
-      graphobj <- make.image(pvalues,compress=FALSE)
-      show.image(graphobj,max.x=max.x,max.y=max.y,xaxt="n",yaxt="n")
-      title("Pvalues")
       rm(graphobj)
       gc()
     }
     cat("Bandwidth",signif(hakt,3)," Progress",signif(total[k],2)*100,"% ")
-    cat("fixed:",sum(fix[segment==-1]),sum(fix[segment==0]),sum(fix[segment==1]))
+    cat("segmented:",sum(segment==-1),sum(segment==0),sum(segment==1))
     cat("\n")
     cat("range of bi",range(bi),"\n")
     if (scorr) {
       #
       #   Estimate Correlations  (keep old estimates until hmax > hpre)
       #
-      if(hakt > hpre){
+      if(hakt > hpre & hakt < hvest){
       spchcorr <- .Fortran("estcorr",
                            as.double(img[xind,yind] - theta),
                            as.integer(n1),
@@ -316,7 +300,7 @@ cat("Specified level: ",level,"  delta: ",delta,"\n")
     } else {
       spcorr <- rep(0,2)
     }
-    if (estvar) {
+    if (estvar & hakt < hvest) {
       #
       #   Create new variance estimate
       #
@@ -372,8 +356,7 @@ cat("Identify center  of segmented region by left mouse click\n")
   object$hsegm <- hakt
   object$level <- level
   object$delta <- delta
-  object$ext <- ext
-  object$ext <- thresh
+  object$thresh <- thresh
   object$call <- args
   invisible(if(compress) compress.image(object) else object)
 }

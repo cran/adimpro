@@ -1,19 +1,18 @@
-      subroutine segment(y,fix,level,delta,n1,n2,hakt,lambda,
+      subroutine segment(y,level,delta,n1,n2,hakt,lambda,
      1                   theta,vcoef,nvc,meanvar,bi,s2i,thnew,kern,
-     2                   spmin,lw,pvalue,segm,thresh,ext,fov,varest)
+     2                   spmin,lw,pvalue,segm,thresh,fov,varest)
       implicit logical (a-z)
       external kldistgc,lkern,fpchisq
       real*8 kldistgc,lkern,fpchisq
       integer n1,n2,y(n1,n2),theta(n1,n2),thnew(n1,n2),kern,
      1        segm(n1,n2),nvc
-      logical fix(n1,n2)
-      real*8 level,delta,hakt,lambda,bi(n1,n2),spmin,lw(1),ext,
+      real*8 level,delta,hakt,lambda,bi(n1,n2),spmin,lw(1),
      1       pvalue(n1,n2),thresh,vcoef(nvc),meanvar,s2i(n1,n2),
      1       varest(n1,n2),fov
       integer ih,dlw,clw,ih1,ja1,je1,jind2,jind,j1,j2,i1,i2,jw2,jw1,
      1        jwind2
       real*8 hakt2,spf,swj0,swj,swjy,z2,z1,wj,thi,thij,si,bii,sij,
-     1        a,b,ti,swjw,swjw2,cofh
+     1        a,b,ti,swjw,swjw2,cofh,varesti
       hakt2=hakt*hakt
       spf=1.d0/(1.d0-spmin)
       ih=hakt
@@ -49,8 +48,7 @@ C  fill field of pvalues
       b = level+delta
       DO i1=1,n1
          DO i2=1,n2
-            if(fix(i1,i2)) CYCLE
-            thi = theta(i1,i2)
+             thi = theta(i1,i2)
             si = vcoef(1)
             if(nvc.gt.1) THEN 
                si = si + vcoef(2) * thi
@@ -59,28 +57,18 @@ C  fill field of pvalues
                si = si + vcoef(3) * thi * thi
             END IF
             si = max(si,0.1*meanvar)
+            varesti = varest(i1,i2)
 C set small variances to  0.1 * mean variance
 C  Now fill estimated Covariancematrix in pixel i
             s2i(i1,i2)=1.d0/si
-            cofh = 2.d0*log(2.d0*varest(i1,i2)/si*fov)
+            cofh = 2.d0*log(2.d0*varesti/si*fov)
             cofh=sqrt(cofh)
-        if(max(a-thi,thi-b)/sqrt(varest(i1,i2))-cofh.gt.thresh) THEN
-               fix(i1,i2)=.TRUE.
-               if(segm(i1,i2).eq.0) segm(i1,i2)=sign(1.d0,thi-level)
-C wee need to assign a value to segment before we can fix the decision
-            ELSE
-               fix(i1,i2)=.FALSE.
                ti=max(0.d0,max(a-thi,thi-b))
-               pvalue(i1,i2)=fpchisq(ti*s2i(i1,i2),1.d0,1,0)
-            END IF
+               pvalue(i1,i2)=min(1.d0,thresh/(ti+delta)/sqrt(varesti))
          END DO
       END DO
       DO i2=1,n2
          DO i1=1,n1
-            if(fix(i1,i2)) THEN
-               thnew(i1,i2)=theta(i1,i2)
-               CYCLE
-            END IF
             bii=bi(i1,i2)/lambda
 C   scaling of sij outside the loop
             swj=0.d0
@@ -128,15 +116,14 @@ C   scaling of sij outside the loop
             bi(i1,i2)=swj
             si=swjw2/swjw/swjw
             varest(i1,i2)=si
-            cofh = 2.d0*log(2.d0*si*s2i(i1,i2)*fov)
+            cofh = sqrt(2.d0*log(2.d0*si*s2i(i1,i2)*fov))
             si=sqrt(si)
-            cofh=sqrt(cofh)
-            IF((thi-a)/si+cofh.lt.-ext) THEN
+            IF((thi-a)/si+cofh.lt.-thresh) THEN
                segm(i1,i2)=-1
-            ELSE IF ((thi-b)/si-cofh.gt.ext) THEN
+            ELSE IF ((thi-b)/si-cofh.gt.thresh) THEN
                segm(i1,i2)=1
-            ELSE
-               segm(i1,i2)=0
+C            ELSE
+C               segm(i1,i2)=0
             END IF
             call rchkusr()
          END DO

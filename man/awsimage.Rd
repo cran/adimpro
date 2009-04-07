@@ -9,15 +9,15 @@ Function \code{awsaniso} uses anisotropic location weights. This is done by eval
 }
 \usage{
 awsimage(object, hmax=4, aws=TRUE, varmodel=NULL, ladjust=1.25,
-         mask=NULL, xind = NULL, yind = NULL, 
-         wghts=c(1,1,1,1), scorr=TRUE, 
-         lkern="Triangle", plateau=NULL, homogen=TRUE, earlystop=TRUE,
-         demo=FALSE, graph=FALSE, 
+         mask=NULL, xind = NULL, yind = NULL,
+         wghts=c(1,1,1,1), scorr=TRUE,
+         lkern="Plateau", plateau=NULL, homogen=TRUE, earlystop=TRUE,
+         demo=FALSE, graph=FALSE,
          max.pixel=4.e2, clip = FALSE, compress=TRUE)
 awspimage(object, hmax=12, aws=TRUE, degree=1, varmodel = NULL,
           ladjust=1.0, xind = NULL, yind = NULL, 
           wghts=c(1,1,1,1), scorr= TRUE,
-          lkern="Triangle", plateau=NULL, homogen=TRUE, earlystop=TRUE,
+          lkern="Plateau", plateau=NULL, homogen=TRUE, earlystop=TRUE,
           demo=FALSE, graph=FALSE, 
           max.pixel= 4.e2, clip = FALSE, compress=TRUE)
 awsaniso(object, hmax = 4, g = 3, rho = 0, aws = TRUE, varmodel = NULL,
@@ -51,7 +51,8 @@ awsaniso(object, hmax = 4, g = 3, rho = 0, aws = TRUE, varmodel = NULL,
     \code{varmodel == "Linear"} if \code{img$gamma==FALSE} and
     \code{varmodel == "Constant"} otherwise.}
   \item{ladjust}{ adjustment factor for lambda (>=1). Default values for
-    lambda are selected for Gaussian distributions. Skewed or heavy
+    lambda are selected for Gaussian distributions and default settings of 
+    parameters \code{lkern} and \code{plateau}. Skewed or heavy
     tailed distributions may require slightly larger values for lambda
     to meet the propagation condition. \code{ladjust} allows to increase
     lambda in such situations. }
@@ -68,7 +69,8 @@ awsaniso(object, hmax = 4, g = 3, rho = 0, aws = TRUE, varmodel = NULL,
     if \code{NULL} (default).}
   \item{wghts}{ allows to weight the information from
     different (up to 4) color channels. The weights are used in the
-    statistical penalty of the PS-procedure. }
+    statistical penalty of the PS-procedure. Note that lambda-values are selected for \code{wghts==c(1,1,1,1)},
+    please use parameter \code{ladjust} to set an appropriate value.}
   \item{scorr}{ (logical). Specifies whether  spatial correlation is to be
     estimated. Defaults to \code{TRUE}.  Is set to \code{FALSE} if
     \code{mask} is not \code{NULL}. }
@@ -125,6 +127,8 @@ awsaniso(object, hmax = 4, g = 3, rho = 0, aws = TRUE, varmodel = NULL,
 
   For a detailed description of the procedure see references below.
 
+  The script used to control the values of parameter \code{lambda} is stored in
+  directory inst/adjust.
 }
 \value{ Object of class \code{"adimpro"}
   \item{img }{Contains the reconstructed image. }
@@ -145,7 +149,7 @@ awsaniso(object, hmax = 4, g = 3, rho = 0, aws = TRUE, varmodel = NULL,
   335 - 362.
   
   Polzehl and Spokoiny (2005). Structural adaptive smoothing
-  \index{adaptive smoothing} by
+  adaptive smoothing by
   Propagation-Separation-methods. WIAS-Preprint No. 1068.
   
   Polzehl, J. and Tabelow, K. (2007). Adaptive smoothing of digital

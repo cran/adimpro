@@ -6,7 +6,7 @@
   The function allows to segment an image into two or three level sets.
 }
 \usage{
-segment(object, level=0.5, delta = 0, thresh = 3, ext = 1, fov = NULL, channel = 0, hmax = 4, aws = TRUE, varmodel = NULL, ladjust = 1.25, xind = NULL, yind = NULL, wghts = c(0.299, 0.587, 0.114, 0), scorr = TRUE, lkern = "Triangle", plateau = NULL, homogen = TRUE, earlystop = TRUE, demo = FALSE, select = FALSE, sext = 1.4, connected = FALSE, graph = FALSE, max.pixel = 400, compress = TRUE)
+segment(object, level=0.5, delta = 0, thresh = 3, fov = NULL, channel = 0, hmax = 4, aws = TRUE, varmodel = NULL, ladjust = 1.25, xind = NULL, yind = NULL, wghts = c(0.299, 0.587, 0.114, 0), scorr = TRUE, lkern = "Triangle", plateau = NULL, homogen = TRUE, earlystop = TRUE, demo = FALSE, select = FALSE, sext = 1.4, connected = FALSE, graph = FALSE, max.pixel = 400, compress = TRUE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -17,7 +17,6 @@ segment(object, level=0.5, delta = 0, thresh = 3, ext = 1, fov = NULL, channel =
   \item{delta}{ half width of gray/color-values of the second segment, nay be increased if \code{select=TRUE}. May be specified such that either 
   \code{level-delta} and \code{level+delta} are within the interval (0,1) or such that they are within the interval (0,65535) (2 Byte integers).}
   \item{thresh}{ Critical value for final assignment to segment 1 or 3 , should be specified as a quantile of the standard Gaussian distribution.}
-  \item{ext}{ factor for critical value for temporal assignment to segment 1 or 3, should be specified as a quantile of the standard Gaussian distribution. }
   \item{fov}{ size of field of view in pixel }
   \item{channel}{ specifies which information to use for segmentation. 
    0: use grey valued image obtained from color images, 1-3: use the specified color channel.  }
@@ -101,7 +100,6 @@ and additional list elements
 \item{hsegm}{ containing the maximal bandwidth used} 
 \item{level}{ the value of parameter \code{level} used}
 \item{delta}{ the value of parameter \code{delta} used}
-\item{ext}{ the value of parameter \code{ext} used}
 \item{thresh}{ the value of parameter \code{thresh} used}
 }
 \note{ This function is still experimental and may be changes considerably in future.}

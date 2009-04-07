@@ -756,6 +756,7 @@ make.image <- function(x, compress=TRUE, gammatype="None", whitep="D65", cspace=
   } else {
      if(min(x) < 0) x <- (x-min(x))/(max(x)-min(x))*max(x)
      if( max(x) <= 1) x <- 65535 * x
+     if( max(x) > 65535 ) x <- x/max(x)*65535
   } 
   }
   dim(x) <- NULL

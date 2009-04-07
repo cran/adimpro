@@ -8,7 +8,7 @@
   opended by functions from the package. 
 }
 \usage{
-adimpro.options(xsize = 1280, ysize = 1024)
+adimpro.options(xsize = NULL, ysize = NULL)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
