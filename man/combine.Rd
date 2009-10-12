@@ -47,7 +47,7 @@ There are two mayor applications for this function. First it allows to add noise
   \item{file}{ the argument \code{file} identifying the image.}
   \item{cspace}{ the type of rgb space used, as specified by \code{cspace}.}
   \item{interp}{ interpolation applied by dcraw, as specified by \code{interp}.}
-  \item{gamma}{ has a gamma correction been applied, here FALSE for \code{read.raw) and TRUE for \code{read.image}}}
+  \item{gamma}{ has a gamma correction been applied, here FALSE for \code{read.raw} and TRUE for \code{read.image}}
   \item{gammatype}{ type of gamma correction \code{read.image.}}
   \item{wb}{ type of white balance, as specified by \code{wb}.}
   \item{compressed}{ image data are stored as raw-vector (TRUE) or array of integers (FALSE).}

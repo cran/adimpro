@@ -30,11 +30,11 @@ awsaniso(object, hmax = 4, g = 3, rho = 0, aws = TRUE, varmodel = NULL,
     \code{read.image}, \code{read.raw}, or \code{make.image}.}
   \item{hmax}{ Maximum bandwidth to use in the iteration procedure.}
   \item{g}{ Bandwidth for anisotropic smoothing gradient estimates,
-  preferably \code{g >= 3} for images with line type texture and small 
-  \code{g \approx 1} for improving edges between homogeneous regions (function \code{awsaniso} only).}
+    preferably \eqn{g \ge 3}{g >= 3} for images with line type texture and small 
+    \eqn{g \approx 1}{g approx 1} for improving edges between homogeneous regions (function \code{awsaniso} only).}
   \item{rho}{ Regularization parameter for anisotropic smoothing gradient estimates,
-  preferably \code{rho = 0} for images with line type texture and large 
-  \code{rho \approx 3} for improving edges between homogeneous regions. (function \code{awsaniso} only)}
+    preferably \eqn{\rho = 0}{rho = 0} for images with line type texture and large 
+    \eqn{\rho \approx 3}{rho approx 3} for improving edges between homogeneous regions. (function \code{awsaniso} only)}
   \item{aws}{ (logical). If \code{TRUE} the propagation - separation
     (PS) approach from Polzehl and Spokoiny (2006) is used.
     \code{aws=FALSE} turns off the statistical penalty resulting in a

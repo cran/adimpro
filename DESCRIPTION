@@ -1,6 +1,6 @@
 Package: adimpro
-Version: 0.7.2
-Date: 2009-04-07
+Version: 0.7.3
+Date: 2009-10-12
 Title: Adaptive Smoothing of Digital Images
 Author: Karsten Tabelow <tabelow@wias-berlin.de>, Joerg Polzehl
         <polzehl@wias-berlin.de>
@@ -12,9 +12,9 @@ Description: This package implements tools for manipulationg digital
         images and the Propagation Separation approach by Polzehl and
         Spokoiny (2006) for smoothing digital images.
 License: GPL (>= 2)
-Copyright: This package is Copyright (C) 2006-2008 Weierstrass
+Copyright: This package is Copyright (C) 2006-2009 Weierstrass
         Institute for Applied Analysis and Stochastics.
-URL: http://www.wias-berlin.de/project-areas/stat/
-Packaged: Tue Apr 7 16:43:55 2009; tabelow
+URL: http://www.wias-berlin.de/software/imaging/
+Packaged: Mon Oct 12 12:17:07 2009; tabelow
 Repository: CRAN
-Date/Publication: 2009-04-14 17:28:42
+Date/Publication: 2009-10-12 10:42:13

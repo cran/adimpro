@@ -16,11 +16,11 @@ imganiso2D(x, satexp = 0.25, g=3, rho=0)
   \item{x}{ a field of 2D tensors (Dimension \code{c(3,n1,n2)}) or an object of class \code{"adimpro"}.  }
   \item{satexp}{ exponent for maximum eigenvalue in saturation channel. Determines the contrast in this channel.}
   \item{g}{ Bandwidth for anisotropic smoothing gradient estimates,
-  preferably \code{g >= 3} for images with line type texture and small 
-  \code{g \approx 1} for improving edges between homogeneous regions. }
+    preferably \eqn{g \ge 3}{g >= 3} for images with line type texture and small 
+    \eqn{g \approx 1}{g approx 1} for improving edges between homogeneous regions. }
   \item{rho}{ Regularization parameter for anisotropic smoothing gradient estimates,
-  preferably \code{rho = 0} for images with line type texture and large 
-  \code{rho \approx 3*variance} for improving edges between homogeneous regions. }
+    preferably \eqn{\rho = 0}{rho = 0} for images with line type texture and large 
+    \eqn{\rho \approx 3*variance}{rho approx 3*variance} for improving edges between homogeneous regions. }
 }
 \value{
 an object (image) of class \code{adimpro}.

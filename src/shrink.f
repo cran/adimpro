@@ -126,7 +126,7 @@ C  compute r(y) and check for y=x_k
       subroutine shrinkg(x,nx1,nx2,y,ny1,ny2,tol,z,nz,method)
       implicit logical (a-z)
       integer nx1,ny1,nx2,ny2,nz,x(nx1,nx2),y(ny1,ny2)
-      real*8 z(nz)
+      real*8 z(nz),tol
       integer iy1,iy2,ja1,ja2,je1,je2,jx1,jx2,k,l,method
       real*8 yy,d1,d2
 C
@@ -188,7 +188,7 @@ C   d1  contains the factor for shrinkage in second dimension
       subroutine shrinkc(x,nx1,nx2,y,ny1,ny2,tol,z,nz,method)
       implicit logical (a-z)
       integer nx1,ny1,nx2,ny2,nz,x(nx1,nx2,3),y(ny1,ny2,3)
-      real*8 z(3,nz)
+      real*8 z(3,nz),tol
       integer iy1,iy2,ja1,ja2,je1,je2,jx1,jx2,k,l,method
       real*8 yy(3),d1,d2
 C

@@ -17,7 +17,7 @@ lkern = "Triangle", graph = FALSE, max.pixel = 400, compress = TRUE)
   \item{aws}{ use adaptive weights if \code{aws==TRUE}.}
   \item{wb}{ Vector containing factors for the three color chanels, allows to change the white balance. }
   \item{cspace}{ Color space of the result,  }
-  \item{ladjust}{ Factor for the kritical value \code{\lambda}. Defaults to \code{1}, smaller values 
+  \item{ladjust}{ Factor for the critical value \eqn{\lambda}{lambda}. Defaults to \code{1}, smaller values 
    increase sensitivity but may result in isolated noisy pixel. Values larger than \code{1} give smoother up to cartoon
    like results.}
   \item{maxrange}{If TRUE increase range of values to maximum.}
@@ -53,9 +53,7 @@ Object of class \code{"adimpro"}
 \references{   Polzehl, J. and Tabelow, K. (2007). Adaptive smoothing of digital
   images, Journal of Statistical Software 19 (1). }
  \author{ Karsten Tabelow \email{tabelow@wias-berlin.de} and Joerg Polzehl \email{polzehl@wias-berlin.de}}
-\seealso{ \code{ \code{\link{read.raw}},\code{\link{awsimage}}, \code{\link{make.image}}, \code{\link{show.image}}, \code{\link{clip.image}} }
- 
- }
+\seealso{ \code{\link{read.raw}},\code{\link{awsimage}}, \code{\link{make.image}}, \code{\link{show.image}}, \code{\link{clip.image}} }
 \examples{
 \dontrun{demo(raw)}
 }
