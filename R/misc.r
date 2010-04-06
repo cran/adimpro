@@ -15,28 +15,22 @@
   adimpro.options()
 }
 
-adimpro.options <- function(xsize=NULL,ysize=NULL){
-  if(exists("X11.options")){
-    if(is.na(Sys.getenv("R_X11type",NA)[["R_X11type"]])){
-      if(grDevices::X11.options()$type=="cairo") {
-        cat("You may want to use X11.options(type=''Xlib'') for a probably faster display of images. To set this option automatically when package adimpro is loaded you may set the  system environment variable R_X11type setenv R_X11type Xlib    or   export R_X11type=Xlib\n")
-      }
-    } else {
-      type <- Sys.getenv("R_X11type",NA)[["R_X11type"]]
-      if(type %in% c("Xlib","cairo","nbcairo")){
-        cat("Using X11.options(''type''=",type,")\n")
-        grDevices::X11.options("type"=type)
+adimpro.options <- function(xsize = NULL,
+                            ysize = NULL){
+  if (Sys.info()["sysname"] == "Linux") {
+    ## we now have >which< on our system and test for >xdpyinfo< 
+    test <- system("which xdpyinfo", ignore.stderr=TRUE, intern = TRUE)
+    if (length(test) > 0) {
+      resolution <- strsplit(system("xdpyinfo  | grep 'dimensions:'", intern=TRUE, ignore.stderr=TRUE), "x")
+      if(length(resolution) > 0){
+        resx <- strsplit(resolution[[1]][1]," ")[[1]]
+        if (is.null(xsize)) xsize <- as.integer(resx[length(resx)])
+        if (is.null(ysize)) ysize <- as.integer(strsplit(resolution[[1]][2]," ")[[1]][1])
       }
     }
-      resolution <- strsplit(system("xdpyinfo  | grep 'dimensions:'",intern=TRUE,ignore.stderr=TRUE),"x")
-      if(length(resolution) > 0){
-         resx <- strsplit(resolution[[1]][1]," ")[[1]]
-         xsize <- as.integer(resx[length(resx)])
-         ysize <- as.integer(strsplit(resolution[[1]][2]," ")[[1]][1])
-      }
   }
-  if(is.null(xsize)||is.na(xsize)) xsize <- 1280
-  if(is.null(ysize)||is.na(ysize)) ysize <- 1024
+  if(is.null(xsize)||is.na(xsize)) xsize <- 1024
+  if(is.null(ysize)||is.na(ysize)) ysize <- 768
   assign(".adimpro",list(xsize=xsize,ysize=ysize),pos=1)
   invisible(NULL)
 }

@@ -304,6 +304,7 @@ show.image <- function (img, max.x = 1e+03, max.y =1e+03, gammatype = "ITU", whi
      }
   }
   if(img$type %in% c("xyz","hsi")) img$img <- img$img*65535
+   if(img$type=="hsi") img$img[,,1] <- (img$img[,,1]-min(img$img[,,1]))/diff(range(img$img[,,1]))*65535
    if (!is.null(channel)&&img$type!="greyscale") {
     if(channel %in% (1:3)){
       img$img <- img$img[,,channel]
@@ -985,4 +986,59 @@ develop.raw <- function(object,method="BILINEAR",wb=c(1,1,1),maxrange=TRUE,compr
      if(!is.null(object$yind)) object$yind<-unique(object$yind[-1]%/%2)
   }
   invisible(if(compress) compress.image(object) else object)
+}
+
+adimpro2biOps <- function(img) {
+  if (!("adimpro" %in% class(img))) stop("No adimpro object!")
+  
+  if (img$compressed) {
+    nimg <- extract.image(img)
+  } else {
+    nimg <- img$img
+  }
+  if (length(dim(nimg)) == 3) { # RGB image
+    nimg <- aperm(nimg, c(2,1,3))
+    type <- "rgb"
+   nimg <- nimg[dim(nimg)[1]:1,,]
+  } else if (length(dim(nimg)) == 2) { # greyscale
+    nimg <- t(nimg)
+    type <- "grey"
+    nimg <- nimg[dim(nimg)[1]:1,]
+  } else {
+    stop("ERROR: Image data has dimension",dim(nimg),"do not know what to do! Expecting (x,y,3) or (x,y)!")
+  }
+  nimg <- nimg/256
+  
+  attr(nimg, "type") <- type
+  class(nimg) <- c("imagedata", class(nimg))
+  invisible(nimg)
+}
+
+biOps2adimpro <- function(img,
+                          gammatype = "ITU",
+                          whitep    = "D65",
+                          cspace    = "sRGB") {
+  if (!("imagedata" %in% class(img))) stop("No imagedata (biOps) object!")
+
+  if (length(dim(img)) == 3) { # RGB image
+    img <- aperm(img, c(2,1,3))
+    type <- "rgb"
+    img <- img[,dim(img)[2]:1,]
+  } else if (length(dim(img)) == 2) { # greyscale
+    img <- t(img)
+    type <- "greyscale"
+    img <- img[,dim(img)[2]:1]
+  } else {
+    stop("ERROR: Image data has dimension",dim(img),"do not know what to do! Expecting (x,y,3) or (x,y)!")
+  }
+  img <- img/255 #  biOps seems to expect range [0,255]
+  
+  # don't know which default values!!
+  invisible(make.image(img,
+                       compress  = TRUE,
+                       gammatype = gammatype,
+                       whitep    = whitep,
+                       cspace    = cspace,
+                       scale     = "Original",
+                       xmode     = "RGB"))
 }

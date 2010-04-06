@@ -1,3 +1,13 @@
+version 0.7.4: 06.04.2010
+
+- new-line in Makevars
+
+version 0.7.3: 13.11.2009
+
+- adimpro.options() no longer suggests to use X11.options(type="Xlib") -> no message at startup!
+- adimpro.options() sets display size from xdpyinfo only on Linux systems -> no error on MAC OS
+- new functions adimpro2biOps() and biOps2adimpro() for interchange of objects between both packages
+
 version 0.7.1: 6.10.2008
 
 .onload: X11.options(type="Xlib") is no longer enforced 
