@@ -1,7 +1,8 @@
 .onLoad <- function(lib, pkg){
   # we need the path to Imagemagick
-  path2imagemagick <- strsplit(Sys.which("mogrify"),"mogrify")[[1]][1]
-  if(!is.na(path2imagemagick)) {
+  mogrify <- Sys.which("mogrify")
+  path2imagemagick <- strsplit(mogrify,"mogrify")[[1]][1]
+  if(file.exists(mogrify) & (!is.na(path2imagemagick))) {
     Sys.setenv(ImageMagick=path2imagemagick)
   } else {
     warning("could not determine path to Imagemagick \n
@@ -9,7 +10,7 @@
     'Sys.setenv(ImageMagick='path2imagemagick')'")
   }
   dcraw <- Sys.which("dcraw")
-  if(dcraw=="") cat("Reading RAW images requires to install dcraw, see \n
+  if(!file.exists(dcraw)) cat("Reading RAW images requires to install dcraw, see \n
     http://cybercom.net/~dcoffin/dcraw/ for LINUX and http://www.insflug.org/raw/ 
     for MAC OS and Windows \n")
   adimpro.options()
