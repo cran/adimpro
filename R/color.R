@@ -18,6 +18,7 @@ rgb2grey <- function(obj, compress=TRUE) {
     warning("Error: image type is not implemented \n")
   } else {
     if(obj$compressed) obj <- decompress.image(obj)
+    if(obj$gamma) obj <- invgamma.correction(obj,alg=1)
     dm <- obj$dim
     dim(obj$img) <- c(prod(dm),3)
     if(obj$cspace!="sRGB") {

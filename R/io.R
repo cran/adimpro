@@ -597,7 +597,7 @@ plot.adimpro <- function(x, new = FALSE, gammatype=NULL, cspace=NULL, whitep=NUL
   }
   if ("ni" %in% names(x)) {
     aws <- TRUE
-    ni <- make.image(65535* x$ni / x$ni0, compress=FALSE, gamma=FALSE)
+    ni <- make.image(65535* x$ni / x$ni0, compress=FALSE, gammatype="None")
   } else {
     aws <- FALSE
   }
@@ -784,7 +784,7 @@ make.image <- function(x, compress=TRUE, gammatype="None", whitep="D65", cspace=
   invisible(img) 
 }
 
-extract.ni <- function (object, gamma = FALSE, compress=TRUE) {
+extract.ni <- function (object, gammatype = "ITU", compress=TRUE) {
   if (!check.adimpro(object)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
@@ -792,7 +792,7 @@ extract.ni <- function (object, gamma = FALSE, compress=TRUE) {
     object <- decompress.image(object)
   if ("ni" %in% names(object)) {
     aws <- TRUE
-    ni <- make.image(65535 * object$ni/object$ni0, compress = compress, gamma = gamma)
+    ni <- make.image(65535 * object$ni/object$ni0, compress = compress, gammatype = gammatype)
   }
   else {
     stop("image was not processed by awsimage or awspimage")
