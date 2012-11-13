@@ -1,6 +1,6 @@
 5bbbb7933e7677d64fec4ad91ae8f76e *BUGS
 d41d8cd98f00b204e9800998ecf8427e *COPYRIGHT
-14ef99d9bb6827ba5feaeafbfed1c0c4 *DESCRIPTION
+b9bdea0cea8a2fcceac02d2d3a4edc76 *DESCRIPTION
 61f5b22290ad6dfd5b6233a891a15c36 *NAMESPACE
 d76123cc6adcd4025a5b39b0ffa6cb10 *R/aniso.r
 ce886353a88fb3d632b0275b9f6cc2f1 *R/awsimage.r
@@ -8,10 +8,10 @@ ec983321e2d980b063c7139b2b72096c *R/camera.R
 3bbb61288dadb48a64521bcec3015c5b *R/color.R
 0473e50623c9267f1a775ee3ca0b63c1 *R/demosaic.r
 192d76fe7d4bf9d0629013142f122f29 *R/edges.R
-7c758e6d5b1fa329ae051530c7dbd3cf *R/io.R
+51ec2d18684f8e819b2c494f7115bb04 *R/io.R
 0f19af38bfd5feab502177cdb11cce9c *R/misc.r
 797fb4ae4c1ebca50b22071edb75eb2e *R/segment.r
-2f1235a7aafb2b5b571b0f4c35eb427f *README
+03ca1531d878f123745730b2ed7bd008 *README
 df88f973b91c2a6a8116f572514cc05e *demo/00Index
 761c462ea89cc2de21c72d9862de3789 *demo/adimpro.r
 5b4d4462f1696d3bae46343f41fb8999 *demo/awsimage.r
@@ -23,6 +23,7 @@ de56f1aefb552e8e173936683c150b28 *demo/combine.r
 aae303efc442196ef4d2add31a0b7f2b *demo/raw.r
 5b809e1033b6089457b996f782d16277 *demo/segment.r
 00e3be204d8a6c16ce6cb5708433b5a2 *inst/CITATION
+1425a9eeb485e3fab29186386c0493d5 *inst/adjust/adjust.r
 6dd3ba6f99284a9993ced257a09f8d6f *inst/img/rawimage.png
 a688fe5d3ed5bde5f3c3190073ea236c *inst/img/wias-noise.ppm
 7a5f35ede37a88426d61e197e5f63e55 *inst/img/wias.ppm

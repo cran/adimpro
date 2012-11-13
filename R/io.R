@@ -1,3 +1,5 @@
+## TODO: the extraction of EXIF tags with identify does not work!
+
 read.image <- function(filename, compress=TRUE) {
   convert.path <- paste(Sys.getenv("ImageMagick"),"convert",sep="")
   fileparts <- strsplit(filename,"\\.")[[1]]
@@ -808,6 +810,8 @@ extract.image <- function (object) {
     object <- decompress.image(object)
   invisible(object$img)
 }
+
+## TODO: This function should be generalized to arbitrary Tags and should still work for RAW and JPG
 
 extract.info <- function(object, what="Bayer"){
   if (class(object)=="adimpro") {

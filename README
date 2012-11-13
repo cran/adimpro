@@ -1,3 +1,6 @@
+version 0.7.7: 31.07.2012
+- spell check by CRAN revealed a misspell in DESCRIPTIOn file
+
 version 0.7.6: 18.10.2011
 - changes call to cat() in packageStartupMessage() as requested by R CMD check on CRAN
  
