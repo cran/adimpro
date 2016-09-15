@@ -13,7 +13,8 @@ read.raw(filename, type="PPM",
          wb="CAMERA",cspace="Adobe",interp="Bilinear",maxrange=TRUE,
          rm.ppm=TRUE, compress=TRUE)
 read.image(filename, compress=TRUE)
-make.image(x,compress=TRUE, gammatype="None", whitep = "D65", cspace="Adobe", scale="Original",xmode="RGB")
+make.image(x,compress=TRUE, gammatype="None", whitep = "D65", 
+         cspace="Adobe", scale="Original",xmode="RGB")
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{

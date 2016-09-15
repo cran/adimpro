@@ -1,4 +1,12 @@
 useDynLib(adimpro)
+import("methods","awsMethods")
+  importFrom("grDevices", "X11", "grey", "hsv")
+  importFrom("graphics", "hist", "image", "lines", "locator", "par",
+             "plot", "text", "title")
+  importFrom("stats", "IQR", "dnorm", "median", "quantile")
+  importFrom("grDevices", "dev.new")
+  S3method(plot,adimpro)
+  S3method(summary,adimpro)
 export(read.image,write.image,show.image,read.raw,make.image,write.raw)
 export(rgb2yiq,yiq2rgb,rgb2yuv,yuv2rgb,rgb2hsi,hsi2rgb,rgb2xyz,xyz2rgb,rgb2grey)
 export(edges,rotate.image,shrink.image,clip.image,adjust.image,develop.raw)

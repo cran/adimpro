@@ -1,4 +1,4 @@
-.onLoad <- function(lib, pkg){
+.onAttach <- function(lib, pkg){
   # we need the path to Imagemagick
   mogrify <- Sys.which("mogrify")
   path2imagemagick <- strsplit(mogrify,"mogrify")[[1]][1]
@@ -13,15 +13,31 @@
   if(!file.exists(dcraw)) packageStartupMessage("Reading RAW images requires to install dcraw, see \n
     http://cybercom.net/~dcoffin/dcraw/ for LINUX and http://www.insflug.org/raw/ 
     for MAC OS and Windows \n")
+}
+
+.onLoad <- function(lib, pkg){
+#  if(!exists(.adimpro)) {
+#    attach(what=NULL,2L)
+    #  .adimpro <- list(xsize=xsize,ysize=ysize)
+    #  rm(xsize,ysize)
+    #  attach(.adimpro)
+    #  detach(.adimpro)
+#  }
   adimpro.options()
+}
+
+.onUnload <- function(libpath){
+   options(adimpro.xsize=NULL,adimpro.ysize=NULL)
 }
 
 adimpro.options <- function(xsize = NULL,
                             ysize = NULL){
-  if (Sys.info()["sysname"] == "Linux") {
+#  if (Sys.info()["sysname"] == "Linux") {
     ## we now have >which< on our system and test for >xdpyinfo< 
-    test <- system("which xdpyinfo", ignore.stderr=TRUE, intern = TRUE)
-    if (length(test) > 0) {
+#    test <- system("which xdpyinfo", ignore.stderr=TRUE, intern = TRUE)
+      test <- Sys.which("xdpyinfo")
+#      if (length(test) > 0) {
+      if(nchar(test)>0){
       resolution <- strsplit(system("xdpyinfo  | grep 'dimensions:'", intern=TRUE, ignore.stderr=TRUE), "x")
       if(length(resolution) > 0){
         resx <- strsplit(resolution[[1]][1]," ")[[1]]
@@ -29,10 +45,10 @@ adimpro.options <- function(xsize = NULL,
         if (is.null(ysize)) ysize <- as.integer(strsplit(resolution[[1]][2]," ")[[1]][1])
       }
     }
-  }
-  if(is.null(xsize)||is.na(xsize)) xsize <- 1024
-  if(is.null(ysize)||is.na(ysize)) ysize <- 768
-  assign(".adimpro",list(xsize=xsize,ysize=ysize),pos=1)
+#  }
+  if(is.null(xsize)||is.na(xsize)) xsize <- 1920
+  if(is.null(ysize)||is.na(ysize)) ysize <- 1080
+  options(adimpro.xsize=xsize,adimpro.ysize=ysize)
   invisible(NULL)
 }
 #.adimpro <- adimpro.options()

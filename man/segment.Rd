@@ -6,7 +6,12 @@
   The function allows to segment an image into two or three level sets.
 }
 \usage{
-segment(object, level=0.5, delta = 0, thresh = 3, fov = NULL, channel = 0, hmax = 4, aws = TRUE, varmodel = NULL, ladjust = 1.25, xind = NULL, yind = NULL, wghts = c(0.299, 0.587, 0.114, 0), scorr = TRUE, lkern = "Triangle", plateau = NULL, homogen = TRUE, earlystop = TRUE, demo = FALSE, select = FALSE, sext = 1.4, connected = FALSE, graph = FALSE, max.pixel = 400, compress = TRUE)
+segment(object, level=0.5, delta = 0, thresh = 3, fov = NULL, channel = 0, 
+        hmax = 4, aws = TRUE, varmodel = NULL, ladjust = 1.25, xind = NULL, 
+        yind = NULL, wghts = c(0.299, 0.587, 0.114, 0), scorr = TRUE, 
+        lkern = "Triangle", plateau = NULL, homogen = TRUE, 
+        earlystop = TRUE, demo = FALSE, select = FALSE, sext = 1.4, 
+        connected = FALSE, graph = FALSE, max.pixel = 400, compress = TRUE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{

@@ -1,57 +1,72 @@
       subroutine convolve(img, kernel, eimg, height, width, ksize)
 
       integer height, width, ksize, i, j
-      real*8 img(width,height), kernel(ksize,ksize), eimg(width,height)
-      real*8 tmp(5)
+      double precision img(width,height), kernel(ksize,ksize), 
+     1       eimg(width,height)
+      double precision tmp1,tmp2,tmp3,tmp4,tmp5
 
       if (ksize.eq.5) then
+C$OMP PARALLEL DEFAULT(SHARED)
+C$OMP& PRIVATE(i,j,tmp1,tmp2,tmp3,tmp4,tmp5)
+C$OMP DO SCHEDULE(GUIDED)
          do j=3,height-2
             do i=3,width-2
-               tmp(1) = img(i-2,j-2) * kernel(1,1)
+               tmp1 = img(i-2,j-2) * kernel(1,1)
      1                + img(i-2,j-1) * kernel(1,2)
      2                + img(i-2,j) * kernel(1,3)
      3                + img(i-2,j+1) * kernel(1,4)
      4                + img(i-2,j+2) * kernel(1,5)
-               tmp(2) = img(i-1,j-2) * kernel(2,1)
+               tmp2 = img(i-1,j-2) * kernel(2,1)
      1                + img(i-1,j-1) * kernel(2,2)
      2                + img(i-1,j) * kernel(2,3)
      3                + img(i-1,j+1) * kernel(2,4)
      4                + img(i-1,j+2) * kernel(2,5)
-               tmp(3) = img(i,j-2) * kernel(3,1)
+               tmp3 = img(i,j-2) * kernel(3,1)
      1                + img(i,j-1) * kernel(3,2)
      2                + img(i,j) * kernel(3,3)
      3                + img(i,j+1) * kernel(3,4)
      4                + img(i,j+2) * kernel(3,5)
-               tmp(4) = img(i+1,j-2) * kernel(4,1)
+               tmp4 = img(i+1,j-2) * kernel(4,1)
      1                + img(i+1,j-1) * kernel(4,2)
      2                + img(i+1,j) * kernel(4,3)
      3                + img(i+1,j+1) * kernel(4,4)
      4                + img(i+1,j+2) * kernel(4,5)
-               tmp(5) = img(i+2,j-2) * kernel(5,1)
+               tmp5 = img(i+2,j-2) * kernel(5,1)
      1                + img(i+2,j-1) * kernel(5,2)
      2                + img(i+2,j) * kernel(5,3)
      3                + img(i+2,j+1) * kernel(5,4)
      4                + img(i+2,j+2) * kernel(5,5)
-               eimg(i,j) = tmp(1) + tmp(2) + tmp(3) +tmp(4) + tmp(5)
+               eimg(i,j) = tmp1 + tmp2 + tmp3 +tmp4 + tmp5
             end do
          end do
+C$OMP END DO NOWAIT
+C$OMP END PARALLEL
+C$OMP FLUSH(eimg)
       else if (ksize.eq.3) then 
+C$OMP PARALLEL DEFAULT(SHARED)
+C$OMP& PRIVATE(i,j,tmp1,tmp2,tmp3)
+C$OMP DO SCHEDULE(GUIDED)
          do j=2,height-1
             do i=2,width-1
-               tmp(1) = img(i-1,j-1) * kernel(1,1)
+               tmp1 = img(i-1,j-1) * kernel(1,1)
      1                + img(i-1,j) * kernel(1,2)
      2                + img(i-1,j+1) * kernel(1,3)
-               tmp(2) = img(i,j-1) * kernel(2,1)
+               tmp2 = img(i,j-1) * kernel(2,1)
      1                + img(i,j) * kernel(2,2)
      2                + img(i,j+1) * kernel(2,3)
-               tmp(3) = img(i+1,j-1) * kernel(3,1)
+               tmp3 = img(i+1,j-1) * kernel(3,1)
      1                + img(i+1,j) * kernel(3,2)
      2                + img(i+1,j+1) * kernel(3,3)
-               eimg(i,j) = tmp(1) + tmp(2) + tmp(3)
+               eimg(i,j) = tmp1 + tmp2 + tmp3
             end do
          end do
-
+C$OMP END DO NOWAIT
+C$OMP END PARALLEL
+C$OMP FLUSH(eimg)
       else if (ksize.eq.2) then
+C$OMP PARALLEL DEFAULT(SHARED)
+C$OMP& PRIVATE(i,j)
+C$OMP DO SCHEDULE(GUIDED)
          do j=1,height-1
             do i=1,width-1
                eimg(i,j) = img(i,j) * kernel(1,1) 
@@ -60,6 +75,9 @@
      3              + img(i+1,j+1) * kernel(2,2)
             end do
          end do
+C$OMP END DO NOWAIT
+C$OMP END PARALLEL
+C$OMP FLUSH(eimg)
       end if
 
 
@@ -76,9 +94,9 @@ C   indx, indy  -  index vectors of length nxnew+1 and nynew+1
 C
       implicit logical (a-z)
       integer nx,ny,dv,img(nx,ny,dv),nxnew,nynew,
-     1        imgnew(nxnew,nynew,dv),indx(1),indy(1),method
+     1        imgnew(nxnew,nynew,dv),indx(*),indy(*),method
       integer i,j,inew,jnew,k,nij,ibest,jbest
-      real*8 z,znew,gap,zmean(4),dist,bestdist
+      double precision z,znew,gap,zmean(4),dist,bestdist
 C     
 C     First generate index vectors
 C 
@@ -87,7 +105,7 @@ C
       gap = z/znew
       indx(1)=1
       DO inew=2,nxnew
-         indx(inew)=(inew-1)*gap+1
+         indx(inew)=int((inew-1)*gap+1)
       END DO
       indx(nxnew+1)=nx+1
       z = ny
@@ -95,7 +113,7 @@ C
       gap = z/znew
       indy(1)=1
       DO inew=2,nynew
-         indy(inew)=(inew-1)*gap+1
+         indy(inew)=int((inew-1)*gap+1)
       END DO
       indy(nynew+1)=ny+1
 C
@@ -105,8 +123,8 @@ C
 C
 C       select representative (central) pixel
 C
-         DO inew=1,nxnew
-            DO jnew=1,nynew
+         DO jnew=1,nynew
+            DO inew=1,nxnew
                i=(indx(inew)+indx(inew+1)-1)/2
                j=(indy(jnew)+indy(jnew+1)-1)/2
                DO k=1,dv               
@@ -119,8 +137,8 @@ C
 C
 C       select pixel as the mean
 C
-         DO inew=1,nxnew
-            DO jnew=1,nynew
+         DO jnew=1,nynew
+            DO inew=1,nxnew
                nij=0
                DO k=1,dv
                   zmean(k)=0.d0
@@ -134,7 +152,7 @@ C
                   END DO
                END DO
                 DO k=1,dv
-                  imgnew(inew,jnew,k)=zmean(k)/nij
+                  imgnew(inew,jnew,k)=int(zmean(k)/nij)
                END DO
             END DO
          END DO
@@ -143,8 +161,8 @@ C
 C
 C       select pixel most similar to the mean
 C
-         DO inew=1,nxnew
-            DO jnew=1,nynew
+         DO jnew=1,nynew
+            DO inew=1,nxnew
                nij=0
                DO k=1,dv
                   zmean(k)=0.d0
@@ -192,10 +210,10 @@ C
 C   indx, indy  -  index vectors of length nxnew+1 and nynew+1
 C
       implicit logical (a-z)
-      integer nx,ny,dv,nxnew,nynew,indx(1),indy(1),method
-      real*8 img(nx,ny,dv),imgnew(nxnew,nynew,dv)
+      integer nx,ny,dv,nxnew,nynew,indx(*),indy(*),method
+      double precision img(nx,ny,dv),imgnew(nxnew,nynew,dv)
       integer i,j,inew,jnew,k,nij,ibest,jbest
-      real*8 z,znew,gap,zmean(4),dist,bestdist
+      double precision z,znew,gap,zmean(4),dist,bestdist
 C     
 C     First generate index vectors
 C 
@@ -204,7 +222,7 @@ C
       gap = z/znew
       indx(1)=1
       DO inew=2,nxnew
-         indx(inew)=(inew-1)*gap+1
+         indx(inew)=int((inew-1)*gap+1)
       END DO
       indx(nxnew+1)=nx+1
       z = ny
@@ -212,7 +230,7 @@ C
       gap = z/znew
       indy(1)=1
       DO inew=2,nynew
-         indy(inew)=(inew-1)*gap+1
+         indy(inew)=int((inew-1)*gap+1)
       END DO
       indy(nynew+1)=ny+1
 C
@@ -310,9 +328,9 @@ C   indx, indy  -  index vectors of length nxnew+1 and nynew+1
 C
       implicit logical (a-z)
       integer nx,ny,img(nx,ny),nxnew,nynew,
-     1        imgnew(nxnew,nynew),indx(1),indy(1),method
+     1        imgnew(nxnew,nynew),indx(*),indy(*),method
       integer i,j,inew,jnew,nij,ibest,jbest
-      real*8 z,znew,gap,zmean,dist,bestdist
+      double precision z,znew,gap,zmean,dist,bestdist
 C     
 C     First generate index vectors
 C 
@@ -321,7 +339,7 @@ C
       gap = z/znew
       indx(1)=1
       DO inew=2,nxnew
-         indx(inew)=(inew-1)*gap+1
+         indx(inew)=int((inew-1)*gap+1)
       END DO
       indx(nxnew+1)=nx+1
       z = ny
@@ -329,7 +347,7 @@ C
       gap = z/znew
       indy(1)=1
       DO inew=2,nynew
-         indy(inew)=(inew-1)*gap+1
+         indy(inew)=int((inew-1)*gap+1)
       END DO
       indy(nynew+1)=ny+1
 C
@@ -361,7 +379,7 @@ C
                      zmean=zmean+img(i,j)
                   END DO
                END DO
-               imgnew(inew,jnew)=zmean/nij
+               imgnew(inew,jnew)=int(zmean/nij)
             END DO
          END DO
       END IF

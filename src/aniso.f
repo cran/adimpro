@@ -1,9 +1,9 @@
       subroutine sm2Dtens(x,n1,n2,h,rho,xhat)
       implicit logical (a-z)
       integer n1,n2
-      real*8 x(3,n1,n2),h,rho,xhat(3,n1,n2)
+      double precision x(3,n1,n2),h,rho,xhat(3,n1,n2)
       integer i1,i2,j1,j2,ja1,je1,ja2,je2,jx,jy
-      real*8 a(3),b(3),sw,wij,adist2,h2,d,sqrd
+      double precision a(3),b(3),sw,wij,adist2,h2,d,sqrd
       external adist2
       h2=h*h
       DO i1=1,n1
@@ -51,21 +51,21 @@
       subroutine rangex(a,h,ja,je)
       implicit logical (a-z)
       integer ja,je
-      real*8 a(3),h,z
+      double precision a(3),h,z
       z=sqrt(a(3))*h
-      ja=-z
-      je=z
+      ja=int(-z)
+      je=int(z)
       return 
       end
       subroutine rangey(a,ix,h,ja,je)
       implicit logical (a-z)
       integer ix,ja,je
-      real*8 a(3),h,z1,z2
+      double precision a(3),h,z1,z2
       z1=-a(2)/a(3)*ix
       z2=sqrt(a(3)*h*h-ix*ix)/a(3)
-      ja=z1-z2
+      ja=int(z1-z2)
       if(z1-z2.gt.0.d0) ja=ja+1
-      je=z1+z2
+      je=int(z1+z2)
       if(z1+z2.lt.0.d0) je=je-1
 C this accounts for rounding effects !!!
       return
@@ -75,11 +75,11 @@ C
 C    Compute anisotropic distance
 C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-      real*8 function adist2(a,x,y)
+      double precision function adist2(a,x,y)
 C
       implicit logical (a-z)
       integer x,y
-      real*8 a(3)
+      double precision a(3)
       adist2=a(1)*x*x+2.d0*a(2)*x*y+a(3)*y*y
       RETURN
       END
@@ -103,13 +103,14 @@ C   wght     scaling factor for second and third dimension (larger values shrink
 C
       implicit logical (a-z)
       external kldistd,lkern,adist2
-      real*8 kldistd,lkern,adist2
+      double precision kldistd,lkern,adist2
       integer n1,n2,dv,kern,skern,y(n1,n2,dv),theta(n1,n2,dv),
      1        thnew(n1,n2,dv)
       logical aws
-      real*8 bi(n1,n2),lambda,spmax,spmin,wght(dv),hakt,ani(3,n1,n2)
+      double precision bi(n1,n2),lambda,spmax,spmin,wght(dv),hakt,
+     1        ani(3,n1,n2)
       integer i1,i2,j1,j2,k,n,jx,jy,ja1,ja2,je1,je2
-      real*8 bii,sij,swj,swjy(dv),wj,hakt2,spf,a(3),d,sqrd
+      double precision bii,sij,swj,swjy(dv),wj,hakt2,spf,a(3),d,sqrd
       hakt2=hakt*hakt
 C      spf=spmax/(spmax-spmin)
       spf=spmax/(spmax-spmin)
@@ -168,7 +169,7 @@ C  skern == "Exp"
                END DO
             END DO
             DO k=1,dv
-               thnew(i1,i2,k)=swjy(k)/swj
+               thnew(i1,i2,k)=int(swjy(k)/swj)
             END DO
             bi(i1,i2)=swj
             call rchkusr()
@@ -198,15 +199,15 @@ C   wght     scaling factor for second and third dimension (larger values shrink
 C
       implicit logical (a-z)
       external kldistgc,lkern,adist2
-      real*8 kldistgc,lkern,adist2
+      double precision kldistgc,lkern,adist2
       integer n1,n2,dv,kern,skern,nvpar,y(n1,n2,dv),theta(n1,n2,dv),
      1        thnew(n1,n2,dv)
       logical aws
-      real*8 bi(n1,n2),lambda,spmax,spmin,hakt,wghts(dv),
-     2       vcoef(nvpar,dv),chcorr(1),meanvar(dv),ani(3,n1,n2)
+      double precision bi(n1,n2),lambda,spmax,spmin,hakt,wghts(dv),
+     2       vcoef(nvpar,dv),chcorr(*),meanvar(dv),ani(3,n1,n2)
       integer i1,i2,j1,j2,ja1,je1,ja2,je2,l,k,n,info,kdv,jx,jy,
      1        m0,thi(4)
-      real*8 bii,sij,swj,swjy(dv),wj,hakt2,spf,thij(4),
+      double precision bii,sij,swj,swjy(dv),wj,hakt2,spf,thij(4),
      1       s2i(16),si(4),sqrd,d,a(3)
 C  s2i, s2ii temporay stor sigma^2_i and its inverse (nneded for KL-distance)
 C  maximaum dv = 4
@@ -299,7 +300,7 @@ C  skern == "Exp"
                END DO
             END DO
             DO k=1,dv
-               thnew(i1,i2,k)=swjy(k)/swj
+               thnew(i1,i2,k)=int(swjy(k)/swj)
             END DO
             bi(i1,i2)=swj
             call rchkusr()

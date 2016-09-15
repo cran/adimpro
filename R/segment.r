@@ -126,8 +126,8 @@ cat("Specified level: ",level,"  delta: ",delta,"\n")
   if(graph){
     oldpar <- par(mfrow=c(2,2),mar=c(1,1,3,.25),mgp=c(2,1,0))
     on.exit(par(oldpar))
-    if(exists(".adimpro")&&!is.null(.adimpro$xsize)) max.x <- trunc(.adimpro$xsize/3.3)  else max.x <- 500
-    if(exists(".adimpro")&&!is.null(.adimpro$xsize)) max.y <- trunc(.adimpro$xsize/1.2)  else max.y <- 1000
+    if(!is.null(.Options$adimpro.xsize)) max.x <- trunc(.Options$adimpro.xsize/3.2)  else max.x <- 600
+    if(!is.null(.Options$adimpro.ysize)) max.y <- trunc(.Options$adimpro.ysize/1.2)  else max.y <- 900
 #  specify settings for show.image depending on geometry (mfrow) and maximal screen size
   }
   # now check which procedure is appropriate
@@ -158,7 +158,7 @@ cat("Specified level: ",level,"  delta: ",delta,"\n")
                          bi=double(n1*n2),
                          as.integer(lkern),
                          double(twohp1*twohp1),# array for location weights
-                         double(1),DUP=FALSE,
+                         double(1),
                          PACKAGE="adimpro")$theta
     dim(pretheta) <- dimg
     spchcorr <- .Fortran("estcorr",
@@ -169,7 +169,6 @@ cat("Specified level: ",level,"  delta: ",delta,"\n")
                          scorr=double(2),
                          double(1),
                          as.double(hpre),
-                         DUP=FALSE,
                          PACKAGE="adimpro")[c("scorr")]
     spcorr <- spchcorr$scorr
     srh <- sqrt(hpre) 
@@ -238,7 +237,6 @@ cat("Specified level: ",level,"  delta: ",delta,"\n")
                        as.double(thresh),
                        as.double(fov),
                        varest=as.double(varest),
-                       DUP=FALSE,
                        PACKAGE="adimpro")[c("bi","theta","hakt","pvalues","segment","varest")]
     varest <- pmin(.01,zobj$varest)
     theta <- zobj$theta
@@ -265,7 +263,7 @@ cat("Specified level: ",level,"  delta: ",delta,"\n")
       gc()
     }
     cat("Bandwidth",signif(hakt,3)," Progress",signif(total[k],2)*100,"% ")
-    cat("segmented:",sum(segment==-1),sum(segment==0),sum(segment==1))
+    cat("segmented:",sum(segment== -1),sum(segment==0),sum(segment==1))
     cat("\n")
     cat("range of bi",range(bi),"\n")
     if (scorr) {
@@ -280,7 +278,6 @@ cat("Specified level: ",level,"  delta: ",delta,"\n")
                            as.integer(1),
                            scorr=double(2),
                            double(1),
-                           DUP=FALSE,
                            PACKAGE="adimpro")["scorr"]
     spcorr <- spchcorr$scorr
     srh <- sqrt(hakt) 
@@ -304,7 +301,8 @@ cat("Specified level: ",level,"  delta: ",delta,"\n")
       #
       #   Create new variance estimate
       #
-      vobj <- .Fortran(switch(toupper(varmodel),CONSTANT="esigmac",LINEAR="esigmal",QUADRATIC="esigmaq"),
+      fentry <- switch(toupper(varmodel),CONSTANT="esigmac",LINEAR="esigmal",QUADRATIC="esigmaq")
+      vobj <- .Fortran(fentry,
                        as.integer(img[xind,yind]),
                        as.integer(n1*n2),
                        as.integer(1),
@@ -313,7 +311,6 @@ cat("Specified level: ",level,"  delta: ",delta,"\n")
                        as.integer(imgq995),
                        coef=double(nvarpar),
                        meanvar=double(1),
-                       DUP=FALSE,
                        PACKAGE="adimpro")[c("coef","meanvar")]
       cat("Estimated mean variance",signif(vobj$meanvar/65635^2,3),"\n")
     }
@@ -340,7 +337,6 @@ cat("Identify center  of segmented region by left mouse click\n")
                                integer(n1*n2),
                                integer(n1*n2),
                                logical(n1*n2),
-                               DUP=FALSE,
                                PACKAGE="adimpro")$segment-1,n1,n2)
 }
 #

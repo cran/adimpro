@@ -178,8 +178,8 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
     on.exit(par(oldpar))
     graphobj0 <- object[-(1:length(object))[names(object)=="img"]]
     graphobj0$dim <- c(n1,n2)
-    if(exists(".adimpro")&&!is.null(.adimpro$xsize)) max.x <- trunc(.adimpro$xsize/3.3)  else max.x <- 500
-    if(exists(".adimpro")&&!is.null(.adimpro$xsize)) max.y <- trunc(.adimpro$xsize/1.2)  else max.y <- 1000
+    if(!is.null(.Options$adimpro.xsize)) max.x <- trunc(.Options$adimpro.xsize/3.2)  else max.x <- 600
+    if(!is.null(.Options$adimpro.ysize)) max.y <- trunc(.Options$adimpro.ysize/1.2)  else max.y <- 900
 #  specify settings for show.image depending on geometry (mfrow) and maximal screen size
   }
   # now check which procedure is appropriate
@@ -212,7 +212,7 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
                          double(n1*n2),
                          as.integer(lkern),
                          double(twohp1*twohp1),# array for location weights
-                         double(dv),DUP=FALSE,
+                         double(dv),
                          PACKAGE="adimpro")$theta
     dim(pretheta) <- dimg
     spchcorr <- .Fortran("estcorr",
@@ -225,7 +225,6 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
                          scorr=double(2*dv),
                          chcorr=double(max(1,dv*(dv-1)/2)),
                          as.double(hpre),
-                         DUP=FALSE,
                          PACKAGE="adimpro")[c("scorr","chcorr")]
     spcorr <- spchcorr$scorr
     srh <- sqrt(hpre) 
@@ -303,7 +302,7 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
                          as.double(spmin),		       
                          as.double(spmax),
                          as.double(sqrt(wghts)),
-                         double(dv),DUP=FALSE,
+                         double(dv),
                          PACKAGE="adimpro")[c("bi","theta","hakt")]
       } else {
         # all other cases
@@ -326,7 +325,7 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
                          as.double(spmin),
                          as.double(spmax),
                          as.double(wghts),
-                         double(dv),DUP=FALSE,
+                         double(dv),
                          PACKAGE="adimpro")[c("bi","theta","hakt")]
       } 
     theta <- zobj$theta
@@ -370,7 +369,6 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
                            as.integer(dv),
                            scorr=double(2*dv),
                            chcorr=double(max(1,dv*(dv-1)/2)),
-                           DUP=FALSE,
                            PACKAGE="adimpro")[c("scorr","chcorr")]
     spcorr <- spchcorr$scorr
 #    spcorr <- matrix(pmin(.9,0.8817*spcorr+0.231/hakt+6.018*spcorr/hakt^2+
@@ -403,7 +401,8 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
       #
       #   Create new variance estimate
       #
-      vobj <- .Fortran(switch(varmodel,Constant="esigmac",Linear="esigmal"),
+      fentry <- switch(varmodel,Constant="esigmac",Linear="esigmal")
+      vobj <- .Fortran(fentry,
                        as.integer(switch(imgtype,
                                          greyscale=object$img[xind,yind],
                                          rgb=object$img[xind,yind,])),
@@ -414,7 +413,6 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
                        as.integer(imgq995),
                        coef=double(nvarpar*dv),
                        meanvar=double(dv),
-                       DUP=FALSE,
                        PACKAGE="adimpro")[c("coef","meanvar")]
       dim(vobj$coef) <- c(nvarpar,dv)
        for(i in 1:dv){

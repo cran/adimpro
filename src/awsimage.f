@@ -18,17 +18,20 @@ C   wght     scaling factor for second and third dimension (larger values shrink
 C   
       implicit logical (a-z)
       external kldistd,lkern
-      real*8 kldistd,lkern
-      integer n1,n2,dv,kern,y(n1,n2,dv),theta(n1,n2,dv),
-     1        thnew(n1,n2,dv)
+      double precision kldistd,lkern
+      integer n1,n2,dv,kern,y(dv,n1,n2),theta(dv,n1,n2),
+     1        thnew(dv,n1,n2)
       logical aws,fix(n1,n2),mask(n1,n2)
-      real*8 bi(n1,n2),bi0,lambda,spmin,wght(dv),hakt,lw(1)
+      double precision bi(n1,n2),bi0,lambda,spmin,wght(dv),hakt,lw(*)
       integer ih,ih1,i1,i2,j1,j2,k,n,
-     1        jind,jind2,jwind2,dlw,clw,jw1,jw2
-      real*8 bii,sij,swj,swj0,swjy(dv),z1,z2,wj,hakt2,bii0,spf
+     1        jind,jind2,jwind2,dlw,clw,jw1,jw2,thrednr
+      double precision bii,sij,swj,swj0,swjy(dv,*),z1,z2,wj,hakt2,bii0,
+     1        spf
+!$      integer omp_get_thread_num
+!$      external omp_get_thread_num
       hakt2=hakt*hakt
       spf=1.d0/(1.d0-spmin)
-      ih=hakt
+      ih=int(hakt)
       dlw=2*ih+1
       clw=ih+1
       aws=lambda.lt.1d40
@@ -39,7 +42,114 @@ C   compute location weights first
       DO j2=1,dlw
          z2=clw-j2
          z2=z2*z2
-         ih1=sqrt(hakt2-z2)
+         ih1=int(sqrt(hakt2-z2))
+         jind2=(j2-1)*dlw
+         DO j1=clw-ih1,clw+ih1
+C  first stochastic term
+            jind=j1+jind2
+            z1=clw-j1
+            wj=lkern(kern,(z1*z1+z2)/hakt2)
+            swj0=swj0+wj
+            lw(jind)=wj
+         END DO
+      END DO
+      bi0=swj0
+      thrednr=1
+      call rchkusr()
+C$OMP PARALLEL DEFAULT(NONE)
+C$OMP& SHARED(n1,n2,dv,kern,y,theta,thnew,fix,mask,bi,bi0,lambda,
+C$OMP& spmin,wght,hakt,lw,swjy)
+C$OMP& FIRSTPRIVATE(hakt2,dlw,clw,ih,aws,n,bii0,spf)
+C$OMP& PRIVATE(ih1,i1,i2,j1,j2,k,jind,jind2,jwind2,jw1,jw2,
+C$OMP& bii,sij,swj,swj0,z1,z2,wj,thrednr)
+C$OMP DO SCHEDULE(GUIDED)
+      DO i2=1,n2
+!$         thrednr = omp_get_thread_num()
+         DO i1=1,n1
+C            iind=i1+(i2-1)*n1
+            IF (fix(i1,i2)) CYCLE
+C    nothing to do, final estimate is already fixed by control 
+            bii=bi(i1,i2)/lambda
+C   scaling of sij outside the loop
+            swj=0.d0
+            DO k=1,dv
+               swjy(k,thrednr)=0.d0
+            END DO
+            DO jw2=1,dlw
+               j2=jw2-clw+i2
+               if(j2.lt.1.or.j2.gt.n2) CYCLE
+               jwind2=(jw2-1)*dlw
+               z2=clw-jw2
+               ih1=int(sqrt(hakt2-z2*z2))
+               DO jw1=clw-ih1,clw+ih1
+                  j1=jw1-clw+i1
+                  if(j1.lt.1.or.j1.gt.n1) CYCLE
+                  if(.not.mask(j1,j2)) CYCLE
+                  wj=lw(jw1+jwind2)
+                  IF (aws) THEN
+              sij=bii*kldistd(theta(1,i1,i2),theta(1,j1,j2),1,wght,dv)
+                     IF (sij.gt.1.d0) CYCLE
+                        wj=wj*(1.d0-sij)
+                  END IF
+                  swj=swj+wj
+                  DO k=1,dv
+                     swjy(k,thrednr)=swjy(k,thrednr)+wj*y(k,j1,j2)
+                  END DO
+               END DO
+            END DO
+            DO k=1,dv
+               thnew(k,i1,i2)=int(swjy(k,thrednr)/swj)
+            END DO
+            bi(i1,i2)=swj
+         END DO
+      END DO
+C$OMP END DO NOWAIT
+C$OMP END PARALLEL
+C$OMP FLUSH(bi,thnew)
+      RETURN
+      END
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C   Perform one iteration in local constant  aws (gridded)
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+      subroutine mawsimg0(y,fix,mask,n1,n2,dv,hakt,lambda,theta,bi,
+     1       bi0,thnew,kern,spmin,lw,wght)
+C   
+C   y        observed values of regression function
+C   n1,n2,n3    design dimensions
+C   hakt     actual bandwidth
+C   lambda   lambda or lambda*sigma2 for Gaussian models
+C   theta    estimates from last step   (input)
+C   bi       \sum  Wi   (output)
+C   thnew       \sum  Wi Y     (output)
+C   kern     specifies the location kernel
+C   wght     scaling factor for second and third dimension (larger values shrink)
+C   
+      implicit logical (a-z)
+      external kldistd,lkern
+      double precision kldistd,lkern
+      integer n1,n2,dv,kern,y(dv,n1,n2),theta(dv,n1,n2),
+     1        thnew(dv,n1,n2)
+      logical aws,fix(n1,n2),mask(n1,n2)
+      double precision bi(n1,n2),bi0,lambda,spmin,wght(dv),hakt,lw(*)
+      integer ih,ih1,i1,i2,j1,j2,k,n,
+     1        jind,jind2,jwind2,dlw,clw,jw1,jw2
+      double precision bii,sij,swj,swj0,swjy(3),z1,z2,wj,hakt2,bii0,spf
+      hakt2=hakt*hakt
+      spf=1.d0/(1.d0-spmin)
+      ih=int(hakt)
+      dlw=2*ih+1
+      clw=ih+1
+      aws=lambda.lt.1d40
+      n=n1*n2
+      bii0=bi0
+      swj0=0.d0
+C   compute location weights first
+      DO j2=1,dlw
+         z2=clw-j2
+         z2=z2*z2
+         ih1=int(sqrt(hakt2-z2))
          jind2=(j2-1)*dlw
          DO j1=clw-ih1,clw+ih1
 C  first stochastic term
@@ -52,6 +162,13 @@ C  first stochastic term
       END DO
       bi0=swj0
       call rchkusr()
+C$OMP PARALLEL DEFAULT(NONE)
+C$OMP& SHARED(n1,n2,dv,kern,y,theta,thnew,fix,mask,bi,bi0,lambda,
+C$OMP& spmin,wght,hakt,lw)
+C$OMP& FIRSTPRIVATE(hakt2,dlw,clw,ih,aws,n,bii0,spf)
+C$OMP& PRIVATE(ih1,i1,i2,j1,j2,k,jind,jind2,jwind2,jw1,jw2,
+C$OMP& bii,sij,swj,swj0,z1,z2,wj,swjy)
+C$OMP DO SCHEDULE(GUIDED)
       DO i2=1,n2
          DO i1=1,n1
 C            iind=i1+(i2-1)*n1
@@ -68,30 +185,32 @@ C   scaling of sij outside the loop
                if(j2.lt.1.or.j2.gt.n2) CYCLE
                jwind2=(jw2-1)*dlw
                z2=clw-jw2
-               ih1=sqrt(hakt2-z2*z2)
+               ih1=int(sqrt(hakt2-z2*z2))
                DO jw1=clw-ih1,clw+ih1
                   j1=jw1-clw+i1
                   if(j1.lt.1.or.j1.gt.n1) CYCLE
                   if(.not.mask(j1,j2)) CYCLE
                   wj=lw(jw1+jwind2)
                   IF (aws) THEN
-              sij=bii*kldistd(theta(i1,i2,1),theta(j1,j2,1),n,wght,dv)
+              sij=bii*kldistd(theta(1,i1,i2),theta(1,j1,j2),1,wght,dv)
                      IF (sij.gt.1.d0) CYCLE
                         wj=wj*(1.d0-sij)
                   END IF
                   swj=swj+wj
                   DO k=1,dv
-                     swjy(k)=swjy(k)+wj*y(j1,j2,k)
+                     swjy(k)=swjy(k)+wj*y(k,j1,j2)
                   END DO
                END DO
             END DO
             DO k=1,dv
-               thnew(i1,i2,k)=swjy(k)/swj
+               thnew(k,i1,i2)=int(swjy(k)/swj)
             END DO
             bi(i1,i2)=swj
-            call rchkusr()
          END DO
       END DO
+C$OMP END DO NOWAIT
+C$OMP END PARALLEL
+C$OMP FLUSH(bi,thnew)
       RETURN
       END
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
@@ -111,14 +230,14 @@ C   wght     scaling factor for second and third dimension (larger values shrink
 C
       implicit logical (a-z)
       external kldistd,lkern
-      real*8 kldistd,lkern
+      double precision kldistd,lkern
       integer n1,n2,dv,kern,y(n1,n2,dv),thnew(n1,n2,dv)
-      real*8 bi(n1,n2),hakt,lw(1)
+      double precision bi(n1,n2),hakt,lw(*)
       integer ih,ih1,i1,i2,j1,j2,k,n,
      1        jind,jind2,jwind2,dlw,clw,jw1,jw2
-      real*8 swj,swj0,swjy(dv),z1,z2,wj,hakt2
+      double precision swj,swj0,swjy(dv),z1,z2,wj,hakt2
       hakt2=hakt*hakt
-      ih=hakt
+      ih=int(hakt)
       dlw=2*ih+1
       clw=ih+1
       n=n1*n2
@@ -126,7 +245,7 @@ C
       DO j2=1,dlw
          z2=clw-j2
          z2=z2*z2
-         ih1=sqrt(hakt2-z2)
+         ih1=int(sqrt(hakt2-z2))
          jind2=(j2-1)*dlw
          DO j1=clw-ih1,clw+ih1
             jind=j1+jind2
@@ -148,7 +267,7 @@ C
                if(j2.lt.1.or.j2.gt.n2) CYCLE
                jwind2=(jw2-1)*dlw
                z2=clw-jw2
-               ih1=sqrt(hakt2-z2*z2)
+               ih1=int(sqrt(hakt2-z2*z2))
                DO jw1=clw-ih1,clw+ih1
                   j1=jw1-clw+i1
                   if(j1.lt.1.or.j1.gt.n1) CYCLE
@@ -160,7 +279,7 @@ C
                END DO
             END DO
             DO k=1,dv
-               thnew(i1,i2,k)=swjy(k)/swj
+               thnew(i1,i2,k)=int(swjy(k)/swj)
             END DO
             bi(i1,i2)=swj
             call rchkusr()
@@ -170,12 +289,96 @@ C
       END
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C
+C   Compute nonadaptive kernel estimate
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+      subroutine awsimg0(y,n1,n2,dv,hakt,thnew,bi,kern,lw)
+C
+C   y        observed values of regression function
+C   n1,n2,n3    design dimensions
+C   hakt     actual bandwidth
+C   bi       \sum  Wi   (output)
+C   thnew    non-adaptive estimates    (output)
+C   kern     specifies the location kernel
+C   wght     scaling factor for second and third dimension (larger values shrink)
+C
+      implicit logical (a-z)
+      external kldistd,lkern
+      double precision kldistd,lkern
+      integer n1,n2,dv,kern,y(dv,n1,n2),thnew(dv,n1,n2)
+      double precision bi(n1,n2),hakt,lw(*)
+      integer ih,ih1,ii,i1,i2,j1,j2,k,n,
+     1        jind,jind2,jwind2,dlw,clw,jw1,jw2
+      double precision swj,swj0,swjy(3),z1,z2,wj,hakt2
+      hakt2=hakt*hakt
+      ih=int(hakt)
+      dlw=2*ih+1
+      clw=ih+1
+      n=n1*n2
+      swj0=0.d0
+      DO j2=1,dlw
+         z2=clw-j2
+         z2=z2*z2
+         ih1=int(sqrt(hakt2-z2))
+         jind2=(j2-1)*dlw
+         DO j1=clw-ih1,clw+ih1
+            jind=j1+jind2
+            z1=clw-j1
+            wj=lkern(kern,(z1*z1+z2)/hakt2)
+            swj0=swj0+wj
+            lw(jind)=wj
+         END DO
+      END DO
+      call rchkusr()
+C$OMP PARALLEL DEFAULT(NONE)
+C$OMP& SHARED(n1,n2,dv,kern,y,thnew,bi,hakt,lw,swj0)
+C$OMP& FIRSTPRIVATE(dlw,clw,ih,n,hakt2)
+C$OMP& PRIVATE(ii,ih1,i1,i2,j1,j2,k,jind,jind2,jwind2,jw1,
+C$OMP&         jw2,swj,swjy,z1,z2,wj)
+C$OMP DO SCHEDULE(GUIDED)
+      DO ii=1,n1*n2
+         i1=mod(ii,n1)
+         if(i1.eq.0) i1=n1
+         i2=(ii-i1)/n1+1          
+            swj=0.d0
+            DO k=1,dv
+               swjy(k)=0.d0
+            END DO
+            DO jw2=1,dlw
+               j2=jw2-clw+i2
+               if(j2.lt.1.or.j2.gt.n2) CYCLE
+               jwind2=(jw2-1)*dlw
+               z2=clw-jw2
+               ih1=int(sqrt(hakt2-z2*z2))
+               DO jw1=clw-ih1,clw+ih1
+                  j1=jw1-clw+i1
+                  if(j1.lt.1.or.j1.gt.n1) CYCLE
+                  wj=lw(jw1+jwind2)
+                  swj=swj+wj
+                  DO k=1,dv
+                     swjy(k)=swjy(k)+wj*y(k,j1,j2)
+                  END DO
+               END DO
+            END DO
+            DO k=1,dv
+               thnew(k,i1,i2)=int(swjy(k)/swj)
+            END DO
+            bi(i1,i2)=swj
+            call rchkusr()
+      END DO
+C$OMP END DO NOWAIT
+C$OMP END PARALLEL
+C$OMP FLUSH(bi,thnew)
+      RETURN
+      END
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
 C   Perform one iteration in local constant three-variate aws (gridded)
 C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-      subroutine awsvimg(y,fix,n1,n2,dv,vcoef,nvpar,meanvar,chcorr,
+      subroutine awsvimg0(y,fix,n1,n2,n,dv,vcoef,nvpar,meanvar,chcorr,
      1                   hakt,hhom,lambda,theta,bi,bi0,thnew,kern,
-     2                   spmin,wghts,lw,swjy,early,homogen)
+     2                   spmin,wghts,lw,early,homogen)
 C
 C   y        observed values of regression function
 C   n1,n2,n3    design dimensions
@@ -189,35 +392,35 @@ C   wght     scaling factor for second and third dimension (larger values shrink
 C
       implicit logical (a-z)
       external kldistgc,lkern
-      real*8 kldistgc,lkern
-      integer n1,n2,dv,kern,nvpar,y(n1,n2,dv),theta(n1,n2,dv),
-     1        thnew(n1,n2,dv)
-      logical aws,fix(n1,n2),early,homogen,fixi
-      real*8 bi(n1,n2),lambda,spmin,hakt,lw(1),wghts(dv),bi0,
-     2       vcoef(nvpar,dv),chcorr(1),meanvar(dv),hhom(n1,n2)
-      integer ih,ih1,i1,i2,j1,j2,ja1,je1,l,k,info,kdv,
-     1        jind,jind2,jwind2,dlw,clw,jw1,jw2,m0,thi(4)
-      real*8 bii,sij,swj,swjy(dv),z1,z2,wj,hakt2,spf,thij(4),
-     1       s2i(16),si(4),swj0,hhomi,hhommax,hfixmax,hnfix,hmax2
+      double precision kldistgc,lkern
+      integer n,n1,n2,dv,kern,nvpar,y(dv,n1,n2),theta(dv,n1,n2),
+     1        thnew(dv,n1,n2)
+      logical aws,fix(n),early,homogen,fixi
+      double precision bi(n),lambda,spmin,hakt,lw(*),wghts(dv),bi0,
+     1       vcoef(nvpar,dv),chcorr(*),meanvar(dv),hhom(n),
+     2       thi(3),thij(3),si(3),s2i(9),swjy(3)
+      integer ih,ih1,ii,i1,i2,j1,j2,ja1,je1,l,k,info,kdv,
+     1        jind,jind2,jwind2,dlw,clw,jw1,jw2,m0
+      double precision bii,sij,swj,z1,z2,wj,hakt2,spf,
+     1       swj0,hhomi,hhommax,hfixmax,hnfix,hmax2
 C  s2i, s2ii temporay stor sigma^2_i and its inverse (nneded for KL-distance)
 C  maximaum dv = 4
       hakt2=hakt*hakt
       hnfix=max(2.d0,6.d0-hakt)
       spf=1.d0/(1.d0-spmin)
-      ih=hakt
+      ih=int(hakt)
       dlw=2*ih+1
       clw=ih+1
       aws=lambda.lt.1d40
 C      n=n1*n2
 C   compute location weights first
       swj0=0.d0
-      hhomi=1.d0
       fixi=.FALSE.
       hmax2=0.d0
       DO j2=1,dlw
          z2=clw-j2
          z2=z2*z2
-         ih1=sqrt(hakt2-z2)
+         ih1=int(sqrt(hakt2-z2))
          ja1=max(1,clw-ih1)
          je1=min(dlw,clw+ih1)
          jind2=(j2-1)*dlw
@@ -233,106 +436,307 @@ C  first location weight
       END DO
       bi0=swj0
       call rchkusr()
-      DO i2=1,n2
-         DO i1=1,n1
-            if(early) fixi=fix(i1,i2)
-            if(fixi) THEN
-               DO k=1,dv
-               thnew(i1,i2,k)=theta(i1,i2,k)
-               END DO
-               CYCLE
-            END IF
-            if(homogen) THEN
-               hhomi=hhom(i1,i2)
-               hhomi=hhomi*hhomi
-            END IF
-            hhommax=hmax2
-            hfixmax=hhomi
-            bii=bi(i1,i2)/lambda
+C$OMP PARALLEL DEFAULT(NONE)
+C$OMP& SHARED(n1,n2,dv,dv2,kern,nvpar,y,theta,thnew,fix,early,homogen,
+C$OMP&        bi,lambda,spmin,hakt,lw,wghts,vcoef,chcorr,meanvar,
+C$OMP&        hhom,bi0,dlw,clw,n)
+C$OMP& FIRSTPRIVATE(aws,ih,hnfix,hakt2,spf,swj0,fixi,hmax2)
+C$OMP& PRIVATE(ii,ih1,i1,i2,j1,j2,ja1,je1,l,k,info,kdv,jind,jind2,
+C$OMP&         jwind2,jw1,jw2,m0,bii,sij,swj,z1,z2,wj,hhommax,hfixmax,
+C$OMP&         hhomi,thi,thij,si,s2i,swjy)
+C$OMP DO SCHEDULE(GUIDED)
+      DO ii=1,n1*n2
+         hhomi=1.d0
+         i1=mod(ii,n1)
+         if(i1.eq.0) i1=n1
+         i2=(ii-i1)/n1+1          
+         if(early) fixi=fix(ii)
+         if(fixi) THEN
+            DO k=1,dv
+               thnew(k,i1,i2)=theta(k,i1,i2)
+            END DO
+            CYCLE
+         END IF
+         if(homogen) THEN
+            hhomi=hhom(ii)
+            hhomi=hhomi*hhomi
+         END IF
+         hhommax=hmax2
+         hfixmax=hhomi
+         bii=bi(ii)/lambda
 C   scaling of sij outside the loop
-            swj=0.d0
-            DO k=1,dv
-               swjy(k)=0.d0
-               thi(k)=theta(i1,i2,k)
-               si(k) = vcoef(1,k)
-               if(nvpar.gt.1) THEN 
-                  si(k) = si(k) + vcoef(2,k) * thi(k)
-               END IF
-               if(nvpar.gt.2) THEN 
-                  si(k) = si(k) + vcoef(3,k) * thi(k) * thi(k)
-               END IF
-               si(k) = sqrt(max(si(k),0.1*meanvar(k)))
+         swj=0.d0
+         DO k=1,dv
+            swjy(k)=0.d0
+            thi(k)=theta(k,i1,i2)
+            si(k) = vcoef(1,k)
+            if(nvpar.gt.1) THEN 
+               si(k) = si(k) + vcoef(2,k) * thi(k)
+            END IF
+            if(nvpar.gt.2) THEN 
+               si(k) = si(k) + vcoef(3,k) * thi(k) * thi(k)
+            END IF
+            si(k) = sqrt(max(si(k),0.1*meanvar(k)))
 C set small variances to  0.1 * mean variance
-            END DO
+         END DO
 C  Now fill estimated Covariancematrix in pixel i
-            m0=1
-            DO k=1,dv
-               kdv = (k-1)*dv
-               DO l=1,k
-                  s2i(l+kdv)=si(k)*si(l)/wghts(k)/wghts(l)
-                  if(l.ne.k) THEN
-                     s2i(l+kdv)=s2i(l+kdv)*chcorr(m0)
-                     m0=m0+1
-                  END IF
-               END DO
+         m0=1
+         DO k=1,dv
+            kdv = (k-1)*dv
+            DO l=1,k
+               s2i(l+kdv)=si(k)*si(l)/wghts(k)/wghts(l)
+               if(l.ne.k) THEN
+                  s2i(l+kdv)=s2i(l+kdv)*chcorr(m0)
+                  m0=m0+1
+               END IF
             END DO
-            call dpotrf("U",dv,s2i,dv,info)
+         END DO
+         call dpotrf("U",dv,s2i(1),dv,info)
          IF (info.ne.0) call intpr("non-definite matrix 1",21,info,1)
-            call dpotri("U",dv,s2i,dv,info)
+         call dpotri("U",dv,s2i(1),dv,info)
          IF (info.ne.0) call intpr("non-definite matrix 2",21,info,1)
-            IF(dv.gt.1) THEN
-               DO k=2,dv
-                  kdv = (k-1)*dv
-                  DO l=1,k-1
-                     s2i(k+(l-1)*dv)=s2i(l+kdv)
-                  END DO
+         IF(dv.gt.1) THEN
+            DO k=2,dv
+               kdv = (k-1)*dv
+               DO l=1,k-1
+                  s2i(k+(l-1)*dv)=s2i(l+kdv)
                END DO
-            END IF
-            DO jw2=1,dlw
-               j2=jw2-clw+i2
-               if(j2.lt.1.or.j2.gt.n2) CYCLE
-               jwind2=(jw2-1)*dlw
-               z2=clw-jw2
-               z2=z2*z2
-               ih1=sqrt(hakt2-z2)
-               DO jw1=clw-ih1,clw+ih1
-                  j1=jw1-clw+i1
-                  if(j1.lt.1.or.j1.gt.n1) CYCLE
-                  z1=clw-jw1
-                  z1=z1*z1+z2
-                  DO k=1,dv
-                     thij(k)=thi(k)-theta(j1,j2,k)
-                  END DO
-                  wj=lw(jw1+jwind2)
-                  IF (aws.and.z1.ge.hhomi) THEN
-                     sij=bii*kldistgc(thij,s2i,dv)
-                     IF (sij.gt.1.d0) THEN
-                        if(homogen) hhommax=min(hhommax,z1)
-                        CYCLE
-                     END IF
-                     if(early) hfixmax=max(hfixmax,z1)
-                     IF (sij.gt.spmin) THEN
-                         wj=wj*(1.d0-spf*(sij-spmin))
-                         if(homogen) hhommax=min(hhommax,z1)
-                     END IF 
+            END DO
+         END IF
+         DO jw2=1,dlw
+            j2=jw2-clw+i2
+            if(j2.lt.1.or.j2.gt.n2) CYCLE
+            jwind2=(jw2-1)*dlw
+            z2=clw-jw2
+            z2=z2*z2
+            ih1=int(sqrt(hakt2-z2))
+            DO jw1=clw-ih1,clw+ih1
+               j1=jw1-clw+i1
+               if(j1.lt.1.or.j1.gt.n1) CYCLE
+               z1=clw-jw1
+               z1=z1*z1+z2
+               DO k=1,dv
+                  thij(k)=thi(k)-theta(k,j1,j2)
+               END DO
+               wj=lw(jw1+jwind2)
+               IF (aws.and.z1.ge.hhomi) THEN
+                  sij=bii*kldistgc(thij,s2i,dv)
+                  IF (sij.gt.1.d0) THEN
+                     if(homogen) hhommax=min(hhommax,z1)
+                     CYCLE
                   END IF
-                  swj=swj+wj
-                  DO k=1,dv
-                     swjy(k)=swjy(k)+wj*y(j1,j2,k)
-                  END DO
+                  if(early) hfixmax=max(hfixmax,z1)
+                  IF (sij.gt.spmin) THEN
+                     wj=wj*(1.d0-spf*(sij-spmin))
+                     if(homogen) hhommax=min(hhommax,z1)
+                  END IF 
+               END IF
+               swj=swj+wj
+               DO k=1,dv
+                  swjy(k)=swjy(k)+wj*y(k,j1,j2)
                END DO
             END DO
-            DO k=1,dv
-               thnew(i1,i2,k)=swjy(k)/swj
-            END DO
-            bi(i1,i2)=swj
-            if(homogen) hhom(i1,i2)=sqrt(hhommax)
-            IF(early.and.hakt-sqrt(hfixmax).ge.hnfix) THEN
-               fix(i1,i2)=.TRUE.
-            END IF
-            call rchkusr()
+         END DO
+         DO k=1,dv
+            thnew(k,i1,i2)=int(swjy(k)/swj)
+         END DO
+         bi(ii)=swj
+         if(homogen) hhom(ii)=sqrt(hhommax)
+         IF(early.and.hakt-sqrt(hfixmax).ge.hnfix) THEN
+            fix(ii)=.TRUE.
+         END IF
+      END DO
+C$OMP END DO NOWAIT
+C$OMP END PARALLEL
+C$OMP FLUSH(bi,thnew,fix,hhom)
+      RETURN
+      END
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C   Perform one iteration in local constant three-variate aws (gridded)
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+      subroutine awsvimg(y,fix,n1,n2,n,dv,vcoef,nvpar,meanvar,chcorr,
+     1                   hakt,hhom,lambda,theta,bi,bi0,thnew,kern,
+     2                   spmin,wghts,lw,swjy,early,homogen,dv2,thi,
+     3                   thij,si,s2i)
+C
+C   y        observed values of regression function
+C   n1,n2,n3    design dimensions
+C   hakt     actual bandwidth
+C   lambda   lambda or lambda*sigma2 for Gaussian models
+C   theta    estimates from last step   (input)
+C   bi       \sum  Wi   (output)
+C   thnew       \sum  Wi Y     (output)
+C   kern     specifies the location kernel
+C   wght     scaling factor for second and third dimension (larger values shrink)
+C
+      implicit logical (a-z)
+      external kldistgc,lkern
+      double precision kldistgc,lkern
+      integer n,n1,n2,dv,dv2,kern,nvpar,y(dv,n1,n2),theta(dv,n1,n2),
+     1        thnew(dv,n1,n2)
+      logical aws,fix(n),early,homogen,fixi
+      double precision bi(n),lambda,spmin,hakt,lw(*),wghts(dv),bi0,
+     1       vcoef(nvpar,dv),chcorr(*),meanvar(dv),hhom(n),
+     2       thi(dv,*),thij(dv,*),si(dv,*),s2i(dv2,*),swjy(dv,*)
+      integer ih,ih1,ii,i1,i2,j1,j2,ja1,je1,l,k,info,kdv,
+     1        jind,jind2,jwind2,dlw,clw,jw1,jw2,m0,thrednr
+      double precision bii,sij,swj,z1,z2,wj,hakt2,spf,
+     1       swj0,hhomi,hhommax,hfixmax,hnfix,hmax2
+!$      integer omp_get_thread_num
+!$      external omp_get_thread_num
+C  s2i, s2ii temporay stor sigma^2_i and its inverse (nneded for KL-distance)
+C  maximaum dv = 4
+      hakt2=hakt*hakt
+      hnfix=max(2.d0,6.d0-hakt)
+      spf=1.d0/(1.d0-spmin)
+      ih=int(hakt)
+      dlw=2*ih+1
+      clw=ih+1
+      aws=lambda.lt.1d40
+C      n=n1*n2
+C   compute location weights first
+      swj0=0.d0
+      fixi=.FALSE.
+      hmax2=0.d0
+      DO j2=1,dlw
+         z2=clw-j2
+         z2=z2*z2
+         ih1=int(sqrt(hakt2-z2))
+         ja1=max(1,clw-ih1)
+         je1=min(dlw,clw+ih1)
+         jind2=(j2-1)*dlw
+         DO j1=ja1,je1
+C  first location weight
+            jind=j1+jind2
+            z1=clw-j1
+            wj=lkern(kern,(z1*z1+z2)/hakt2)
+            if(wj.gt.0) hmax2=max(hmax2,z1*z1+z2)
+            swj0=swj0+wj
+            lw(jind)=wj
          END DO
       END DO
+      bi0=swj0
+      thrednr=1
+      call rchkusr()
+C$OMP PARALLEL DEFAULT(NONE)
+C$OMP& SHARED(n1,n2,dv,dv2,kern,nvpar,y,theta,thnew,fix,early,homogen,
+C$OMP&        bi,lambda,spmin,hakt,lw,wghts,vcoef,chcorr,meanvar,
+C$OMP&        hhom,thi,thij,si,s2i,swjy,bi0,dlw,clw,n)
+C$OMP& FIRSTPRIVATE(aws,ih,hnfix,hakt2,spf,swj0,fixi,hmax2)
+C$OMP& PRIVATE(ii,ih1,i1,i2,j1,j2,ja1,je1,l,k,info,kdv,jind,jind2,
+C$OMP&         jwind2,jw1,jw2,m0,bii,sij,swj,z1,z2,wj,hhommax,hfixmax,
+C$OMP&         thrednr,hhomi)
+C$OMP DO SCHEDULE(GUIDED)
+      DO ii=1,n1*n2
+!$         thrednr = omp_get_thread_num()+1
+         hhomi=1.d0
+         i1=mod(ii,n1)
+         if(i1.eq.0) i1=n1
+         i2=(ii-i1)/n1+1          
+         if(early) fixi=fix(ii)
+         if(fixi) THEN
+            DO k=1,dv
+               thnew(k,i1,i2)=theta(k,i1,i2)
+            END DO
+            CYCLE
+         END IF
+         if(homogen) THEN
+            hhomi=hhom(ii)
+            hhomi=hhomi*hhomi
+         END IF
+         hhommax=hmax2
+         hfixmax=hhomi
+         bii=bi(ii)/lambda
+C   scaling of sij outside the loop
+         swj=0.d0
+         DO k=1,dv
+            swjy(k,thrednr)=0.d0
+            thi(k,thrednr)=theta(k,i1,i2)
+            si(k,thrednr) = vcoef(1,k)
+            if(nvpar.gt.1) THEN 
+               si(k,thrednr) = si(k,thrednr) + vcoef(2,k) * 
+     1                                            thi(k,thrednr)
+            END IF
+            if(nvpar.gt.2) THEN 
+               si(k,thrednr) = si(k,thrednr) + vcoef(3,k) * 
+     1                               thi(k,thrednr) * thi(k,thrednr)
+            END IF
+            si(k,thrednr) = sqrt(max(si(k,thrednr),0.1*meanvar(k)))
+C set small variances to  0.1 * mean variance
+         END DO
+C  Now fill estimated Covariancematrix in pixel i
+         m0=1
+         DO k=1,dv
+            kdv = (k-1)*dv
+            DO l=1,k
+               s2i(l+kdv,thrednr)=si(k,thrednr)*si(l,thrednr)/
+     1                                   wghts(k)/wghts(l)
+               if(l.ne.k) THEN
+                  s2i(l+kdv,thrednr)=s2i(l+kdv,thrednr)*chcorr(m0)
+                  m0=m0+1
+               END IF
+            END DO
+         END DO
+         call dpotrf("U",dv,s2i(1,thrednr),dv,info)
+         IF (info.ne.0) call intpr("non-definite matrix 1",21,info,1)
+         call dpotri("U",dv,s2i(1,thrednr),dv,info)
+         IF (info.ne.0) call intpr("non-definite matrix 2",21,info,1)
+         IF(dv.gt.1) THEN
+            DO k=2,dv
+               kdv = (k-1)*dv
+               DO l=1,k-1
+                  s2i(k+(l-1)*dv,thrednr)=s2i(l+kdv,thrednr)
+               END DO
+            END DO
+         END IF
+         DO jw2=1,dlw
+            j2=jw2-clw+i2
+            if(j2.lt.1.or.j2.gt.n2) CYCLE
+            jwind2=(jw2-1)*dlw
+            z2=clw-jw2
+            z2=z2*z2
+            ih1=int(sqrt(hakt2-z2))
+            DO jw1=clw-ih1,clw+ih1
+               j1=jw1-clw+i1
+               if(j1.lt.1.or.j1.gt.n1) CYCLE
+               z1=clw-jw1
+               z1=z1*z1+z2
+               DO k=1,dv
+                  thij(k,thrednr)=thi(k,thrednr)-theta(k,j1,j2)
+               END DO
+               wj=lw(jw1+jwind2)
+               IF (aws.and.z1.ge.hhomi) THEN
+                  sij=bii*kldistgc(thij(1,thrednr),s2i(1,thrednr),dv)
+                  IF (sij.gt.1.d0) THEN
+                     if(homogen) hhommax=min(hhommax,z1)
+                     CYCLE
+                  END IF
+                  if(early) hfixmax=max(hfixmax,z1)
+                  IF (sij.gt.spmin) THEN
+                     wj=wj*(1.d0-spf*(sij-spmin))
+                     if(homogen) hhommax=min(hhommax,z1)
+                  END IF 
+               END IF
+               swj=swj+wj
+               DO k=1,dv
+                  swjy(k,thrednr)=swjy(k,thrednr)+wj*y(k,j1,j2)
+               END DO
+            END DO
+         END DO
+         DO k=1,dv
+            thnew(k,i1,i2)=int(swjy(k,thrednr)/swj)
+         END DO
+         bi(ii)=swj
+         if(homogen) hhom(ii)=sqrt(hhommax)
+         IF(early.and.hakt-sqrt(hfixmax).ge.hnfix) THEN
+            fix(ii)=.TRUE.
+         END IF
+      END DO
+C$OMP END DO NOWAIT
+C$OMP END PARALLEL
+C$OMP FLUSH(bi,thnew,fix,hhom)
       RETURN
       END
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
@@ -347,10 +751,10 @@ C          Kern=3     Biweight
 C          Kern=4     Triweight
 C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-      real*8 function lkern(kern,xsq)
+      double precision function lkern(kern,xsq)
       implicit logical (a-z)
       integer kern
-      real*8 xsq,z
+      double precision xsq,z
       IF (xsq.ge.1) THEN
          lkern=0.d0
       ELSE IF (kern.eq.1) THEN
@@ -383,10 +787,10 @@ C          Gaussian
 C
 C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-      real*8 function kldistgc(thij,s2ii,dv)
+      double precision function kldistgc(thij,s2ii,dv)
       implicit logical (a-z)
       integer k,l,dv
-      real*8 thij(dv),s2ii(dv,dv),z,thijk
+      double precision thij(dv),s2ii(dv,dv),z,thijk
       z= thij(1)*thij(1)*s2ii(1,1)
       IF (dv.gt.1) THEN
          DO k=2,dv
@@ -409,10 +813,10 @@ C          Gaussian, Diagonal covariance matrix
 C
 C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-      real*8 function kldistd(thi,thj,n,wght,nwght)
+      double precision function kldistd(thi,thj,n,wght,nwght)
       implicit logical (a-z)
-      integer n,nwght,i,k,thi(1),thj(1)
-      real*8 z,wght(nwght)
+      integer n,nwght,i,k,thi(*),thj(*)
+      double precision z,wght(nwght)
       kldistd=0.d0
       i=1
       DO k=1,nwght
@@ -432,12 +836,16 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       subroutine esigmac(y,n,dv,theta,bi,quant,varcoef,mvar)
       implicit logical (a-z)
       integer n,dv,y(n,dv),theta(n,dv),quant(dv)
-      real*8 bi(n),varcoef(dv),mvar(dv)
+      double precision bi(n),varcoef(dv),mvar(dv)
       integer i,k
-      real*8 z,bii,sumres,sumwght,wght,res
+      double precision z,bii,sumres,sumwght,wght,res
       DO k=1,dv
          sumres=0.d0
          sumwght=0.d0
+C$OMP PARALLEL DO 
+C$OMP& DEFAULT(SHARED)
+C$OMP& PRIVATE(i,bii,res,wght)
+C$OMP& REDUCTION(+:sumres,sumwght)
          DO i=1,n
             bii=bi(i)
             if(bii.le.1.d0.or.y(i,k).ge.quant(k)) CYCLE
@@ -447,6 +855,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
             sumres=sumres+res*wght
             sumwght=sumwght+wght
          END DO
+C$OMP END PARALLEL DO
          if(sumwght.gt.0.d0) THEN
             z=sumres/sumwght
          ELSE
@@ -460,9 +869,9 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       subroutine esigmal(y,n,dv,theta,bi,quant,varcoef,mvar)
       implicit logical (a-z)
       integer n,dv,y(n,dv),theta(n,dv),quant(dv)
-      real*8 bi(n),varcoef(2,dv),mvar(dv),res
+      double precision bi(n),varcoef(2,dv),mvar(dv),res
       integer i,k
-      real*8 z,bii,s0,s1,s2,t0,t1,d,wght,thi,mth
+      double precision z,bii,s0,s1,s2,t0,t1,d,wght,thi,mth
       DO k=1,dv
          s0=0.d0
          s1=0.d0
@@ -470,6 +879,10 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
          t0=0.d0
          t1=0.d0
          mth=0.d0
+C$OMP PARALLEL DO
+C$OMP& DEFAULT(SHARED)
+C$OMP& PRIVATE(i,bii,thi,res,wght,z)
+C$OMP& REDUCTION(+:s0,s1,s2,t0,t1,mth)
          DO i=1,n
             bii=bi(i)
             mth=mth+theta(i,k)
@@ -485,6 +898,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
             t0=t0+wght*res
             t1=t1+z*res
          END DO
+C$OMP END PARALLEL DO
          d=s2*s0-s1*s1
          IF(d.gt.0.d0) THEN
             varcoef(1,k)=(s2*t0-s1*t1)/d
@@ -500,9 +914,11 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       subroutine esigmaq(y,n,dv,theta,bi,quant,varcoef,mvar)
       implicit logical (a-z)
       integer n,dv,y(n,dv),theta(n,dv),quant(dv)
-      real*8 bi(n),varcoef(3,dv),mvar(dv),res,mat(3,3),imat(3,3)
+      double precision bi(n),varcoef(3,dv),mvar(dv),res,mat(3,3),
+     1        imat(3,3)
       integer i,k,info
-      real*8 z,bii,s0,s1,s2,s3,s4,t0,t1,t2,wght,thi,mth,mthn,tt(3)
+      double precision z,bii,s0,s1,s2,s3,s4,t0,t1,t2,wght,thi,mth,
+     1        mthn,tt(3)
       DO k=1,dv
          s0=0.d0
          s1=0.d0
@@ -513,6 +929,10 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
          t1=0.d0
          t2=0.d0
          mth=0.d0
+C$OMP PARALLEL DO
+C$OMP& DEFAULT(SHARED)
+C$OMP& PRIVATE(i,bii,thi,res,wght,z)
+C$OMP& REDUCTION(+:s0,s1,s2,s3,s4,t0,t1,t2,mth)
          DO i=1,n
             bii=bi(i)
             if(theta(i,k).le.0.025*65535) CYCLE
@@ -533,6 +953,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
             t1=t1+z*res
             t2=t2+z*thi*res
          END DO
+C$OMP END PARALLEL DO
          mat(1,1)=s0
          mat(1,2)=s1
          mat(1,3)=s2
@@ -571,52 +992,66 @@ C    if info>0 just keep the old estimate
       END DO
       RETURN
       END
-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC 
-C
-C
-C    Estimate correlations
-C
-C
-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       subroutine estcorr(res,n1,n2,dv,scorr,chcorr)
       implicit logical (a-z)
       integer n1,n2,dv
-      real*8 res(n1,n2,dv),scorr(2,dv),chcorr(1)
+      double precision res(n1,n2,dv),scorr(2,dv),chcorr(1)
       integer i,j,k,n,m,l
-      real*8 vres(4),z,z1,z2,resij
+      double precision vres(4),z,z1,z2,resij
       n=n1*n2
       DO k=1,dv
          z1=0.d0
          z2=0.d0
-         DO i=1,n1
-            DO j=1,n2
+C$OMP PARALLEL DO
+C$OMP& DEFAULT(SHARED)
+C$OMP& PRIVATE(i,j,resij)
+C$OMP& REDUCTION(+:z1,z2)
+         DO j=1,n2
+            DO i=1,n1
                resij=res(i,j,k)
                z1=z1+resij
                z2=z2+resij*resij
             END DO
          END DO
+C$OMP END PARALLEL DO
          z2=z2/n
          z1=z1/n
          vres(k)=n/(n-1)*(z2-z1*z1)
 C  just to avoid problems with images without noise !!!
-         DO i=1,n1
-            DO j=1,n2
+C$OMP PARALLEL DEFAULT(SHARED)
+C$OMP& PRIVATE(i,j)
+C$OMP DO SCHEDULE(GUIDED)
+         DO j=1,n2
+            DO i=1,n1
                res(i,j,k)=res(i,j,k)-z1
             END DO
          END DO
+C$OMP END DO NOWAIT
+C$OMP END PARALLEL
+C$OMP FLUSH(res)
          z=0.d0
-         DO i=1,n1-1
-            DO j=1,n2
+C$OMP PARALLEL DO
+C$OMP& DEFAULT(SHARED)
+C$OMP& PRIVATE(i,j)
+C$OMP& REDUCTION(+:z)
+         DO j=1,n2
+            DO i=1,n1-1
                z=z+res(i,j,k)*res(i+1,j,k)
             END DO
          END DO
+C$OMP END PARALLEL DO
          scorr(1,k)=z/n2/(n1-1)/vres(k)
          z=0.d0
-         DO i=1,n1
-            DO j=1,n2-1
+C$OMP PARALLEL DO
+C$OMP& DEFAULT(SHARED)
+C$OMP& PRIVATE(i,j)
+C$OMP& REDUCTION(+:z)
+         DO j=1,n2-1
+            DO i=1,n1
                z=z+res(i,j,k)*res(i,j+1,k)
             END DO
          END DO
+C$OMP END PARALLEL DO
          scorr(2,k)=z/n1/(n2-1)/vres(k)
       END DO
 C   between channels
@@ -626,11 +1061,16 @@ C   between channels
       DO  k=1,dv-1
          DO l=k+1,dv
             z=0.d0
-            DO i=1,n1
-               DO j=1,n2
+C$OMP PARALLEL DO
+C$OMP& DEFAULT(SHARED)
+C$OMP& PRIVATE(i,j)
+C$OMP& REDUCTION(+:z)
+            DO j=1,n2
+               DO i=1,n1
                   z=z+res(i,j,k)*res(i,j,l)
                END DO
             END DO
+C$OMP END PARALLEL DO
             chcorr(m)=z/n/sqrt(vres(l)*vres(k))
             m=m+1
          END DO

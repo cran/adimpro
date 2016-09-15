@@ -9,12 +9,12 @@ citEntry(entry = "Article",
   volume       = "19",
   number       = "1",
   pages        = "1--17",
-  url          = "http://www.jstatsoft.org/v19/i01/",
+  url          = "https://dx.doi.org/10.18637/jss.v019.i01",
 
   textVersion  =
   paste("Joerg Polzehl, Karsten Tabelow (2007).",
         "Adaptive Smoothing of Digital Images: The R Package adimpro.",
         "Journal of Statistical Software, 19(1), 1-17.",
-        "URL http://www.jstatsoft.org/v19/i01/.")
+        "URL https://dx.doi.org/10.18637/jss.v019.i01")
 )
 

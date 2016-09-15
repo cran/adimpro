@@ -139,8 +139,8 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
     on.exit(par(oldpar))
     graphobj0 <- object[-(1:length(object))[names(object)=="img"]]
     graphobj0$dim <- c(n1,n2)
-    if(exists(".adimpro")&&!is.null(.adimpro$xsize)) max.x <- trunc(.adimpro$xsize/3.3)  else max.x <- 500
-    if(exists(".adimpro")&&!is.null(.adimpro$xsize)) max.y <- trunc(.adimpro$xsize/1.2)  else max.y <- 1000
+    if(!is.null(.Options$adimpro.xsize)) max.x <- trunc(.Options$adimpro.xsize/3.2)  else max.x <- 600
+    if(!is.null(.Options$adimpro.ysize)) max.y <- trunc(.Options$adimpro.ysize/1.2)  else max.y <- 900
 #  specify settings for show.image depending on geometry (mfrow) and maximal screen size
   }
   # now check which procedure is appropriate
@@ -148,7 +148,8 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
   #    Initialize  list for theta
   #
   bi <- rep(1,n)
-  theta <- switch(imgtype,greyscale=object$img[xind,yind],rgb=object$img[xind,yind,])
+  img <- theta <- switch(imgtype,greyscale=object$img[xind,yind],
+                          rgb=aperm(object$img[xind,yind,],c(3,1,2)))
   bi0 <- 1
   #
   #  if varmodel specified prepare for initial variance estimation
@@ -156,14 +157,12 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
     coef <- matrix(0,nvarpar,dv)
     coef[1,] <- sigma2
     vobj <- list(coef=coef,meanvar=sigma2)
-    imgq995 <- switch(imgtype,greyscale=quantile(object$img[xind,yind],.995),
-                      rgb=apply(object$img[xind,yind,],3,quantile,.995))
+    imgq995 <- switch(imgtype,greyscale=quantile(img[xind,yind],.995),
+                      rgb=apply(img[,xind,yind],1,quantile,.995))
   if(scorr){
     twohp1 <- 2*trunc(hpre)+1
-    pretheta <- .Fortran("awsimg",
-                         as.integer(switch(imgtype,
-                                           greyscale=object$img[xind,yind],
-                                           rgb=object$img[xind,yind,])),
+    pretheta <- .Fortran("awsimg0",
+                         as.integer(img),
                          as.integer(n1),
                          as.integer(n2),
                          as.integer(dv),
@@ -172,20 +171,20 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
                          bi=double(n1*n2),
                          as.integer(lkern),
                          double(twohp1*twohp1),# array for location weights
-                         double(dv),DUP=FALSE,
                          PACKAGE="adimpro")$theta
-    dim(pretheta) <- dimg
+    dim(pretheta) <- switch(imgtype,
+                   "greyscale" = dimg, 
+                   "rgb" = dimg[c(3,1,2)])
     spchcorr <- .Fortran("estcorr",
                          as.double(switch(imgtype,
-                                          greyscale=object$img[xind,yind],
-                                          rgb=object$img[xind,yind,])-pretheta),
+                                          greyscale=object$img[xind,yind]-pretheta,
+                                          rgb=object$img[xind,yind,]-aperm(pretheta,c(2,3,1)))),
                          as.integer(n1),
                          as.integer(n2),
                          as.integer(dv),
                          scorr=double(2*dv),
                          chcorr=double(max(1,dv*(dv-1)/2)),
                          as.double(hpre),
-                         DUP=FALSE,
                          PACKAGE="adimpro")[c("scorr","chcorr")]
     spcorr <- spchcorr$scorr
     srh <- sqrt(hpre) 
@@ -222,6 +221,7 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
 #   Start main loop
 #
 #
+   mc.cores <- setCores(,reprt=FALSE)
    while (k<=kstar) {
     hakt0 <- geth2(1,10,lkern,1.25^(k-1),1e-4)
     hakt <- geth2(1,10,lkern,1.25^k,1e-4)
@@ -243,13 +243,12 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
         lambda0 <- lambda0*Varcor.gauss(h0)
     } 
     if(is.null(mask)){
-        zobj <- .Fortran("awsvimg",
-                         as.integer(switch(imgtype,
-                                           greyscale=object$img[xind,yind],
-                                           rgb=object$img[xind,yind,])),
+        zobj <- .Fortran("awsvimg0",
+                         as.integer(img),
                          fix=as.logical(fix),
                          as.integer(n1),
                          as.integer(n2),
+                         as.integer(n1*n2),
                          as.integer(dv),
                          as.double(vobj$coef),
                          as.integer(nvarpar),
@@ -266,17 +265,13 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
                          as.double(spmin),		       
                          as.double(sqrt(wghts)),
                          double(twohp1*twohp1),# array for location weights
-                         double(dv),
                          as.logical(earlystop),
                          as.logical(homogen),
-                         DUP=FALSE,
-                         PACKAGE="adimpro")[c("bi","bi0","theta","hakt","hhom","fix")]
+                      PACKAGE="adimpro")[c("bi","bi0","theta","hakt","hhom","fix")]
     } else {
       # all other cases
-      zobj <- .Fortran("mawsimg",
-                       as.integer(switch(imgtype,
-                                         greyscale=object$img[xind,yind],
-                                         rgb=object$img[xind,yind,])),
+      zobj <- .Fortran("mawsimg0",
+                       as.integer(img),
                        as.logical(fix),
 		       as.logical(mask[xind,yind]),
                        as.integer(n1),
@@ -292,10 +287,10 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
                        as.double(spmin),
                        double(twohp1*twohp1),# array for location weights
                        as.double(wghts),
-                       double(dv),DUP=FALSE,
                        PACKAGE="adimpro")[c("bi","bi0","theta","hakt","hhom","fix")]
     }
-    theta <- zobj$theta
+    theta <- as.integer(zobj$theta)
+    dim(theta) <- switch(imgtype,greyscale=dimg,rgb=dimg[c(3,1,2)])
     bi <- zobj$bi
     bi0 <- zobj$bi0
     hhom <- zobj$hhom
@@ -311,7 +306,7 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
                              rgb=object$img[xind,yind,])
       show.image(graphobj,max.x=max.x,max.y=max.y,xaxt="n",yaxt="n")
       title("Observed Image")
-      graphobj$img <- array(as.integer(theta),dimg)
+      graphobj$img <- switch(imgtype,greyscale=theta,rgb=aperm(theta,c(2,3,1)))
       show.image(graphobj,max.x=max.x,max.y=max.y,xaxt="n",yaxt="n")
       title(paste("Reconstruction  h=",signif(hakt,3)))
       graphobj$img <- matrix(as.integer(65534*bi/bi0),n1,n2)
@@ -334,14 +329,13 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
       if(hakt > hpre){
       spchcorr <- .Fortran("estcorr",
                            as.double(switch(imgtype,
-                                            greyscale=object$img[xind,yind],
-                                            rgb=object$img[xind,yind,]) - theta),
+                                            greyscale=object$img[xind,yind]- theta,
+                                            rgb=object$img[xind,yind,]- aperm(theta,c(2,3,1)))),
                            as.integer(n1),
                            as.integer(n2),
                            as.integer(dv),
                            scorr=double(2*dv),
                            chcorr=double(max(1,dv*(dv-1)/2)),
-                           DUP=FALSE,
                            PACKAGE="adimpro")[c("scorr","chcorr")]
     spcorr <- spchcorr$scorr
 #    spcorr <- matrix(pmin(.9,0.8817*spcorr+0.231/hakt+6.018*spcorr/hakt^2+
@@ -373,18 +367,20 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
       #
       #   Create new variance estimate
       #
-      vobj <- .Fortran(switch(toupper(varmodel),CONSTANT="esigmac",LINEAR="esigmal",QUADRATIC="esigmaq"),
+      fentry <- switch(toupper(varmodel),CONSTANT="esigmac",LINEAR="esigmal",QUADRATIC="esigmaq")
+      vobj <- .Fortran(fentry,
                        as.integer(switch(imgtype,
                                          greyscale=object$img[xind,yind],
                                          rgb=object$img[xind,yind,])),
                        as.integer(n1*n2),
                        as.integer(dv),
-                       as.integer(theta),
+                       as.integer(switch(imgtype,
+                                            greyscale=theta,
+                                            rgb=aperm(theta,c(2,3,1)))),
                        as.double(bi),
                        as.integer(imgq995),
                        coef=double(nvarpar*dv),
                        meanvar=double(dv),
-                       DUP=FALSE,
                        PACKAGE="adimpro")[c("coef","meanvar")]
       dim(vobj$coef) <- c(nvarpar,dv)
        for(i in 1:dv){
@@ -413,7 +409,7 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
   ###                                 .....................................
   if(graph) par(oldpar)
   if(imgtype=="rgb") {
-    object$img[xind,yind,] <- theta
+    object$img[xind,yind,] <- aperm(theta,c(2,3,1))
   } else if(imgtype=="greyscale") {
     object$img[xind,yind] <- theta
   }
@@ -618,7 +614,7 @@ awspimage <- function(object, hmax=12, aws=TRUE, degree=1, varmodel=NULL,
                          bi=double(n1*n2),
                          as.integer(lkern),
                          double(twohp1*twohp1),# array for location weights
-                         double(dv),DUP=FALSE,
+                         double(dv),
                          PACKAGE="adimpro")[c("theta","bi")]
      prebi <- pretheta$bi
      pretheta <- pretheta$theta
@@ -635,7 +631,6 @@ awspimage <- function(object, hmax=12, aws=TRUE, degree=1, varmodel=NULL,
                          as.integer(dv),
                          scorr=double(2*dv),
                          chcorr=double(max(1,dv*(dv-1)/2)),
-                         DUP=FALSE,
                          PACKAGE="adimpro")[c("scorr","chcorr")]
     spcorr <- spchcorr$scorr
     srh <- sqrt(hpre) 
@@ -657,7 +652,8 @@ awspimage <- function(object, hmax=12, aws=TRUE, degree=1, varmodel=NULL,
       #
       #   Create new variance estimate
       #
-      vobj <- .Fortran(switch(varmodel,Constant="epsigmac",Linear="epsigmal"),
+      fentry <- switch(varmodel,Constant="epsigmac",Linear="epsigmal") 
+      vobj <- .Fortran(fentry,
                        as.integer(switch(imgtype,
                                          greyscale=object$img[xind,yind],
                                          rgb=object$img[xind,yind,])),
@@ -669,7 +665,6 @@ awspimage <- function(object, hmax=12, aws=TRUE, degree=1, varmodel=NULL,
                        coef=double(nvarpar*dv),
                        meanvar=double(dv),
                        as.integer(dp1),
-                       DUP=FALSE,
                        PACKAGE="adimpro")[c("coef","meanvar")]
       if(any(is.na(vobj$coef))) vobj <- oldvobj
       dim(vobj$coef) <- c(nvarpar,dv)
@@ -697,8 +692,8 @@ awspimage <- function(object, hmax=12, aws=TRUE, degree=1, varmodel=NULL,
     on.exit(par(oldpar))
     graphobj0 <- object[-(1:length(object))[names(object)=="img"]]
     graphobj0$dim <- c(n1,n2)
-    if(exists(".adimpro")&&!is.null(.adimpro$xsize)) max.x <- trunc(.adimpro$xsize/3.3)  else max.x <- 500
-    if(exists(".adimpro")&&!is.null(.adimpro$xsize)) max.y <- trunc(.adimpro$xsize/1.2)  else max.y <- 1000
+    if(!is.null(.Options$adimpro.xsize)) max.x <- trunc(.Options$adimpro.xsize/3.2)  else max.x <- 600
+    if(!is.null(.Options$adimpro.ysize)) max.y <- trunc(.Options$adimpro.ysize/1.2)  else max.y <- 900
 #  specify settings for show.image depending on geometry (mfrow) and maximal screen size
   }
   hw <- degree+.1
@@ -799,7 +794,6 @@ awspimage <- function(object, hmax=12, aws=TRUE, degree=1, varmodel=NULL,
                            as.integer(dv),
                            scorr=double(2*dv),
                            chcorr=double(max(1,dv*(dv-1)/2)),
-                           DUP=FALSE,
                            PACKAGE="adimpro")[c("scorr","chcorr")]
     spcorr <- spchcorr$scorr
     srh <- sqrt(hakt) 
@@ -829,7 +823,8 @@ awspimage <- function(object, hmax=12, aws=TRUE, degree=1, varmodel=NULL,
       #   Create new variance estimate
       #
       oldvobj <- vobj
-      vobj <- .Fortran(switch(varmodel,Constant="epsigmac",Linear="epsigmal"),
+      fentry <- switch(varmodel,Constant="epsigmac",Linear="epsigmal")
+      vobj <- .Fortran(fentry,
                        as.integer(switch(imgtype,
                                          greyscale=object$img[xind,yind],
                                          rgb=object$img[xind,yind,])),
@@ -841,7 +836,6 @@ awspimage <- function(object, hmax=12, aws=TRUE, degree=1, varmodel=NULL,
                        coef=double(nvarpar*dv),
                        meanvar=double(dv),
                        as.integer(dp1),
-                       DUP=FALSE,
                        PACKAGE="adimpro")[c("coef","meanvar")]
       if(any(is.na(vobj$coef))) vobj <- oldvobj
       dim(vobj$coef) <- c(nvarpar,dv)
@@ -977,7 +971,8 @@ awsprop <- function (object, hmax=10, lambda=10, wghts=c(1,1,1,1), lkern="Platea
   #
   hmax <- hmax
   bi <- rep(1,n)
-  theta <- object$img
+  img <- theta <- switch(imgtype,greyscale=object$img,
+                          rgb=aperm(object$img,c(3,1,2)))
   bi0 <- 1
   #
   #  if varmodel specified prepare for initial variance estimation
@@ -985,8 +980,8 @@ awsprop <- function (object, hmax=10, lambda=10, wghts=c(1,1,1,1), lkern="Platea
     coef <- matrix(0,nvarpar,dv)
     coef[1,] <- sigma2
     vobj <- list(coef=coef,meanvar=sigma2)
-    imgq995 <- switch(imgtype,greyscale=quantile(object$img,.995),
-                      rgb=apply(object$img,3,quantile,.995))
+    imgq995 <- switch(imgtype,greyscale=quantile(img,.995),
+                      rgb=apply(img,1,quantile,.995))
   #
   #         fix values of the image in inactiv pixel
   #
@@ -1010,15 +1005,18 @@ awsprop <- function (object, hmax=10, lambda=10, wghts=c(1,1,1,1), lkern="Platea
   #   run single steps to display intermediate results
   #
   chcorr <- numeric(max(1,dv*(dv-1)/2))
+  mc.cores <- setCores(,reprt=FALSE)
+  dv2 <- dv*dv
   while (hakt<=hmax) {
     twohp1 <- 2*trunc(hakt)+1
     hakt0 <- hakt
         if(lambda[step+1]<1e20){
-        zobj <- .Fortran("awsvimg",
-                         as.integer(object$img),
+        zobj <- .Fortran("awsvimg0",
+                         as.integer(img),
                          fix=as.logical(fix),
                          as.integer(n1),
                          as.integer(n2),
+                         as.integer(n1*n2),
                          as.integer(dv),
                          as.double(vobj$coef),
                          as.integer(nvarpar),
@@ -1032,19 +1030,18 @@ awsprop <- function (object, hmax=10, lambda=10, wghts=c(1,1,1,1), lkern="Platea
                          bi0=as.double(bi0),# just take a scalar here
                          theta=integer(prod(dimg)),
                          as.integer(lkern),
-                         as.double(spmin),
+                         as.double(spmin),		       
                          as.double(sqrt(wghts)),
                          double(twohp1*twohp1),# array for location weights
-                         double(dv),
                          as.logical(earlystop),
                          as.logical(homogen),
-                         DUP=FALSE,
                          PACKAGE="adimpro")[c("bi","bi0","theta","hakt","hhom","fix")]
     theta <- zobj$theta
     bi <- zobj$bi
     bi0 <- zobj$bi0
     hhom <- zobj$hhom
     fix <- zobj$fix
+    dim(theta) <- switch(imgtype,greyscale=dimg,rgb=dimg[c(3,1,2)])
     rm(zobj)
     gc()
     dim(bi) <- dimg[1:2]
@@ -1054,7 +1051,7 @@ awsprop <- function (object, hmax=10, lambda=10, wghts=c(1,1,1,1), lkern="Platea
       graphobj$img <- object$img
       show.image(graphobj,max.x=max.pixel,xaxt="n",yaxt="n")
       title("Observed Image")
-      graphobj$img <- array(as.integer(theta),dimg)
+      graphobj$img <- switch(imgtype,greyscale=theta,rgb=aperm(theta,c(2,3,1)))
       show.image(graphobj,max.x=max.pixel,xaxt="n",yaxt="n")
       title(paste("Reconstruction  h=",signif(hakt,3)))
       graphobj$img <- matrix(as.integer(65534*bi/bi0),n1,n2)
@@ -1066,25 +1063,24 @@ awsprop <- function (object, hmax=10, lambda=10, wghts=c(1,1,1,1), lkern="Platea
       gc()
     }
     if(lambda0<1e20){
-        zobj0 <- .Fortran("awsimg",
-                         as.integer(object$img),
+        zobj0 <- .Fortran("awsimg0",
+                         as.integer(img),
                          as.integer(n1),
                          as.integer(n2),
                          as.integer(dv),
-                         hakt=as.double(hakt),
+                         as.double(hpre),
                          theta=integer(prod(dimg)),
-                         bi=as.double(bi),
+                         bi=double(n1*n2),
                          as.integer(lkern),
                          double(twohp1*twohp1),# array for location weights
-                         double(dv),DUP=FALSE,
                          PACKAGE="adimpro")[c("bi","theta")]
     theta0 <- zobj0$theta
     bi00 <- zobj0$bi
     if(dv==1) risk <- mean(sqrt(zobj0$bi*(theta-theta0)^2/vobj$coef)) else {
-       dim(theta)<-dim(theta0) <- dimg
-       risk1 <- mean(sqrt(zobj0$bi*(theta[,,1]-theta0[,,1])^2/vobj$coef[1]))
-       risk2 <- mean(sqrt(zobj0$bi*(theta[,,2]-theta0[,,2])^2/vobj$coef[2]))
-       risk3 <- mean(sqrt(zobj0$bi*(theta[,,3]-theta0[,,3])^2/vobj$coef[3]))
+    dim(theta0) <- switch(imgtype,greyscale=dimg,rgb=dimg[c(3,1,2)])
+       risk1 <- mean(sqrt(zobj0$bi*(theta[1,,]-theta0[1,,])^2/vobj$coef[1]))
+       risk2 <- mean(sqrt(zobj0$bi*(theta[1,,]-theta0[2,,])^2/vobj$coef[2]))
+       risk3 <- mean(sqrt(zobj0$bi*(theta[1,,]-theta0[3,,])^2/vobj$coef[3]))
        risk <- (risk1+risk2+risk3)/3
     }
     } else {
@@ -1099,12 +1095,13 @@ awsprop <- function (object, hmax=10, lambda=10, wghts=c(1,1,1,1), lkern="Platea
                        as.integer(object$img),
                        as.integer(n1*n2),
                        as.integer(dv),
-                       as.integer(theta),
+                       as.integer(switch(imgtype,
+                                            greyscale=theta,
+                                            rgb=aperm(theta,c(2,3,1)))),
                        as.double(bi),
                        as.integer(imgq995),
                        coef=double(nvarpar*dv),
                        meanvar=double(dv),
-                       DUP=FALSE,
                        PACKAGE="adimpro")[c("coef","meanvar")]
       cat("Estimated mean variance",signif(vobj$meanvar/65635^2,3),"\n")
     }
@@ -1116,7 +1113,8 @@ awsprop <- function (object, hmax=10, lambda=10, wghts=c(1,1,1,1), lkern="Platea
   ###            end cases                                                  
   ###                                 .....................................
   if(graph) par(oldpar)
-    object$img <- theta
+    object$img <- switch(imgtype,greyscale=theta,
+                                 rgb=aperm(theta,c(2,3,1)))
   #  if(dv==1) dim(img) <- dim(img)[1:2]
   ni <- array(1,dimg0[1:2])
   ni <- bi

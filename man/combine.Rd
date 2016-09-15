@@ -7,7 +7,8 @@
 supplied function, on a pair of images. 
 }
 \usage{
-combine(img1, img2, fun = "+", rescale = TRUE, compress = TRUE, gammatype = "None", whitep = "D65", cspace = "Adobe", xmode = "RGB", ...)
+combine(img1, img2, fun = "+", rescale = TRUE, compress = TRUE, gammatype = "None",
+        whitep = "D65", cspace = "Adobe", xmode = "RGB", ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{

@@ -1,9 +1,9 @@
       subroutine median3(x,n,y,tol)
       implicit logical (a-z)
       integer n
-      real*8 x(3,n),y(3),tol
+      double precision x(3,n),y(3),tol
       integer i,j
-      real*8 etaofy,di1,di2,di3,rofy,dxy,z,delta,normy,
+      double precision etaofy,di1,di2,di3,rofy,dxy,z,delta,normy,
      1       y1,y2,y3,r1,r2,r3,t1,t2,t3,t0,c1,c2
 C  use mean as init
       y1=x(1,1)
@@ -79,9 +79,9 @@ C  compute r(y) and check for y=x_k
       subroutine median1(x,n,y,tol)
       implicit logical (a-z)
       integer n
-      real*8 x(n),y,tol
+      double precision x(n),y,tol
       integer i,j
-      real*8 etaofy,di1,rofy,dxy,r1,t1,t0,c1,c2,y0
+      double precision etaofy,di1,rofy,dxy,r1,t1,t0,c1,c2,y0
 C  use mean as init
       y=0.d0
       DO i=1,n
@@ -123,12 +123,14 @@ C  compute r(y) and check for y=x_k
       END DO
       RETURN
       END
-      subroutine shrinkg(x,nx1,nx2,y,ny1,ny2,tol,z,nz,method)
+      subroutine shrinkg(x,nx1,nx2,y,ny1,ny2,tol,z,nz,method,nc)
       implicit logical (a-z)
-      integer nx1,ny1,nx2,ny2,nz,x(nx1,nx2),y(ny1,ny2)
-      real*8 z(nz),tol
-      integer iy1,iy2,ja1,ja2,je1,je2,jx1,jx2,k,l,method
-      real*8 yy,d1,d2
+      integer nx1,ny1,nx2,ny2,nz,x(nx1,nx2),y(ny1,ny2),nc
+      double precision z(nz,nc),tol
+      integer iy1,iy2,ja1,ja2,je1,je2,jx1,jx2,k,method,thrednr
+      double precision yy,d1,d2
+!$      integer omp_get_thread_num
+!$      external omp_get_thread_num
 C
 C   x - original image
 C   y - new image
@@ -138,20 +140,23 @@ C   method = 3 use weighted mean of corresponding x pixel
 C
       d1=nx1
       d1=d1/ny1
-C      rd1=d1*d1/4.d0
 C   d1  contains the factor for shrinkage in first dimension
       d2=nx2
       d2=d2/ny2
-C      rd2=d2*d2/4.d0
+      thrednr=1
 C   d1  contains the factor for shrinkage in second dimension
-      DO iy1=1,ny1
-         ja1=max(1.d0,0.5d0+(iy1-1)*d1)
-         je1=max(1.d0,0.5d0+iy1*d1)
-         je1=min(je1,nx1)
-         DO iy2=1,ny2
-            ja2=max(1.d0,0.5+(iy2-1)*d2)
-            je2=max(1.d0,0.5d0+iy2*d2)
-            je2=min(je2,nx2)
+C$OMP PARALLEL DEFAULT(SHARED)
+C$OMP& PRIVATE(iy2,ja2,je2,iy1,ja1,je1,jx1,jx2,k,l,yy,thrednr)
+C$OMP DO SCHEDULE(GUIDED)
+      DO iy2=1,ny2
+!$         thrednr = omp_get_thread_num()+1
+         ja2=max(1,int(0.5+(iy2-1)*d2))
+         je2=max(1,int(0.5d0+iy2*d2))
+         je2=min(je2,nx2)
+         DO iy1=1,ny1
+            ja1=max(1,int(0.5d0+(iy1-1)*d1))
+            je1=max(1,int(0.5d0+iy1*d1))
+            je1=min(je1,nx1)
             if(ja1.eq.je1.and.ja2.eq.je2) THEN
                y(iy1,iy2)=x(ja1,ja2)
                CYCLE
@@ -160,37 +165,43 @@ C   d1  contains the factor for shrinkage in second dimension
                jx1=(ja1+je1)/2
                jx2=(ja2+je2)/2
                y(iy1,iy2)=x(jx1,jx2)
+            ELSE IF(method.eq.3) THEN
+               k=0
+               yy = 0.d0
+               DO jx1=ja1,je1
+                  DO jx2=ja2,je2
+                     yy=yy+x(jx1,jx2)
+                     k=k+1
+                  END DO
+               END DO
+               y(iy1,iy2)=int(yy/k)
             ELSE
                k=1
                DO jx1=ja1,je1
                   DO jx2=ja2,je2
-                     z(k)=x(jx1,jx2)
+                     z(k,thrednr)=x(jx1,jx2)
                      k=k+1
                   END DO
                END DO
                k=k-1
-               if(method.eq.2) THEN
-                  call median1(z,k,yy,tol)
-                  y(iy1,iy2)=yy
-               END IF
-               if(method.eq.3) THEN
-                  yy = z(1)
-                  DO l=2,k
-                     yy=yy+z(l)
-                  END DO
-                  y(iy1,iy2)=yy/k
-               END IF
+               call median1(z(1,thrednr),k,yy,tol)
+               y(iy1,iy2)=int(yy)
             END IF
          END DO
       END DO
+C$OMP END DO NOWAIT
+C$OMP END PARALLEL
+C$OMP FLUSH(y)
       RETURN
       END
-      subroutine shrinkc(x,nx1,nx2,y,ny1,ny2,tol,z,nz,method)
+      subroutine shrinkc(x,nx1,nx2,y,ny1,ny2,tol,z,nz,method,nc)
       implicit logical (a-z)
-      integer nx1,ny1,nx2,ny2,nz,x(nx1,nx2,3),y(ny1,ny2,3)
-      real*8 z(3,nz),tol
-      integer iy1,iy2,ja1,ja2,je1,je2,jx1,jx2,k,l,method
-      real*8 yy(3),d1,d2
+      integer nx1,ny1,nx2,ny2,nz,x(3,nx1,nx2),y(3,ny1,ny2),nc
+      double precision z(3,nz,nc),tol
+      integer iy1,iy2,ja1,ja2,je1,je2,jx1,jx2,k,method,thrednr
+      double precision yy(3),d1,d2
+!$      integer omp_get_thread_num
+!$      external omp_get_thread_num
 C
 C   x - original image
 C   y - new image
@@ -200,65 +211,72 @@ C   method = 3 use weighted mean of corresponding x pixel
 C
       d1=nx1
       d1=d1/ny1
-C      rd1=d1*d1/4.d0
 C   d1  contains the factor for shrinkage in first dimension
       d2=nx2
       d2=d2/ny2
-C      rd2=d2*d2/4.d0
-C   d1  contains the factor for shrinkage in second dimension
-      DO iy1=1,ny1
-         ja1=max(1.d0,0.5d0+(iy1-1)*d1)
-         je1=max(1.d0,0.5d0+iy1*d1)
-         je1=min(je1,nx1)
-         DO iy2=1,ny2
-            ja2=max(1.d0,0.5d0+(iy2-1)*d2)
-            je2=max(1.d0,0.5d0+iy2*d2)
-            je2=min(je2,nx2)
+      thrednr = 1
+C   d2  contains the factor for shrinkage in second dimension
+C$OMP PARALLEL DEFAULT(SHARED)
+C$OMP& PRIVATE(iy2,ja2,je2,iy1,ja1,je1,jx1,jx2,k,l,yy,thrednr)
+C$OMP DO SCHEDULE(GUIDED)
+      DO iy2=1,ny2
+!$         thrednr = omp_get_thread_num()+1
+         ja2=max(1,int(0.5d0+(iy2-1)*d2))
+         je2=max(1,int(0.5d0+iy2*d2))
+         je2=min(je2,nx2)
+         DO iy1=1,ny1
+            ja1=max(1,int(0.5d0+(iy1-1)*d1))
+            je1=max(1,int(0.5d0+iy1*d1))
+            je1=min(je1,nx1)
             if(ja1.eq.je1.and.ja2.eq.je2) THEN
-               y(iy1,iy2,1)=x(ja1,ja2,1)
-               y(iy1,iy2,2)=x(ja1,ja2,2)
-               y(iy1,iy2,3)=x(ja1,ja2,3)
+               y(1,iy1,iy2)=x(1,ja1,ja2)
+               y(2,iy1,iy2)=x(2,ja1,ja2)
+               y(3,iy1,iy2)=x(3,ja1,ja2)
                CYCLE
             END IF
             if(method.eq.1) THEN
                jx1=(ja1+je1)/2
                jx2=(ja2+je2)/2
-               y(iy1,iy2,1)=x(jx1,jx2,1)
-               y(iy1,iy2,2)=x(jx1,jx2,2)
-               y(iy1,iy2,3)=x(jx1,jx2,3)
+               y(1,iy1,iy2)=x(1,jx1,jx2)
+               y(2,iy1,iy2)=x(2,jx1,jx2)
+               y(3,iy1,iy2)=x(3,jx1,jx2)
 C  this should be the central x point in the pixel
+            ELSE IF(method.eq.3) THEN
+               yy(1) = 0.d0
+               yy(2) = 0.d0
+               yy(3) = 0.d0
+               k=0
+               DO jx2=ja2,je2
+                  DO jx1=ja1,je1
+                     yy(1)=yy(1)+x(1,jx1,jx2)
+                     yy(2)=yy(2)+x(2,jx1,jx2)
+                     yy(3)=yy(3)+x(3,jx1,jx2)
+                     k=k+1
+                  END DO
+               END DO
+               y(1,iy1,iy2)=int(yy(1)/k)
+               y(2,iy1,iy2)=int(yy(2)/k)
+               y(3,iy1,iy2)=int(yy(3)/k)
             ELSE
                k=1
-               DO jx1=ja1,je1
-                  DO jx2=ja2,je2
-                     z(1,k)=x(jx1,jx2,1)
-                     z(2,k)=x(jx1,jx2,2)
-                     z(3,k)=x(jx1,jx2,3)
+               DO jx2=ja2,je2
+                  DO jx1=ja1,je1
+                     z(1,k,thrednr)=x(1,jx1,jx2)
+                     z(2,k,thrednr)=x(2,jx1,jx2)
+                     z(3,k,thrednr)=x(3,jx1,jx2)
                      k=k+1
                   END DO
                END DO
                k=k-1
-               if(method.eq.2) THEN
-                  call median3(z,k,yy,tol)
-                  y(iy1,iy2,1)=yy(1)
-                  y(iy1,iy2,2)=yy(2)
-                  y(iy1,iy2,3)=yy(3)
-               END IF
-               if(method.eq.3) THEN
-                  yy(1) = z(1,1)
-                  yy(2) = z(2,1)
-                  yy(3) = z(3,1)
-                  DO l=2,k
-                     yy(1)=yy(1)+z(1,l)
-                     yy(2)=yy(2)+z(2,l)
-                     yy(3)=yy(3)+z(3,l)
-                  END DO
-                  y(iy1,iy2,1)=yy(1)/k
-                  y(iy1,iy2,2)=yy(2)/k
-                  y(iy1,iy2,3)=yy(3)/k
-               END IF
+               call median3(z(1,1,thrednr),k,yy,tol)
+               y(1,iy1,iy2)=int(yy(1))
+               y(2,iy1,iy2)=int(yy(2))
+               y(3,iy1,iy2)=int(yy(3))
             END IF
          END DO
       END DO
+C$OMP END DO NOWAIT
+C$OMP END PARALLEL
+C$OMP FLUSH(y)
       RETURN
       END

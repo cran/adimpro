@@ -172,7 +172,6 @@ shrink.image.old <- function(img, method = "gap", xt = img$dim[1], yt = img$dim[
                                        integer(xt+1),
                                        integer(yt+1),
                                        as.integer(imethod),
-                                       DUP=FALSE,
                                        PACKAGE="adimpro")$imgnew,c(xt,yt,dv)),
                     csp=array(.Fortran("shrnkcsp",
                                        as.double(img$img),
@@ -185,7 +184,6 @@ shrink.image.old <- function(img, method = "gap", xt = img$dim[1], yt = img$dim[
                                        integer(xt+1),
                                        integer(yt+1),
                                        as.integer(imethod),
-                                       DUP=FALSE,
                                        PACKAGE="adimpro")$imgnew,c(xt,yt,dv)),
                     grey=matrix(.Fortran("shrnkgr",
                                          as.integer(img$img),
@@ -197,7 +195,6 @@ shrink.image.old <- function(img, method = "gap", xt = img$dim[1], yt = img$dim[
                                          integer(xt+1),
                                          integer(yt+1),
                                          as.integer(imethod),
-                                         DUP=FALSE,
                                          PACKAGE="adimpro")$imgnew,xt,yt))
   img$dim <- c(xt,yt)
   if(!is.null(img$ni)) img$ni<-NULL
@@ -236,34 +233,35 @@ shrink.image <- function(img, method = "median", xt = img$dim[1], yt = img$dim[2
   nz <- as.integer((dimg[1]/xt+2)*(dimg[2]/yt+2))
 #  this is probably to much
   imethod <- switch(method,nearest=1,median=2,mean=3,1)
+  mc.cores <- setCores(,reprt=FALSE)
   dv <- 3
   img$img <- switch(type,
-                    color=array(.Fortran("shrinkc",
-                                       as.integer(img$img),
-                                       as.integer(dimg[1]),
-                                       as.integer(dimg[2]),
-                                       imgnew=integer(xt*yt*dv),
-                                       as.integer(xt),
-                                       as.integer(yt),
-                                       as.double(1.e-3),
-                                       double(nz*dv),
-                                       as.integer(nz),
-                                       as.integer(imethod),
-                                       DUP=FALSE,
-                                       PACKAGE="adimpro")$imgnew,c(xt,yt,dv)),
+                    color=aperm(array(.Fortran("shrinkc",
+                             as.integer(aperm(img$img,c(3,1,2))),
+                             as.integer(dimg[1]),
+                             as.integer(dimg[2]),
+                             imgnew=integer(xt*yt*dv),
+                             as.integer(xt),
+                             as.integer(yt),
+                             as.double(1.e-3),
+                             double(nz*dv*mc.cores),
+                             as.integer(nz),
+                             as.integer(imethod),
+                             as.integer(mc.cores),
+                             PACKAGE="adimpro")$imgnew,c(dv,xt,yt)),c(2,3,1)),
                     grey=matrix(.Fortran("shrinkg",
-                                       as.integer(img$img),
-                                       as.integer(dimg[1]),
-                                       as.integer(dimg[2]),
-                                       imgnew=integer(xt*yt),
-                                       as.integer(xt),
-                                       as.integer(yt),
-                                       as.double(1.e-3),
-                                       double(nz),
-                                       as.integer(nz),
-                                       as.integer(imethod),
-                                       DUP=FALSE,
-                                       PACKAGE="adimpro")$imgnew,xt,yt))
+                             as.integer(img$img),
+                             as.integer(dimg[1]),
+                             as.integer(dimg[2]),
+                             imgnew=integer(xt*yt),
+                             as.integer(xt),
+                             as.integer(yt),
+                             as.double(1.e-3),
+                             double(nz*mc.cores),
+                             as.integer(nz),
+                             as.integer(imethod),
+                             as.integer(mc.cores),
+                             PACKAGE="adimpro")$imgnew,xt,yt))
   img$dim <- c(xt,yt)
   if(!is.null(img$ni)) img$ni<-NULL
   if(!is.null(img$hmax)) img$hmax<-NULL

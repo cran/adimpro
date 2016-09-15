@@ -6,8 +6,9 @@
   The function integrates smoothing and demosaicing of RAW image data.
 }
 \usage{
-awsraw(object, hmax = 4, aws = TRUE, wb = c(1, 1, 1), cspace = "Adobe", ladjust = 1, maxrange=TRUE,
-lkern = "Triangle", graph = FALSE, max.pixel = 400, compress = TRUE)
+awsraw(object, hmax = 4, aws = TRUE, wb = c(1, 1, 1), cspace = "Adobe", 
+       ladjust = 1, maxrange=TRUE, lkern = "Triangle", graph = FALSE, 
+       max.pixel = 400, compress = TRUE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{

@@ -1,3 +1,6 @@
+version 0.8.0: 07.02.2013
+- partial parallel implementation usin openMP
+
 version 0.7.7: 31.07.2012
 - spell check by CRAN revealed a misspell in DESCRIPTIOn file
 

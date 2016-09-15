@@ -3,26 +3,26 @@
       implicit logical (a-z)
       integer n1,n2,nt1,nt2,s(n1,n2),shat(n1,n2),th(nt1,nt2,3),
      1        kern,bayer
-      real*8 vcoef(2,3),bi(n1,n2),hakt,spmin,lw(1),lambda,
+      double precision vcoef(2,3),bi(n1,n2),hakt,spmin,lw(*),lambda,
      1       meanvar(3)
       logical aws
       external channel,lkern,kldisdem
-      real*8 lkern,kldisdem
+      double precision lkern,kldisdem
       integer channel
       integer i1,i2,i1th,i2th,j1,j2,ch,dlw,clw,ih,ih1,ja1,je1,
      1        jind2,jind,k,j1th,j2th,jw2,jw1,jwind2
-      real*8 spf,hakt2,z1,z2,wj,sw,swy,thi(3),thij(3),s2i(3),
+      double precision spf,hakt2,z1,z2,wj,sw,swy,thi(3),thij(3),s2i(3),
      1       bii,sij
       hakt2=hakt*hakt
       spf=1.d0/(1.d0-spmin)
-      ih=hakt
+      ih=int(hakt)
       dlw=2*ih+1
       clw=ih+1
       aws=lambda.lt.1d40
       DO j2=1,dlw
          z2=clw-j2
          z2=z2*z2
-         ih1=sqrt(hakt2-z2)
+         ih1=int(sqrt(hakt2-z2))
          ja1=max(1,clw-ih1)
          je1=min(dlw,clw+ih1)
          jind2=(j2-1)*dlw
@@ -57,7 +57,7 @@ C  thats inverse standard deviation
                jwind2=(jw2-1)*dlw
                z2=clw-jw2
                z2=z2*z2
-               ih1=sqrt(hakt2-z2)
+               ih1=int(sqrt(hakt2-z2))
                DO jw1=clw-ih1,clw+ih1
                   j1=jw1-clw+i1
                   if(j1.lt.1.or.j1.gt.n1) CYCLE
@@ -77,7 +77,7 @@ C  we don't smooth sensor data from different channels
                   swy=swy+wj*s(j1,j2)
                END DO
             END DO
-            shat(i1,i2)=swy/sw
+            shat(i1,i2)=int(swy/sw)
             bi(i1,i2)=sw
             call rchkusr()
          END DO
@@ -94,7 +94,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       external channel
       integer i,j,n1,n2,bayer,ch,channel
       integer img(n1,n2),imghom(n1,n2)
-      real*8 thi,thi2,r1,r2,r3,r4,r5,r6,r7,r8,r9
+      double precision thi,thi2,r1,r2,r3,r4,r5,r6,r7,r8,r9
       DO i=3,n1-2
          DO j=3,n2-2
             ch=channel(i,j,bayer)
@@ -112,7 +112,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
                if(thi.gt.0) THEN
                   thi2=(r1*r1+r2*r2+r3*r3+r4*r4+r5*r5+
      1                  r6*r6+r7*r7+r8*r8+r9*r9)/9.d0
-                  imghom(i,j)=thi2/thi-thi
+                  imghom(i,j)=int(thi2/thi-thi)
                ELSE
                   imghom(i,j)=0
                END IF
@@ -125,7 +125,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
                thi=(r1+r2+r3+r4+r5)/5.d0
                if(thi.gt.0) THEN
                   thi2=(r1*r1+r2*r2+r3*r3+r4*r4+r5*r5)/5.d0
-                  imghom(i,j)=thi2/thi-thi
+                  imghom(i,j)=int(thi2/thi-thi)
                ELSE
                   imghom(i,j)=0
                END IF
@@ -137,11 +137,11 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       subroutine smsens0(s,shat,bi,n1,n2,bayer)
       implicit logical (a-z)
       integer n1,n2,s(n1,n2),shat(n1,n2),bayer
-      real*8 bi(n1,n2)
+      double precision bi(n1,n2)
       external channel
       integer channel
       integer i1,i2,j1,j2,ch,ih1,jw2,jw1
-      real*8 hakt,hakt2,z2,sw,swy
+      double precision hakt,hakt2,z2,sw,swy
       hakt=2.1d0
       hakt2=hakt*hakt
       call rchkusr()
@@ -154,7 +154,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
                j2=jw2+i2
                if(j2.lt.1.or.j2.gt.n2) CYCLE
                z2=jw2*jw2
-               ih1=sqrt(hakt2-z2)
+               ih1=int(sqrt(hakt2-z2))
                DO jw1=-ih1,ih1
                   j1=jw1+i1
                   if(j1.lt.1.or.j1.gt.n1) CYCLE
@@ -164,7 +164,7 @@ C  we don't smooth sensor data from different channel
                   swy=swy+s(j1,j2)
                END DO
             END DO
-            shat(i1,i2)=swy/sw
+            shat(i1,i2)=int(swy/sw)
             bi(i1,i2)=sw
             call rchkusr()
          END DO
@@ -174,11 +174,12 @@ C  we don't smooth sensor data from different channel
       subroutine senvar(s,n1,n2,shat,bi,bayer,vcoef,mvar,nothom)
       implicit logical (a-z)
       integer n1,n2,s(n1,n2),shat(n1,n2),bayer
-      real*8 vcoef(2,3),bi(n1,n2),mvar(3)
+      double precision vcoef(2,3),bi(n1,n2),mvar(3)
       logical nothom(n1,n2)
       external channel
       integer channel,ch,i1,i2,n(3)
-      real*8 s0(3),s1(3),s2(3),t0(3),t1(3),ms(3),bii,wght,si,d,z,res
+      double precision s0(3),s1(3),s2(3),t0(3),t1(3),ms(3),bii,wght,
+     1       si,d,z,res
       DO ch=1,3
          s0(ch)=0.d0
          s1(ch)=0.d0
@@ -230,9 +231,9 @@ C          Gaussian
 C
 C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-      real*8 function kldisdem(thij,s2ii)
+      double precision function kldisdem(thij,s2ii)
       implicit logical (a-z)
-      real*8 thij(3),s2ii(3)
+      double precision thij(3),s2ii(3)
       kldisdem = thij(1)*thij(1)*s2ii(1)+
      1           thij(2)*thij(2)*s2ii(2)+
      2           thij(3)*thij(3)*s2ii(3)

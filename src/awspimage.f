@@ -29,16 +29,16 @@ C   temporary arrays set for maximum degree 2
 C
       implicit logical (a-z)
       external kldistp2,lkern
-      real*8 kldistp2,lkern
-      integer n1,n2,dv,kern,nv,degr,ind(1),y(1)
+      double precision kldistp2,lkern
+      integer n1,n2,dv,kern,nv,degr,ind(*),y(*)
       logical aws
-      real*8 theta(1),bi(1),bi0,ai(1),lambda,spmin,mvar(dv),
-     1       wght(dv),hakt,lw(1),w(1),hw,sw(1),slw(1),vcoef(nv,dv)
+      double precision theta(*),bi(*),bi0,ai(*),lambda,spmin,mvar(dv),
+     1       wght(dv),hakt,lw(*),w(*),hw,sw(*),slw(*),vcoef(nv,dv)
       integer ih,ih1,i1,i2,j1,j2,k,n,km1dp1,
      1        iind,jind,jind2,jwind,jwind2,dlw,clw,jw1,jw2,
      2        dp1,dp2,dnp1,ihs,csw,dsw,kw,l,lk,dsw2
-      real*8 bii(15),sij,swj(15),swjy(18),z1,z2,wj,swj0,si,thi(18),
-     1       hakt2,thij(18),zz(15),lwj,hs2,hs,z,cc,wjy,spf,wghti(4)
+      double precision bii(15),sij,swj(15),swjy(18),z1,z2,wj,swj0,si,
+     1  thi(18),hakt2,thij(18),zz(15),lwj,hs2,hs,z,cc,wjy,spf,wghti(4)
 C   arrays with variable length are organized as 
 C   theta(n1,n2,dp1,dv)
 C   bi(n1,n2,dp2)
@@ -58,12 +58,12 @@ C   first set dimensions for arrays depending on degree
       END IF
       dnp1=dv*dp1
       hakt2=hakt*hakt
-      ih=hakt
+      ih=int(hakt)
       dlw=2*ih+1
       clw=ih+1
       hs=hakt+hw
       hs2=hs*hs
-      ihs=hs
+      ihs=int(hs)
       dsw=2*ihs+1
       csw=ihs+1
       n=n1*n2
@@ -71,7 +71,7 @@ C   compute location weights first  sum in slw
       DO j2=1,dlw
          z2=j2-clw
          z2=z2*z2
-         ih1=sqrt(hakt2-z2)
+         ih1=int(sqrt(hakt2-z2))
          jind2=(j2-1)*dlw
          DO j1=clw-ih1,clw+ih1
 C  first stochastic term
@@ -128,7 +128,7 @@ C  get directional differences that only depend on i2-j2
                   zz(3)=z2
                   zz(6)=z2*z2
                END IF
-               ih1=sqrt(hakt2-z2*z2)
+               ih1=int(sqrt(hakt2-z2*z2))
                DO jw1=clw-ih1,clw+ih1
                   j1=jw1-clw+i1
                   if(j1.lt.1.or.j1.gt.n1) CYCLE
@@ -208,7 +208,7 @@ C
                   zz(10)=z2*zz(6)
                   zz(15)=z2*zz(10)
                END IF
-               ih1=sqrt(hs2-z2*z2)
+               ih1=int(sqrt(hs2-z2*z2))
                DO jw1=csw-ih1,csw+ih1
                   j1=jw1-csw+i1
                   if(j1.lt.1.or.j1.gt.n1) CYCLE
@@ -258,7 +258,7 @@ C
       RETURN
       END
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-      real*8 function kldistp2(dp1,thij,bii,wght,dv,ind)
+      double precision function kldistp2(dp1,thij,bii,wght,dv,ind)
 C
 C  search for maximum in w within bandwidth hw, result in sw
 C
@@ -271,9 +271,9 @@ C     ind   index matrix to access the correct elements in bii
 C
       implicit logical (a-z)
       integer dp1,dv,ind(dp1,dp1)
-      real*8 thij(1),bii(1),wght(dv),thijl
+      double precision thij(*),bii(*),wght(dv),thijl
       integer i,j,l,k
-      real*8 z,d
+      double precision z,d
       z=0.d0
       DO i=1,dv
          d=0.d0
@@ -303,9 +303,9 @@ C     cc   dumping factor of weights
 C
       implicit logical (a-z)
       integer dw,dsw,cw,csw,cdiff
-      real*8 w(dw,dw),sw(dsw,dsw),hw,hakt,cc
+      double precision w(dw,dw),sw(dsw,dsw),hw,hakt,cc
       integer i1,i2,id,jd,ja1,je1,ja2,je2,j1,j2,i10,i20
-      real*8 z,z0,z1,z2,hw2,zmax,hakt2,hsw,hsw2,ww
+      double precision z,z0,z1,z2,hw2,zmax,hakt2,hsw,hsw2,ww
       cw=(dw+1)/2
       csw=(dsw+1)/2
       cdiff=csw-cw
@@ -331,7 +331,7 @@ C
             i10=i1-cdiff
             ja1=max(i1-2*cdiff,1)
             je1=min(i1,dw)
-            id=sqrt(hsw2-z1*z1)
+            id=int(sqrt(hsw2-z1*z1))
             if(csw-id.lt.1) CYCLE
             DO i2=csw-id,csw+id
                i20=i2-cdiff
@@ -341,7 +341,7 @@ C
                   z1=(i10-j1)
                   z1=z1*z1
                   if(hw2-z1.lt.0.d0) CYCLE
-                  jd=sqrt(hw2-z1)
+                  jd=int(sqrt(hw2-z1))
                   ja2=max(i20-jd,1)
                   je2=min(i20+jd,dw)
                   DO j2=ja2,je2
@@ -370,9 +370,9 @@ C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       subroutine testwght(w,dlw,dp1,hw,z)
       integer dlw,dp1
-      real*8 w(dlw,dlw),hw,z
+      double precision w(dlw,dlw),hw,z
       integer clw,i,ip,im,cp1,cp2,cm1,cm2
-      real*8 zh,zv
+      double precision zh,zv
       clw=(dlw+1)/2
       cp1=clw+1
       cm1=clw-1
@@ -437,6 +437,44 @@ C
 C      Generate estimates from ai and bi (bivariate case)
 C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+      subroutine mpaws20(n,dp1,dp2,ai,bi,theta,ind)
+C
+C     n          number of design points
+C     dp1        number of parameters  (p+1)
+C     dp2        number of components in bi  (1,6,15)
+C     ai         \sum \Psi^T Wi^k Y       
+C     bi         \sum \Psi^T Wi^k \Psi    
+C     theta      new parameter estimate
+C     restricted to dp2<=20
+      implicit logical (a-z)
+      integer n,dp1,dp2
+      double precision ai(dp1,n),bi(dp2,n),theta(dp1,n)
+      integer i,j,k,info,ind(dp1,dp1)
+      double precision aa(20),dmat(36)
+C$OMP PARALLEL DEFAULT(NONE)
+C$OMP& SHARED(n,dp1,dp2,ai,bi,theta,ind)
+C$OMP& PRIVATE(i,j,k,info,aa,dmat)
+C$OMP DO SCHEDULE(GUIDED)
+      DO i=1,n
+         DO k=1,dp1
+            DO j=k,dp1
+               dmat(k+(j-1)*dp1)=bi(ind(k,j),i)
+            END DO
+            aa(k)=ai(k,i)
+         END DO
+C     now calculate theta as B_i^{-1} A_i
+         call dposv("U",dp1,1,dmat,dp1,aa,dp1,info)
+C    if info>0 just keep the old estimate
+         IF (info.gt.0) CYCLE  
+         DO j=1,dp1
+            theta(j,i)=aa(j)
+         END DO
+      END DO
+C$OMP END DO NOWAIT
+C$OMP END PARALLEL
+C$OMP FLUSH(theta)      
+      RETURN
+      END
       subroutine mpaws2(n,dp1,dp2,ai,bi,theta,dmat,ind)
 C
 C     n          number of design points
@@ -449,9 +487,9 @@ C     dmat       working arrays
 C     restricted to dp2<=20
       implicit logical (a-z)
       integer n,dp1,dp2
-      real*8 ai(n,dp1),bi(n,dp2),theta(n,dp1),dmat(dp1,dp1)
+      double precision ai(n,dp1),bi(n,dp2),theta(n,dp1),dmat(dp1,dp1)
       integer i,j,k,info,ind(dp1,dp1)
-      real*8 aa(20)
+      double precision aa(20)
       DO i=1,n
          DO k=1,dp1
             DO j=k,dp1
@@ -479,23 +517,26 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       subroutine epsigmac(y,n,dv,theta,bi,quant,varcoef,mvar,dp1)
       implicit logical (a-z)
       integer n,dv,y(n,dv),theta(n,dv),quant(dv),dp1
-      real*8 bi(n),varcoef(dv),mvar(dv)
-      integer i,j,k
-      real*8 z,bii,sumres,sumwght,wght,res
+      double precision bi(n),varcoef(dv),mvar(dv)
+      integer i,k
+      double precision z,bii,sumres,sumwght,wght,res
       DO k=1,dv
-         j=0
          sumres=0.d0
          sumwght=0.d0
+C$OMP PARALLEL DO
+C$OMP& DEFAULT(SHARED)
+C$OMP& PRIVATE(i,bii,res,wght)
+C$OMP& REDUCTION(+:sumres,sumwght)
          DO i=1,n
             bii=bi(i)
             if(bii.le.dp1.or.y(i,k).ge.quant(k)) CYCLE
-            j=j+1
             res=(y(i,k)-theta(i,k))
             wght=bii-dp1
             res=res*res*bii/(bii-dp1)
             sumres=sumres+res*wght
             sumwght=sumwght+wght
          END DO
+C$OMP END PARALLEL DO
          z=sumres/sumwght
          varcoef(k)=z
          mvar(k)=z
@@ -505,18 +546,21 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       subroutine epsigmal(y,n,dv,theta,bi,quant,varcoef,mvar,dp1)
       implicit logical (a-z)
       integer n,dv,y(n,dv),theta(n,dv),quant(dv),dp1
-      real*8 bi(n),varcoef(2,dv),
+      double precision bi(n),varcoef(2,dv),
      1       mvar(dv),res
-      integer i,j,k
-      real*8 z,bii,s0,s1,s2,t0,t1,d,wght,thi,mth
+      integer i,k
+      double precision z,bii,s0,s1,s2,t0,t1,d,wght,thi,mth
       DO k=1,dv
-         j=0
          s0=0.d0
          s1=0.d0
          s2=0.d0
          t0=0.d0
          t1=0.d0
          mth=0.d0
+C$OMP PARALLEL DO
+C$OMP& DEFAULT(SHARED)
+C$OMP& PRIVATE(i,bii,thi,res,wght,z)
+C$OMP& REDUCTION(+:s0,s1,s2,t0,t1,mth)
          DO i=1,n
             bii=bi(i)
             thi=theta(i,k)
@@ -532,6 +576,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
             t0=t0+wght*res
             t1=t1+z*res
          END DO
+C$OMP END PARALLEL DO
          d=s2*s0-s1*s1
          varcoef(1,k)=(s2*t0-s1*t1)/d
          varcoef(2,k)=(-s1*t0+s0*t1)/d

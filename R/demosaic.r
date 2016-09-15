@@ -93,7 +93,6 @@ awsraw <- function (object, hmax=4, aws=TRUE, wb=c(1,1,1), cspace="Adobe", ladju
 #                              as.integer(n2),
 #                              as.double(wb),
 #                              as.integer(bayer),
-#                              DUP=FALSE,
 #                              PACKAGE="adimpro")$sensor,n1,n2)
 #  }
   if(maxrange){
@@ -117,7 +116,6 @@ awsraw <- function (object, hmax=4, aws=TRUE, wb=c(1,1,1), cspace="Adobe", ladju
                     as.integer(object$dim[2]),
                     imghom=integer(n1*n2),
                     as.integer(bayer),
-                    DUP=FALSE,
                     PACKAGE="adimpro")$imghom
   medianhom <- median(imghom)
   indnothom <- imghom > 3*medianhom
@@ -134,7 +132,6 @@ awsraw <- function (object, hmax=4, aws=TRUE, wb=c(1,1,1), cspace="Adobe", ladju
                     as.integer(object$dim[1]),
                     as.integer(object$dim[2]),
                     as.integer(bayer),
-                    DUP=FALSE,
                     PACKAGE="adimpro")[c("shat","bi")]
 
   vobj <- .Fortran("senvar",
@@ -147,7 +144,6 @@ awsraw <- function (object, hmax=4, aws=TRUE, wb=c(1,1,1), cspace="Adobe", ladju
                     coef=double(6),
                     meanvar=double(3),
                     as.logical(indnothom),
-                    DUP=FALSE,
                     PACKAGE="adimpro")[c("coef","meanvar")]
       dim(vobj$coef) <- c(2,3)
       cat("Estimated mean variance",signif(vobj$meanvar/65635^2,3),"\n")
@@ -172,7 +168,6 @@ awsraw <- function (object, hmax=4, aws=TRUE, wb=c(1,1,1), cspace="Adobe", ladju
                          as.integer(n1-2),
                          as.integer(n2-2),
                          as.integer(bayer),
-                         DUP=FALSE,
                          PACKAGE="adimpro")$cimg,c((n1-2),(n2-2),3))
    while (k<=kstar) {
     hakt0 <- geth2(1,10,lkern,1.25^(k-1),1e-4)*sqrt(2)
@@ -196,7 +191,6 @@ awsraw <- function (object, hmax=4, aws=TRUE, wb=c(1,1,1), cspace="Adobe", ladju
                          as.integer(lkern),
                          as.double(spmin), 
                          double(twohp1*twohp1),# array for location weights
-                         DUP=FALSE,
                          PACKAGE="adimpro")[c("bi","shat")]
   dim(zobj$bi)  <- c(n1,n2)
   dim(zobj$shat) <- c(n1,n2)
@@ -209,7 +203,6 @@ awsraw <- function (object, hmax=4, aws=TRUE, wb=c(1,1,1), cspace="Adobe", ladju
                          as.integer(n1-2),
                          as.integer(n2-2),
                          as.integer(bayer),
-                         DUP=FALSE,
                          PACKAGE="adimpro")$cimg,c((n1-2),(n2-2),3))
     gc()
     if(any(wb!=1)){
@@ -225,7 +218,6 @@ awsraw <- function (object, hmax=4, aws=TRUE, wb=c(1,1,1), cspace="Adobe", ladju
                                       as.integer((n1-2)*(n2-2)),
                                       as.double(out.cam),
                                       theta=integer((n1-2)*(n2-2)*3),
-                                      DUP=FALSE,
                                       PACKAGE="adimpro")$theta,c(dimg-2,3))
       show.image(graphobj,max.x=max.pixel,xaxt="n",yaxt="n")
       title(paste("Reconstruction  h=",signif(hakt,3)))
@@ -253,7 +245,6 @@ awsraw <- function (object, hmax=4, aws=TRUE, wb=c(1,1,1), cspace="Adobe", ladju
                     coef=double(6),
                     meanvar=double(3),
                     as.logical(indnothom),
-                    DUP=FALSE,
                     PACKAGE="adimpro")[c("coef","meanvar")]
       dim(vobj$coef) <- c(2,3)
       cat("Estimated mean variance",signif(vobj$meanvar/65635^2,3),"\n")
@@ -272,7 +263,6 @@ awsraw <- function (object, hmax=4, aws=TRUE, wb=c(1,1,1), cspace="Adobe", ladju
                                 as.integer((n1-2)*(n2-2)),
                                 as.double(out.cam),
                                 theta=integer((n1-2)*(n2-2)*3),
-                                DUP=FALSE,
                                 PACKAGE="adimpro")$theta,c(dimg-2,3))
   object$type <- "rgb"
   object$cspace <- cspace

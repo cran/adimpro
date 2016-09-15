@@ -58,9 +58,9 @@ C
       subroutine median2(x,n,y,tol)
       implicit logical (a-z)
       integer n,x(2,n),y(2)
-      real*8 tol
+      double precision tol
       integer i,j
-      real*8 etaofy,di1,di2,rofy,dxy,z,delta,normy,
+      double precision etaofy,di1,di2,rofy,dxy,z,delta,normy,
      1       y1,y2,r1,r2,t1,t2,t0,c1,c2
 C  use mean as init
       y1=x(1,1)
@@ -115,8 +115,8 @@ C  compute r(y) and check for y=x_k
          j=j+1
          if(j.gt.20) EXIT
       END DO
-      y(1)=y1
-      y(2)=y2
+      y(1)=int(y1)
+      y(2)=int(y2)
       RETURN
       END
       subroutine demmed4(sensor,theta,n1,n2,h1,h2,bayer)
@@ -184,9 +184,9 @@ C  red or blue channel
       subroutine median2b(x,n,y,tol)
       implicit logical (a-z)
       integer n,x(2,n),y(2)
-      real*8 tol
+      double precision tol
       integer i,j
-      real*8 etaofy,di1,di2,rofy,dxy,z,delta,normy,
+      double precision etaofy,di1,di2,rofy,dxy,z,delta,normy,
      1       y1,y2,r1,r2,t1,t2,t0,c1,c2
 C  use mean as init
       y1=y(1)
@@ -235,8 +235,8 @@ C  compute r(y) and check for y=x_k
          j=j+1
          if(j.gt.5) EXIT
       END DO
-      y(1)=y1
-      y(2)=y2
+      y(1)=int(y1)
+      y(2)=int(y2)
       RETURN
       END
       subroutine demmed4b(sensor,theta,n1,n2,h1,h2,bayer)
@@ -308,9 +308,9 @@ C  red or blue channel
       subroutine median16(x,n,th,tol)
       implicit logical (a-z)
       integer n,x(16,n),th(3)
-      real*8 y(16),tol
+      double precision y(16),tol
       integer i,j,k
-      real*8 etaofy,di(16),rofy,dxy,
+      double precision etaofy,di(16),rofy,dxy,
      1       r(16),t(16),t0,c1,c2,z,delta,normy
 C  use mean as init
       DO j=1,16
@@ -377,9 +377,9 @@ C  compute r(y) and check for y=x_k
          k=k+1
          if(k.gt.20) EXIT
       END DO
-      th(2)=(y(1)+y(2)+y(3)+y(4)+y(5)+y(6)+y(7)+y(8))/8
-      th(1)=(y(9)+y(10)+y(11)+y(12))/4
-      th(3)=(y(13)+y(14)+y(15)+y(16))/4
+      th(2)=int((y(1)+y(2)+y(3)+y(4)+y(5)+y(6)+y(7)+y(8))/8)
+      th(1)=int((y(9)+y(10)+y(11)+y(12))/4)
+      th(3)=int((y(13)+y(14)+y(15)+y(16))/4)
       RETURN
       END
       subroutine demmed16(sensor,theta,n1,n2,h1,h2,bayer)
@@ -595,15 +595,15 @@ C   first check if we have homogeneity based on green
       green=sni
       big=bii
       if(which.eq.1) THEN
-         red=0.5d0*(sn(2)+sn(6))
-         blue=0.5d0*(sn(4)+sn(8))
-         bir=0.5d0*(bi(2)+bi(6))
-         bib=0.5d0*(bi(4)+bi(8))
+         red=int(0.5d0*(sn(2)+sn(6)))
+         blue=int(0.5d0*(sn(4)+sn(8)))
+         bir=int(0.5d0*(bi(2)+bi(6)))
+         bib=int(0.5d0*(bi(4)+bi(8)))
       ELSE
-         blue=0.5d0*(sn(2)+sn(6))
-         red=0.5d0*(sn(4)+sn(8))
-         bib=0.5d0*(bi(2)+bi(6))
-         bir=0.5d0*(bi(4)+bi(8))
+         blue=int(0.5d0*(sn(2)+sn(6)))
+         red=int(0.5d0*(sn(4)+sn(8)))
+         bib=int(0.5d0*(bi(2)+bi(6)))
+         bir=int(0.5d0*(bi(4)+bi(8)))
       END IF
       return
       end
@@ -617,10 +617,10 @@ C
       integer sn(8),sni,red,green,blue,bi(8),bii,bir,big,bib
       red=sni
       bir=bii
-      blue=(sn(1)+sn(3)+sn(5)+sn(7))*.25d0
-      green=(sn(2)+sn(4)+sn(6)+sn(8))*.25d0
-      bib=(bi(1)+bi(3)+bi(5)+bi(7))*.25d0
-      big=(bi(2)+bi(4)+bi(6)+bi(8))*.25d0
+      blue=int((sn(1)+sn(3)+sn(5)+sn(7))*.25d0)
+      green=int((sn(2)+sn(4)+sn(6)+sn(8))*.25d0)
+      bib=int((bi(1)+bi(3)+bi(5)+bi(7))*.25d0)
+      big=int((bi(2)+bi(4)+bi(6)+bi(8))*.25d0)
       return
       end
       subroutine inblue4(sn,sni,bi,bii,bir,big,bib,red,green,blue)
@@ -634,10 +634,10 @@ C
      1       bir,big,bib
       blue=sni
       bib=bii
-      red=(sn(1)+sn(3)+sn(5)+sn(7))*.25d0
-      green=(sn(2)+sn(4)+sn(6)+sn(8))*.25d0
-      bir=(bi(1)+bi(3)+bi(5)+bi(7))*.25d0
-      big=(bi(2)+bi(4)+bi(6)+bi(8))*.25d0
+      red=int((sn(1)+sn(3)+sn(5)+sn(7))*.25d0)
+      green=int((sn(2)+sn(4)+sn(6)+sn(8))*.25d0)
+      bir=int((bi(1)+bi(3)+bi(5)+bi(7))*.25d0)
+      big=int((bi(2)+bi(4)+bi(6)+bi(8))*.25d0)
       return
       end
 
@@ -645,11 +645,11 @@ C
       implicit logical (a-z)
       external channel
       integer n1,n2,sensor(n1,n2),bayer,channel,z
-      real*8 wb(3)
+      double precision wb(3)
       integer i1,i2
       DO i1=1,n1
          DO i2=1,n2
-            z=sensor(i1,i2)*wb(channel(i1,i2,bayer))
+            z=int(sensor(i1,i2)*wb(channel(i1,i2,bayer)))
             if(z.gt.65535) z = 65535
             sensor(i1,i2)=z
          END DO
@@ -714,18 +714,16 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       subroutine cam2rgb(theta,n,outcam,thetanew)
       implicit logical (a-z)
       integer n,theta(n,3),thetanew(n,3) 
-      real*8 outcam(3,3)
-      integer i,j,k,iz
-      real*8 z
+      double precision outcam(3,3)
+      integer i,j,k
+      double precision z
       DO i=1,n
          DO j=1,3
             z=0.d0
             DO k=1,3
                z=z+theta(i,k)*outcam(k,j)
             END DO
-            iz=z
-            iz=max(min(iz,65535),0)
-            thetanew(i,j)=iz
+            thetanew(i,j)=max(min(int(z),65535),0)
          END DO
       END DO
       RETURN

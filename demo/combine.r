@@ -48,6 +48,8 @@ img6 <- combine(img3,mask1,prod)
 img7 <- combine(img3,mask2,prod)
 add <- function(x,y,a,b) a*x+b*y
 img8 <- combine(img6,img7,a=1.2,b=.6)
+show.image(img6)
+show.image(img7)
 show.image(img8)
 }
 

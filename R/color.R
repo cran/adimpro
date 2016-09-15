@@ -698,7 +698,6 @@ hequalize <- function(img,compress=TRUE){
                     as.integer(n1*n2),
                     img=integer(n1*n2),
                     cumhist=integer(65536),
-                    DUPL=FALSE,
                     PACKAGE="adimpro")[c("img","cumhist")]
      img$img <- matrix(z$img,n1,n2)
      img$hequal <- z$cumhist
@@ -713,14 +712,12 @@ hequalize <- function(img,compress=TRUE){
                     as.integer(img1$img),
                     as.integer(n1*n2),
                     cumhist=integer(65536),
-                    DUPL=FALSE,
                     PACKAGE="adimpro")$cumhist
         img$img <- array(.Fortran("hequalc",
                     as.integer(img$img),
                     as.integer(n1*n2),
                     img=integer(n1*n2*3),
                     as.integer(cumhist),
-                    DUPL=FALSE,
                     PACKAGE="adimpro")$img,c(n1,n2,3))
         img$hequal <- cumhist
      } else {
@@ -747,7 +744,6 @@ hequalize.old <- function(img,compress=TRUE){
                     as.integer(n1*n2),
                     img=integer(n1*n2),
                     cumhist=integer(65536),
-                    DUPL=FALSE,
                     PACKAGE="adimpro")[c("img","cumhist")]
      img$img <- matrix(z$img,n1,n2)
      img$hequal <- z$cumhist
@@ -763,7 +759,6 @@ hequalize.old <- function(img,compress=TRUE){
                     as.integer(n1*n2),
                     img=integer(n1*n2),
                     cumhist=integer(65536),
-                    DUPL=FALSE,
                     PACKAGE="adimpro")[c("img","cumhist")]
         img$img[,,1] <- z$img/65535
         img$hequal <- z$cumhist
@@ -795,7 +790,6 @@ invhequalize <- function(img){
                     as.integer(n1*n2),
                     img=integer(n1*n2),
                     as.integer(hist),
-                    DUPL=FALSE,
                     PACKAGE="adimpro")$img,n1,n2)
      img$hequal <- NULL
      img$gamma <- FALSE
@@ -811,7 +805,6 @@ invhequalize <- function(img){
                     as.integer(n1*n2),
                     img=integer(n1*n2*3),
                     as.integer(hist),
-                    DUPL=FALSE,
                     PACKAGE="adimpro")$img,c(n1,n2,3))
         img$hequal <- NULL
         img$gamma <- FALSE
@@ -839,7 +832,6 @@ invhequalize.old <- function(img){
                     as.integer(n1*n2),
                     img=integer(n1*n2),
                     as.integer(hist),
-                    DUPL=FALSE,
                     PACKAGE="adimpro")$img,n1,n2)
      img$hequal <- NULL
      img$gamma <- FALSE
@@ -858,7 +850,6 @@ invhequalize.old <- function(img){
                     as.integer(n1*n2),
                     img=integer(n1*n2),
                     as.integer(hist),
-                    DUPL=FALSE,
                     PACKAGE="adimpro")$img/65535
         img$hequal <- NULL
         img$gamma <- FALSE

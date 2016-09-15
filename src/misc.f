@@ -1,30 +1,30 @@
       subroutine getvofh2(bw,kern,vol)
       implicit logical(a-z)
       integer kern
-      real*8 bw,vol,sofw2D
+      double precision bw,vol,sofw2D
       external sofw2D
       vol=sofw2D(bw,kern)
       RETURN
       END
-      real*8 function sofw2D(bw,kern)
+      double precision function sofw2D(bw,kern)
       implicit logical(a-z)
       integer kern
-      real*8 bw
+      double precision bw
       integer j1,j2,clw,ih1,ih
-      real*8 sw,sw2,h2,lkern,z1,z2,z
+      double precision sw,sw2,h2,lkern,z1,z2,z
       external lkern
       h2=bw*bw
 C
 C   first calculate location weights
 C
-      ih=bw
+      ih=int(bw)
       clw=ih+1
       sw=0.d0
       sw2=0.d0
       DO j2=clw-ih,clw+ih
          z2=(clw-j2)
          z2=z2*z2
-         ih1=sqrt(h2-z2)
+         ih1=int(sqrt(h2-z2))
          DO j1=clw-ih1,clw+ih1
             z1=clw-j1
             z=lkern(kern,(z1*z1+z2)/h2)
@@ -38,9 +38,9 @@ C
       subroutine geth2(x,y,kern,value,eps,bw)
       implicit logical(a-z)
       integer kern
-      real*8 x,y,value,eps,bw
-      real*8 fw1,fw2,fw3,z
-      real*8 sofw2D
+      double precision x,y,value,eps,bw
+      double precision fw1,fw2,fw3,z
+      double precision sofw2D
       external sofw2D
       if(x.ge.y) RETURN
       fw1=sofw2D(x,kern)
@@ -76,7 +76,7 @@ C
       subroutine hequalg(x,n,y,yi)
       integer n,x(n),xi(65536),y(n),yi(65536)
       integer i
-      real*8 z, sz
+      double precision z, sz
       DO i=1,65536
          xi(i)=0
       END DO
@@ -89,7 +89,7 @@ C
       z=65536/z
       DO i=1,65536
          sz=sz+xi(i)
-         yi(i)=min(sz*z,65535.d0)
+         yi(i)=min(int(sz*z),65535)
       END DO
       DO i=1,n
          j=x(i)+1
@@ -100,7 +100,7 @@ C
       subroutine cumhist(x,n,yi)
       integer n,x(n),xi(65536),yi(65536)
       integer i
-      real*8 z, sz
+      double precision z, sz
       DO i=1,65536
          xi(i)=0
       END DO
@@ -113,7 +113,7 @@ C
       z=65536/z
       DO i=1,65536
          sz=sz+xi(i)
-         yi(i)=min(sz*z,65535.d0)
+         yi(i)=min(int(sz*z),65535)
       END DO
       RETURN
       END

@@ -313,7 +313,7 @@ show.image <- function (img, max.x = 1e+03, max.y =1e+03, gammatype = "ITU", whi
       img$type <- "greyscale"
     }
   }
-  if (new) X11()
+  if (new) dev.new()
     
   # now plot according to image type attribute
   switch(img$type,
@@ -653,11 +653,11 @@ plot.adimpro <- function(x, new = FALSE, gammatype=NULL, cspace=NULL, whitep=NUL
   
   if (x$type == "greyscale") {
     if (aws) { 
-      if (new) X11(width=5,height=5)
+      if (new) dev.new(width=5,height=5)
       oldpar <- par(mfrow = c(2,2),mar=c(3,3,3,1))
       on.exit(par(oldpar))
     } else {
-      if (new) X11(width=7,height=3)
+      if (new) dev.new(width=7,height=3)
       oldpar <- par(mfrow = c(1,3),mar=c(3,3,3,1))
       on.exit(par(oldpar))
     }
@@ -672,7 +672,7 @@ plot.adimpro <- function(x, new = FALSE, gammatype=NULL, cspace=NULL, whitep=NUL
     if (aws) show.image(ni,max.x=400,max.y=400)
     
   } else {
-    if (new) X11(width=7,height=5)
+    if (new) dev.new(width=7,height=5)
     oldpar <- par(mfrow = c(2,3),mar=c(3,3,3,1))
     on.exit(par(oldpar))
     
@@ -912,7 +912,6 @@ develop.raw <- function(object,method="BILINEAR",wb=c(1,1,1),maxrange=TRUE,compr
                               as.integer(n2),
                               as.double(wb),
                               as.integer(bayer),
-                              DUP=FALSE,
                               PACKAGE="adimpro")$sensor,n1,n2)
   }
   if(maxrange){
@@ -931,7 +930,6 @@ develop.raw <- function(object,method="BILINEAR",wb=c(1,1,1),maxrange=TRUE,compr
                    as.integer(h1),
                    as.integer(h2),
                    as.integer(bayer),
-                   DUP=FALSE,
                    PACKAGE="adimpro")$theta,
                    HALF=.Fortran("halfsize",
                    as.integer(object$img),
@@ -941,7 +939,6 @@ develop.raw <- function(object,method="BILINEAR",wb=c(1,1,1),maxrange=TRUE,compr
                    as.integer(h1),
                    as.integer(h2),
                    as.integer(bayer),
-                   DUP=FALSE,
                    PACKAGE="adimpro")$theta,
                    BILINEAR=.Fortran("indemos4",
                    as.integer(object$img),
@@ -951,7 +948,6 @@ develop.raw <- function(object,method="BILINEAR",wb=c(1,1,1),maxrange=TRUE,compr
                    as.integer(bayer),
                    as.integer(rep(1,3*n1*n2)),
                    integer(3*n1*n2),
-                   DUP=FALSE,
                    PACKAGE="adimpro")$theta,
                    MEDIAN16=.Fortran("demmed16",
                    as.integer(object$img),
@@ -961,7 +957,6 @@ develop.raw <- function(object,method="BILINEAR",wb=c(1,1,1),maxrange=TRUE,compr
                    as.integer(h1),
                    as.integer(h2),
                    as.integer(bayer),
-                   DUP=FALSE,
                    PACKAGE="adimpro")$theta,
                    MEDIAN4=.Fortran("demmed4",
                    as.integer(object$img),
@@ -971,7 +966,6 @@ develop.raw <- function(object,method="BILINEAR",wb=c(1,1,1),maxrange=TRUE,compr
                    as.integer(h1),
                    as.integer(h2),
                    as.integer(bayer),
-                   DUP=FALSE,
                    PACKAGE="adimpro")$theta),c(h1,h2,3))
   n <- h1*h2
   out.cam <- cam2rgbmat(object)
@@ -980,7 +974,6 @@ develop.raw <- function(object,method="BILINEAR",wb=c(1,1,1),maxrange=TRUE,compr
                                 as.integer(n),
                                 as.double(out.cam),
                                 theta=integer(n*3),
-                                DUP=FALSE,
                                 PACKAGE="adimpro")$theta,c(h1,h2,3))
   object$type <- "rgb"
   object$dim <- c(h1,h2)
