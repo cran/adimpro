@@ -1,7 +1,7 @@
       subroutine segment(y,level,delta,n1,n2,hakt,lambda,
      1                   theta,vcoef,nvc,meanvar,bi,s2i,thnew,kern,
      2                   spmin,lw,pvalue,segm,thresh,fov,varest)
-      implicit logical (a-z)
+      implicit none
       external lkern,fpchisq
       double precision lkern,fpchisq
       integer n1,n2,y(n1,n2),theta(n1,n2),thnew(n1,n2),kern,
@@ -13,6 +13,7 @@
      1        jwind2
       double precision hakt2,spf,swj0,swj,swjy,z2,z1,wj,thi,thij,si,
      1        bii,sij,a,b,ti,swjw,swjw2,cofh,varesti
+      logical aws
       hakt2=hakt*hakt
       spf=1.d0/(1.d0-spmin)
       ih=int(hakt)
@@ -49,10 +50,10 @@ C$OMP DO SCHEDULE(GUIDED)
          DO i1=1,n1
             thi = theta(i1,i2)
             si = vcoef(1)
-            if(nvc.gt.1) THEN 
+            if(nvc.gt.1) THEN
                si = si + vcoef(2) * thi
             END IF
-            if(nvc.gt.2) THEN 
+            if(nvc.gt.2) THEN
                si = si + vcoef(3) * thi * thi
             END IF
             si = max(si,0.1*meanvar)
@@ -107,7 +108,7 @@ C   scaling of sij outside the loop
                      END IF
                      IF (sij.gt.spmin) THEN
                          wj=wj*(1.d0-spf*(sij-spmin))
-                     END IF 
+                     END IF
                   END IF
                   wj=wj
                   swj=swj+wj
@@ -133,72 +134,8 @@ C$OMP END PARALLEL
 C$OMP FLUSH(segm,bi,thnew,varest)
       RETURN
       END
-      subroutine connect(segm,n1,n2,i1,i2,ind1,ind2,checked)
-      implicit logical (a-z)
-      integer n1,n2,segm(n1,n2),i1,i2,ind1(*),ind2(*)
-      logical final,checked(*)
-      integer j1,j2,k,l1,l2,lind,lind0
-C     first find pixel close to (i1,i2) with segm(j1,j2)=0
-      if(segm(i1,i2).ne.0) THEN
-         final=.FALSE.
-         DO k=1,n1
-            DO l1=-k,k
-               DO l2=-k,k
-                  if(max(abs(l1),abs(l2)).ne.k) CYCLE
-                  j1=i1+l1
-                  if(j1.lt.1.or.j1.gt.n1) CYCLE
-                  j2=i2+l2
-                  if(j2.lt.1.or.j2.gt.n2) CYCLE
-                  if(segm(j1,j2).eq.0) THEN
-                     final=.TRUE.
-                     i1=j1
-                     i2=j2
-                  END IF
-                  if(final) EXIT
-               END DO
-               if(final) EXIT
-            END DO
-            if(final) EXIT
-         END DO
-      END IF
-      segm(i1,i2)=2
-      ind1(1)=i1
-      ind2(1)=i2
-      lind=1
-      lind0=1
-      DO k=1,n1*n2
-         checked(k)=.FALSE.
-      END DO
-      final=.FALSE.
-      DO while(.not.final)
-         DO k=1,lind0
-            if(checked(k)) CYCLE
-            DO l1=-1,1
-               DO l2=-1,1
-                  if(l1.eq.0.and.l2.eq.0) CYCLE
-                  j1=ind1(k)+l1
-                  if(j1.lt.1.or.j1.gt.n1) CYCLE
-                  j2=ind2(k)+l2
-                  if(j2.lt.1.or.j2.gt.n2) CYCLE
-                  if(segm(j1,j2).eq.0) THEN
-                     segm(j1,j2)=2
-                     lind=lind+1
-                     ind1(lind)=j1
-                     ind2(lind)=j2
-                  END IF
-               END DO
-            END DO 
-         END DO
-         if(lind.eq.lind0) THEN
-            final=.TRUE.
-         ELSE
-            lind0=lind
-         END IF
-      END DO
-      RETURN
-      END
       subroutine connect1(segm,n1,n2,i1,i2,ind1,ind2,checked)
-      implicit logical (a-z)
+      implicit none
       integer n1,n2,segm(n1,n2),i1,i2,ind1(*),ind2(*)
       logical final,checked(*)
       integer j1,j2,k,l1,l2,lind,lind0,isegm
@@ -230,7 +167,7 @@ C     first find pixel close to (i1,i2) with segm(j1,j2)=0
                      ind2(lind)=j2
                   END IF
                END DO
-            END DO 
+            END DO
          END DO
          if(lind.eq.lind0) THEN
             final=.TRUE.

@@ -1,6 +1,5 @@
 imganiso2D <- function(x,satexp=.25,g=3,rho=0){
 # x should be an array of dimension (3,n1,n2)
-require(adimpro)
 if(class(x)=="adimpro") x <- tensor2D(x,g=g,rho=rho)
 x[c(1,3),,] <- x[c(1,3),,]*(1+1.e-8)+rho
 p <- x[1,,]+x[3,,]
@@ -49,7 +48,7 @@ z <- z+c(dxx,dxy,dyy)
 z <- aperm(z/3,c(3,1,2))
 }
 if(g>0){
-z <- array(.Fortran("sm2Dtens",
+z <- array(.Fortran(C_sm2dtens,
                      as.double(z),
                      as.integer(n1),
                      as.integer(n2),
@@ -63,8 +62,8 @@ z
 }
 
 awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
-                      ladjust=1.0,  xind = NULL, 
-                      yind = NULL, wghts=c(1,1,1,1), scorr=TRUE, lkern="Triangle", 
+                      ladjust=1.0,  xind = NULL,
+                      yind = NULL, wghts=c(1,1,1,1), scorr=TRUE, lkern="Triangle",
                       demo=FALSE, graph=FALSE, satexp=0.25, max.pixel=4.e2,clip=FALSE,compress=TRUE) {
 
   #
@@ -73,15 +72,15 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
   IQRdiff <- function(data) IQR(diff(data))/1.908
 
   #####################################################################################
-  ###    
+  ###
   ###    function body
-  ###    
+  ###
   ###    first check arguments and initialize
   ###
-  #####################################################################################    
+  #####################################################################################
   if(!check.adimpro(object)) {
     cat(" Consistency check for argument object failed (see warnings). object is returned.\"n")
-    return(invisible(object)) 
+    return(invisible(object))
   }
   object <- switch(object$type,
                    "hsi" = hsi2rgb(object),
@@ -90,7 +89,7 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
                    "xyz" = xyz2rgb(object),
                    object)
   if(object$type=="RAW") stop("RAW-image, will be implemented in function awsraw later ")
-  if(!is.null(object$call)) { 
+  if(!is.null(object$call)) {
     warning("argument object is result of awsimage or awspimage. You should know what you do.")
   }
   args <- match.call()
@@ -115,9 +114,9 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
   #   Check image type
   #
   dimg <- dimg0 <- dim(object$img)
-  imgtype <- object$type 
+  imgtype <- object$type
   dv <- switch(imgtype,rgb=dimg[3],greyscale=1)
-  if(length(wghts)<dv) wghts <- c(wghts,rep(1,dv-length(wghts))) else wghts <- pmin(.1,wghts) 
+  if(length(wghts)<dv) wghts <- c(wghts,rep(1,dv-length(wghts))) else wghts <- pmin(.1,wghts)
   wghts <- switch(imgtype, greyscale=1, rgb = wghts[1:dv])
   spcorr <- matrix(0,2,dv)
   h0 <- c(0,0)
@@ -153,10 +152,10 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
     if (length(sigma2)==1) {
       #   homoskedastic Gaussian case
       if(dv>1) sigma2 <- rep(sigma2,1)
-      lambda <- lambda*sigma2 
+      lambda <- lambda*sigma2
     } else if (length(sigma2)==dv) {
       wghts <- wghts[1:dv]/sigma2
-    } 
+    }
   }
     # set the support of the statistical kernel to (0,1), set spmin and spmax
     lambda <- 2*lambda
@@ -164,9 +163,9 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
     spmax <- 1
 # determine maximum volume (variance reduction)
   maxvol <- getvofh2(hmax,lkern)
-  kstar <- as.integer(log(maxvol)/log(1.25))  
-  if(aws){ 
-     k <- if(estvar) 6 else 1 
+  kstar <- as.integer(log(maxvol)/log(1.25))
+  if(aws){
+     k <- if(estvar) 6 else 1
      }
   else {
     cat("No adaptation method specified. Calculate kernel estimate with bandwidth hmax.\n")
@@ -200,7 +199,7 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
   }
   if(scorr){
     twohp1 <- 2*trunc(hpre)+1
-    pretheta <- .Fortran("awsimg",
+    pretheta <- .Fortran(C_awsimg,
                          as.integer(switch(imgtype,
                                            greyscale=object$img[xind,yind],
                                            rgb=object$img[xind,yind,])),
@@ -215,7 +214,7 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
                          double(dv),
                          PACKAGE="adimpro")$theta
     dim(pretheta) <- dimg
-    spchcorr <- .Fortran("estcorr",
+    spchcorr <- .Fortran(C_estcorr,
                          as.double(switch(imgtype,
                                           greyscale=object$img[xind,yind],
                                           rgb=object$img[xind,yind,])-pretheta),
@@ -224,10 +223,9 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
                          as.integer(dv),
                          scorr=double(2*dv),
                          chcorr=double(max(1,dv*(dv-1)/2)),
-                         as.double(hpre),
                          PACKAGE="adimpro")[c("scorr","chcorr")]
     spcorr <- spchcorr$scorr
-    srh <- sqrt(hpre) 
+    srh <- sqrt(hpre)
     spcorr <- matrix(pmin(.9,spcorr+
                           bcf[1]/srh+bcf[2]/hpre+
                           bcf[3]*spcorr/srh+bcf[4]*spcorr/hpre+
@@ -268,11 +266,11 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
     if (any(spcorr>0)) {
       lcorr <- Spatialvar.gauss(hakt0,h0)/
         Spatialvar.gauss(h0,1e-5)/Spatialvar.gauss(hakt0,1e-5)
-      # Correction C(h0,hakt) for spatial correlation depends on h^{(k-1)} 
+      # Correction C(h0,hakt) for spatial correlation depends on h^{(k-1)}
       lambda0 <-lambda0*lcorr
-      if(varmodel=="None") 
+      if(varmodel=="None")
         lambda0 <- lambda0*Varcor.gauss(h0)
-    } 
+    }
     if(dv==1) dim(theta) <- c(n1,n2) else dim(theta) <- c(n1,n2,dv)
     anisoimg <- tensor2D(theta,g=g,rho=max(rho,1e-6)*mean(vobj$meanvar)/bi)
     anisoimg[1,,] <- anisoimg[1,,]+max(rho,1e-6)*mean(vobj$meanvar)/bi
@@ -280,7 +278,7 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
     hakt0 <- hakt
       if(estvar){
         varcase <- 1
-        zobj <- .Fortran("aniawsv",
+        zobj <- .Fortran(C_aniawsv,
                          as.integer(switch(imgtype,
                                            greyscale=object$img[xind,yind],
                                            rgb=object$img[xind,yind,])),
@@ -299,7 +297,7 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
                          theta=integer(prod(dimg)),
                          as.integer(lkern),
                          as.integer(1),
-                         as.double(spmin),		       
+                         as.double(spmin),
                          as.double(spmax),
                          as.double(sqrt(wghts)),
                          double(dv),
@@ -307,7 +305,7 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
       } else {
         # all other cases
         varcase <- 3
-        zobj <- .Fortran("aniawsim",
+        zobj <- .Fortran(C_aniawsim,
                          as.integer(switch(imgtype,
                                            greyscale=object$img[xind,yind],
                                            rgb=object$img[xind,yind,])),
@@ -327,7 +325,7 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
                          as.double(wghts),
                          double(dv),
                          PACKAGE="adimpro")[c("bi","theta","hakt")]
-      } 
+      }
     theta <- zobj$theta
     bi <- zobj$bi
     rm(zobj)
@@ -360,7 +358,7 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
       #   Estimate Correlations  (keep old estimates until hmax > hpre)
       #
       if(hakt > hpre){
-      spchcorr <- .Fortran("estcorr",
+      spchcorr <- .Fortran(C_estcorr,
                            as.double(switch(imgtype,
                                             greyscale=object$img[xind,yind],
                                             rgb=object$img[xind,yind,]) - theta),
@@ -373,7 +371,7 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
     spcorr <- spchcorr$scorr
 #    spcorr <- matrix(pmin(.9,0.8817*spcorr+0.231/hakt+6.018*spcorr/hakt^2+
 #                            1.753*spcorr^2/hakt-10.622*spcorr^2/hakt^2),2,dv)
-    srh <- sqrt(hakt) 
+    srh <- sqrt(hakt)
     spcorr <- matrix(pmin(.9,spcorr+
                          bcf[1]/srh+bcf[2]/hakt+
                          bcf[3]*spcorr/srh+bcf[4]*spcorr/hakt+
@@ -388,7 +386,7 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
            spcorr <-   matrix(pmin(.9,spchcorr$scorr+
                          bcf[1]/srh+bcf[2]/hpre+
                          bcf[3]*spchcorr$scorr/srh+bcf[4]*spchcorr$scorr/hpre+
-                         bcf[5]*spchcorr$scorr^2/srh+bcf[6]*spchcorr$scorr^2/hpre),2,dv)         
+                         bcf[5]*spchcorr$scorr^2/srh+bcf[6]*spchcorr$scorr^2/hpre),2,dv)
 # spcorr <- matrix(pmin(.9,.06+0.9*spchcorr$scorr+1.108/hpre),2,dv)
       #  bias correction for spatial correlation
          chcorr <- spchcorr$chcorr
@@ -401,8 +399,20 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
       #
       #   Create new variance estimate
       #
-      fentry <- switch(varmodel,Constant="esigmac",Linear="esigmal")
-      vobj <- .Fortran(fentry,
+      vobj <- switch(toupper(varmodel),
+        CONSTANT=.Fortran(C_esigmac,
+                       as.integer(switch(imgtype,
+                                         greyscale=object$img[xind,yind],
+                                         rgb=object$img[xind,yind,])),
+                       as.integer(n1*n2),
+                       as.integer(dv),
+                       as.integer(theta),
+                       as.double(bi),
+                       as.integer(imgq995),
+                       coef=double(nvarpar*dv),
+                       meanvar=double(dv),
+                       PACKAGE="adimpro")[c("coef","meanvar")],
+        LINEAR=.Fortran(C_esigmac,
                        as.integer(switch(imgtype,
                                          greyscale=object$img[xind,yind],
                                          rgb=object$img[xind,yind,])),
@@ -414,6 +424,10 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
                        coef=double(nvarpar*dv),
                        meanvar=double(dv),
                        PACKAGE="adimpro")[c("coef","meanvar")]
+        )
+
+
+
       dim(vobj$coef) <- c(nvarpar,dv)
        for(i in 1:dv){
       if(any(spcorr[,i]>.1) & vobj$meanvar[i]<sigma2[i]) {
@@ -427,8 +441,8 @@ awsaniso <- function (object, hmax=4, g=3, rho=0, aws=TRUE, varmodel=NULL,
     if (demo) readline("Press return")
     lambda0 <- lambda*ladjust
   }
-  ###                                                                       
-  ###            end cases                                                  
+  ###
+  ###            end cases
   ###                                 .....................................
   if(graph) par(oldpar)
   if(imgtype=="rgb") {

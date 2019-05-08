@@ -1,5 +1,6 @@
-useDynLib(adimpro)
-import("methods","awsMethods")
+useDynLib(adimpro, .registration = TRUE, .fixes = "C_")
+import("methods")
+importFrom("awsMethods","setCores")
   importFrom("grDevices", "X11", "grey", "hsv")
   importFrom("graphics", "hist", "image", "lines", "locator", "par",
              "plot", "text", "title")
@@ -18,4 +19,5 @@ export(segment)
 export(adimpro.options)
 export(combine)
 export(awsraw)
-
+export(rimage)
+export(rimage.options)

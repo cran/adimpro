@@ -11,18 +11,18 @@ segment <- function(object, level=0.5, delta=0, thresh= 3,
   #
   IQRdiff <- function(data) IQR(diff(data))/1.908
   #
-  #   sequence of factors for lambda obtained by new propagation condition 
+  #   sequence of factors for lambda obtained by new propagation condition
   #
   #####################################################################################
-  ###    
+  ###
   ###    function body
-  ###    
+  ###
   ###    first check arguments and initialize
   ###
-  #####################################################################################    
+  #####################################################################################
   if(!check.adimpro(object)) {
     cat(" Consistency check for argument object failed (see warnings). object is returned.\"n")
-    return(invisible(object)) 
+    return(invisible(object))
   }
 #
 #  first extract
@@ -44,8 +44,8 @@ segment <- function(object, level=0.5, delta=0, thresh= 3,
         img <- img[,,channel]
   }
   }
-  imgtype <- object$type 
-  if(!is.null(object$call)) { 
+  imgtype <- object$type
+  if(!is.null(object$call)) {
     warning("argument object is result of awsimage or awspimage. You should know what you do.")
   }
   args <- match.call()
@@ -57,8 +57,8 @@ cat("select region inside the interesting structure\n")
      level <- median(timg)
      delta  <- delta+sext*IQR(timg)/1.34898
 cat("Specified level: ",level,"  delta: ",delta,"\n")
-#  thats ext1 times estimated standard deviation 
-  } 
+#  thats ext1 times estimated standard deviation
+  }
   if(is.null(varmodel)) {
     varmodel <- if(object$gamma) "Constant" else "Linear"
   }
@@ -106,17 +106,17 @@ cat("Specified level: ",level,"  delta: ",delta,"\n")
   if (!estvar) {
     if (length(sigma2)==1) {
       #   homoskedastic Gaussian case
-    } 
+    }
   }
-    # set the support of the statistical kernel to (0,1), set spmin 
+    # set the support of the statistical kernel to (0,1), set spmin
     spmin <- plateau
     if(is.null(spmin)) spmin <- .25
 # determine maximum volume (variance reduction)
   maxvol <- getvofh2(hmax,lkern)
   if(is.null(fov)) fov <- maxvol
-  kstar <- as.integer(log(maxvol)/log(1.25))  
-  if(aws){ 
-     k <- if(estvar) 6 else 1 
+  kstar <- as.integer(log(maxvol)/log(1.25))
+  if(aws){
+     k <- if(estvar) 6 else 1
      }
   else {
     cat("No adaptation method specified. Calculate kernel estimate with bandwidth hmax.\n")
@@ -148,7 +148,7 @@ cat("Specified level: ",level,"  delta: ",delta,"\n")
     imgq995 <- quantile(img[xind,yind],.995)
   if(scorr){
     twohp1 <- 2*trunc(hpre)+1
-    pretheta <- .Fortran("awsimg",
+    pretheta <- .Fortran(C_awsimg,
                          as.integer(img[xind,yind]),
                          as.integer(n1),
                          as.integer(n2),
@@ -161,17 +161,16 @@ cat("Specified level: ",level,"  delta: ",delta,"\n")
                          double(1),
                          PACKAGE="adimpro")$theta
     dim(pretheta) <- dimg
-    spchcorr <- .Fortran("estcorr",
+    spchcorr <- .Fortran(C_estcorr,
                          as.double(img[xind,yind]-pretheta),
                          as.integer(n1),
                          as.integer(n2),
                          as.integer(1),
                          scorr=double(2),
                          double(1),
-                         as.double(hpre),
                          PACKAGE="adimpro")[c("scorr")]
     spcorr <- spchcorr$scorr
-    srh <- sqrt(hpre) 
+    srh <- sqrt(hpre)
     spcorr <- pmin(.9,spcorr+
                           bcf[1]/srh+bcf[2]/hpre+
                           bcf[3]*spcorr/srh+bcf[4]*spcorr/hpre+
@@ -209,12 +208,12 @@ cat("Specified level: ",level,"  delta: ",delta,"\n")
     if (any(spcorr>0)) {
       lcorr <- Spatialvar.gauss(hakt0,h0)/
         Spatialvar.gauss(h0,1e-5)/Spatialvar.gauss(hakt0,1e-5)
-      # Correction C(h0,hakt) for spatial correlation depends on h^{(k-1)} 
+      # Correction C(h0,hakt) for spatial correlation depends on h^{(k-1)}
       lambda0 <-lambda0*lcorr
-      if(varmodel=="None") 
+      if(varmodel=="None")
         lambda0 <- lambda0*Varcor.gauss(h0)
-    } 
-      zobj <- .Fortran("segment",
+    }
+      zobj <- .Fortran(C_segment,
                        as.integer(img[xind,yind]),
                        as.double(level),
                        as.double(delta),
@@ -271,7 +270,7 @@ cat("Specified level: ",level,"  delta: ",delta,"\n")
       #   Estimate Correlations  (keep old estimates until hmax > hpre)
       #
       if(hakt > hpre & hakt < hvest){
-      spchcorr <- .Fortran("estcorr",
+      spchcorr <- .Fortran(C_estcorr,
                            as.double(img[xind,yind] - theta),
                            as.integer(n1),
                            as.integer(n2),
@@ -280,7 +279,7 @@ cat("Specified level: ",level,"  delta: ",delta,"\n")
                            double(1),
                            PACKAGE="adimpro")["scorr"]
     spcorr <- spchcorr$scorr
-    srh <- sqrt(hakt) 
+    srh <- sqrt(hakt)
     spcorr <- pmin(.9,spcorr+
                          bcf[1]/srh+bcf[2]/hakt+
                          bcf[3]*spcorr/srh+bcf[4]*spcorr/hakt+
@@ -301,8 +300,28 @@ cat("Specified level: ",level,"  delta: ",delta,"\n")
       #
       #   Create new variance estimate
       #
-      fentry <- switch(toupper(varmodel),CONSTANT="esigmac",LINEAR="esigmal",QUADRATIC="esigmaq")
-      vobj <- .Fortran(fentry,
+      vobj <- switch(toupper(varmodel),
+         CONSTANT=.Fortran(C_esigmac,
+                       as.integer(img[xind,yind]),
+                       as.integer(n1*n2),
+                       as.integer(1),
+                       as.integer(theta),
+                       as.double(bi),
+                       as.integer(imgq995),
+                       coef=double(nvarpar),
+                       meanvar=double(1),
+                       PACKAGE="adimpro")[c("coef","meanvar")],
+         LINEAR=.Fortran(C_esigmal,
+                       as.integer(img[xind,yind]),
+                       as.integer(n1*n2),
+                       as.integer(1),
+                       as.integer(theta),
+                       as.double(bi),
+                       as.integer(imgq995),
+                       coef=double(nvarpar),
+                       meanvar=double(1),
+                       PACKAGE="adimpro")[c("coef","meanvar")],
+         QUADRATIC=.Fortran(C_esigmaq,
                        as.integer(img[xind,yind]),
                        as.integer(n1*n2),
                        as.integer(1),
@@ -312,6 +331,7 @@ cat("Specified level: ",level,"  delta: ",delta,"\n")
                        coef=double(nvarpar),
                        meanvar=double(1),
                        PACKAGE="adimpro")[c("coef","meanvar")]
+          )
       cat("Estimated mean variance",signif(vobj$meanvar/65635^2,3),"\n")
     }
     if (demo) readline("Press return")
@@ -328,7 +348,7 @@ if(connected) {
    show.image(make.image(segment), main = "Identify center  of segmented region by left mouse click")
 cat("Identify center  of segmented region by left mouse click\n")
         coord <- locator(1, type = "p")
-    segment <- matrix(.Fortran("connect1",
+    segment <- matrix(.Fortran(C_connect1,
                                segment=as.integer(segment),
                                as.integer(n1),
                                as.integer(n2),
@@ -342,8 +362,8 @@ cat("Identify center  of segmented region by left mouse click\n")
 #
 #
 #
-  ###                                                                       
-  ###            end cases                                                  
+  ###
+  ###            end cases
   ###                                 .....................................
   if(graph) par(oldpar)
   object <- make.image(segment)
@@ -356,11 +376,3 @@ cat("Identify center  of segmented region by left mouse click\n")
   object$call <- args
   invisible(if(compress) compress.image(object) else object)
 }
-
-
-
-
-
-
-
-

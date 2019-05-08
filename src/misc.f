@@ -1,5 +1,5 @@
       subroutine getvofh2(bw,kern,vol)
-      implicit logical(a-z)
+      implicit none
       integer kern
       double precision bw,vol,sofw2D
       external sofw2D
@@ -7,7 +7,7 @@
       RETURN
       END
       double precision function sofw2D(bw,kern)
-      implicit logical(a-z)
+      implicit none
       integer kern
       double precision bw
       integer j1,j2,clw,ih1,ih
@@ -36,7 +36,7 @@ C
       RETURN
       END
       subroutine geth2(x,y,kern,value,eps,bw)
-      implicit logical(a-z)
+      implicit none
       integer kern
       double precision x,y,value,eps,bw
       double precision fw1,fw2,fw3,z
@@ -72,7 +72,7 @@ C
           bw=y-(fw2-value)/(fw2-fw1)*(y-x)
       ENDIF
       RETURN
-      END  
+      END
       subroutine hequalg(x,n,y,yi)
       integer n,x(n),xi(65536),y(n),yi(65536)
       integer i

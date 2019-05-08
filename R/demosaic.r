@@ -1,5 +1,5 @@
 awsraw <- function (object, hmax=4, aws=TRUE, wb=c(1,1,1), cspace="Adobe", ladjust=1.,
-                    maxrange=TRUE,lkern="Triangle", 
+                    maxrange=TRUE,lkern="Triangle",
                     graph=FALSE, max.pixel=4.e2, compress=TRUE) {
 #
 #  demosaicing using median of 3x3 s_{ij}'s in the smoothing algorithm instead of
@@ -11,23 +11,23 @@ awsraw <- function (object, hmax=4, aws=TRUE, wb=c(1,1,1), cspace="Adobe", ladju
   IQRdiff <- function(data) IQR(diff(data))/1.908
 
   #####################################################################################
-  ###    
+  ###
   ###    function body
-  ###    
+  ###
   ###    first check arguments and initialize
   ###
-  #####################################################################################    
+  #####################################################################################
   if(!check.adimpro(object)) {
     cat(" Consistency check for argument object failed (see warnings). object is returned.\"n")
-    return(invisible(object)) 
+    return(invisible(object))
   }
-  if(object$type!="RAW") stop("object does not contain RAW sensor data, 
+  if(object$type!="RAW") stop("object does not contain RAW sensor data,
                     please read the image by read.raw(filename,type=''RAW'')")
   if(!is.numeric(wb)) wb <- c(1,1,1)
   if(length(wb)<3) wb <- rep(wb[1],3)
-# 
+#
 #  detect type of Bayer mask
-# 
+#
   args <- match.call()
   if(object$compressed) object <- decompress.image(object)
   varmodel <- "Linear"
@@ -59,7 +59,7 @@ awsraw <- function (object, hmax=4, aws=TRUE, wb=c(1,1,1), cspace="Adobe", ladju
 #  compared to nonadaptive smoothing for a homogeneus RAW-image
   cat("using lambda=",lambda,"\n")
   maxvol <- getvofh2(hmax/sqrt(2),lkern)
-  kstar <- as.integer(log(maxvol)/log(1.25))  
+  kstar <- as.integer(log(maxvol)/log(1.25))
   k <- 1
   total <- cumsum(1.25^(1:kstar))/sum(1.25^(1:kstar))
   #  set the support of the statistical kernel to (0,1), set spmin
@@ -82,19 +82,9 @@ awsraw <- function (object, hmax=4, aws=TRUE, wb=c(1,1,1), cspace="Adobe", ladju
   if(extract.info(object,"Isize")!=extract.info(object,"Osize")) bayer <- bayer+1
   bayer <- (bayer-1)%%4+1
   if(!is.null(object$rotate)) {
-      bayer <- object$rotate+bayer 
+      bayer <- object$rotate+bayer
       bayer <- (bayer-1)%%4+1
   }
-#  if(any(wb!=1)){
-# White balance if specified
-#     object$img <- matrix(.Fortran("wbalance",
-#                              sensor=as.integer(object$img),
-#                              as.integer(n1),
-#                              as.integer(n2),
-#                              as.double(wb),
-#                              as.integer(bayer),
-#                              PACKAGE="adimpro")$sensor,n1,n2)
-#  }
   if(maxrange){
      minimg <- min(object$img)
      rangeimg <- max(object$img)-minimg
@@ -110,7 +100,7 @@ awsraw <- function (object, hmax=4, aws=TRUE, wb=c(1,1,1), cspace="Adobe", ladju
   #
   coef <- matrix(0,nvarpar,dv)
   vobj <- list(coef=coef,meanvar=c(0,0,0))
-  imghom <- .Fortran("dhomogen",
+  imghom <- .Fortran(C_dhomogen,
                     as.integer(object$img),
                     as.integer(object$dim[1]),
                     as.integer(object$dim[2]),
@@ -124,8 +114,8 @@ awsraw <- function (object, hmax=4, aws=TRUE, wb=c(1,1,1), cspace="Adobe", ladju
   cat("Using ", n1*n2-sum(indnothom)," of ",n1*n2," pixel for variance estimates\n")
 #
 #   this should keep 90% of the observations under homogeneity
-#                     
-    sensorhat0 <- .Fortran("smsens0",
+#
+    sensorhat0 <- .Fortran(C_smsens0,
                     as.integer(object$img),
                     shat=integer(n1*n2),
                     bi=double(n1*n2),
@@ -134,7 +124,7 @@ awsraw <- function (object, hmax=4, aws=TRUE, wb=c(1,1,1), cspace="Adobe", ladju
                     as.integer(bayer),
                     PACKAGE="adimpro")[c("shat","bi")]
 
-  vobj <- .Fortran("senvar",
+  vobj <- .Fortran(C_senvar,
                     as.integer(object$img),
                     as.integer(object$dim[1]),
                     as.integer(object$dim[2]),
@@ -160,7 +150,7 @@ awsraw <- function (object, hmax=4, aws=TRUE, wb=c(1,1,1), cspace="Adobe", ladju
   #   run single steps to display intermediate results
   #
   zobj <- list(bi=matrix(1,n1,n2),shat=object$img)
-  cimg <- array(.Fortran("demmed4",
+  cimg <- array(.Fortran(C_demmed4,
                          as.integer(object$img),
                          cimg=integer((n1-2)*(n2-2)*3),
                          as.integer(n1),
@@ -174,7 +164,7 @@ awsraw <- function (object, hmax=4, aws=TRUE, wb=c(1,1,1), cspace="Adobe", ladju
     hakt <- geth2(1,10,lkern,1.25^k,1e-4)*sqrt(2)
     twohp1 <- 2*trunc(hakt)+1
     twohp3 <- twohp1+2
-    zobj <- .Fortran("smsensor",
+    zobj <- .Fortran(C_smsensor,
                          as.integer(object$img),
                          shat=integer(n1*n2),
                          as.integer(cimg),# thats the color image
@@ -189,13 +179,13 @@ awsraw <- function (object, hmax=4, aws=TRUE, wb=c(1,1,1), cspace="Adobe", ladju
                          as.double(lambda),
                          bi=as.double(zobj$bi),
                          as.integer(lkern),
-                         as.double(spmin), 
+                         as.double(spmin),
                          double(twohp1*twohp1),# array for location weights
                          PACKAGE="adimpro")[c("bi","shat")]
   dim(zobj$bi)  <- c(n1,n2)
   dim(zobj$shat) <- c(n1,n2)
   bi0 <- max(zobj$bi)
-  cimg <- array(.Fortran("demmed4b",
+  cimg <- array(.Fortran(C_demmed4b,
                          as.integer(zobj$shat),
                          cimg=as.integer(cimg),
                          as.integer(n1),
@@ -213,7 +203,7 @@ awsraw <- function (object, hmax=4, aws=TRUE, wb=c(1,1,1), cspace="Adobe", ladju
     if (graph) {
       graphobj$type <- "rgb"
       graphobj$dim <- c(n1-2,n2-2)
-      graphobj$img <- array(.Fortran("cam2rgb",
+      graphobj$img <- array(.Fortran(C_cam2rgb,
                                       as.integer(cimg),
                                       as.integer((n1-2)*(n2-2)),
                                       as.double(out.cam),
@@ -235,7 +225,7 @@ awsraw <- function (object, hmax=4, aws=TRUE, wb=c(1,1,1), cspace="Adobe", ladju
       #   Create new variance estimate
       #
       if(hakt>3){
-      vobj <- .Fortran("senvar",
+      vobj <- .Fortran(C_senvar,
                     as.integer(object$img),
                     as.integer(object$dim[1]),
                     as.integer(object$dim[2]),
@@ -254,11 +244,11 @@ awsraw <- function (object, hmax=4, aws=TRUE, wb=c(1,1,1), cspace="Adobe", ladju
     cat("Bandwidth",signif(hakt,3)," Progress",signif(total[k],2)*100,"% \n")
     k <- k+1
   }
-  ###                                                                       
-  ###            end cases                                                  
+  ###
+  ###            end cases
   ###                                 .....................................
   if(graph) par(oldpar)
-  object$img <- array(.Fortran("cam2rgb",
+  object$img <- array(.Fortran(C_cam2rgb,
                                 as.integer(cimg),
                                 as.integer((n1-2)*(n2-2)),
                                 as.double(out.cam),
@@ -276,8 +266,3 @@ awsraw <- function (object, hmax=4, aws=TRUE, wb=c(1,1,1), cspace="Adobe", ladju
   object$vcoef <- vobj$coef
   invisible(if(compress) compress.image(object) else object)
 }
-
-
-
-
-

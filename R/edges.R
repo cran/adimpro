@@ -6,7 +6,7 @@ edges <- function(img, type="Laplacian", ltype=1, abs=FALSE){
   eimg <- switch(type,
                  "Laplacian" = laplacian(img$img,ltype),
                  "Sobel" = sobel(img$img),
-                 "Robertcross" = robertcross(img$img), 
+                 "Robertcross" = robertcross(img$img),
                  warning("Wrong type: must be Laplacian, Sobel or Robertcross"))
   deimg <- dim(eimg)
   if(abs)   eimg <- array(abs(eimg),deimg)
@@ -24,7 +24,7 @@ laplacian <- function(img,ltype=4) {
   ldim <- length(dimg)
   if (!(ldim %in% 2:3)) return (warning("Not an image"))
   lchannel <- dimg[1]*dimg[2]
-  
+
   conv <- switch (as.character(ltype),
                   "1" = matrix(c(-1,-1,-1,-1,-1,
                                  -1,-1,-1,-1,-1,
@@ -35,11 +35,11 @@ laplacian <- function(img,ltype=4) {
                   "3" = matrix(c(-1,-1,-1,-1,8,-1,-1,-1,-1), 3, 3),
                   matrix(c(1,-2,1,-2,4,-2,1,-2,1), 3, 3)
                   )
-  
+
   eimg <- array(0,dim=dimg)
   if( ldim == 2 ) dim(eimg) <- dim(img) <- c(dimg, 1)
-  for ( i in 1:dim(eimg)[3]) 
-    eimg[,,i] <- .Fortran("convolve",
+  for ( i in 1:dim(eimg)[3])
+    eimg[,,i] <- .Fortran(C_convolve,
                           as.double(img[,,i]),
                           as.double(conv),
                           eimg=double(lchannel),
@@ -47,7 +47,7 @@ laplacian <- function(img,ltype=4) {
                           as.integer(dimg[1]),
                           as.integer(dim(conv)[1]),
                           PACKAGE="adimpro")$eimg
-  
+
   dim(eimg) <- dimg
   invisible(eimg)
 }
@@ -63,11 +63,11 @@ sobel <- function(img) {
   vertical <- matrix(c(-1,-2,-1,
                        0,0,0,
                        1,2,1), 3, 3)
-  
+
   ximg <- yimg <- array(0,dim=dimg)
   if( ldim == 2 ) dim(ximg) <- dim(yimg) <- dim(img) <- c(dimg, 1)
-  for ( i in 1:dim(ximg)[3]) 
-    ximg[,,i] <- .Fortran("convolve",
+  for ( i in 1:dim(ximg)[3])
+    ximg[,,i] <- .Fortran(C_convolve,
                           as.double(img[,,i]),
                           as.double(horizontal),
                           eimg=double(lchannel),
@@ -76,9 +76,9 @@ sobel <- function(img) {
                           as.integer(dim(horizontal)[1]),
                           PACKAGE="adimpro")$eimg
   dim(ximg) <- dimg
-  
-  for ( i in 1:dim(yimg)[3]) 
-    yimg[,,i] <- .Fortran("convolve",
+
+  for ( i in 1:dim(yimg)[3])
+    yimg[,,i] <- .Fortran(C_convolve,
                           as.double(img[,,i]),
                           as.double(vertical),
                           eimg=double(lchannel),
@@ -87,7 +87,7 @@ sobel <- function(img) {
                           as.integer(dim(vertical)[1]),
                           PACKAGE="adimpro")$eimg
   dim(yimg) <- dimg
-  
+
   invisible(sqrt(ximg^2 + yimg^2))
 }
 
@@ -104,11 +104,11 @@ robertcross <- function(img) {
                        1,0),
                      nrow=2,
                      ncol=2)
-  
+
   ximg <- yimg <- array(0,dim=dimg)
   if( ldim == 2 ) dim(ximg) <- dim(yimg) <- dim(img) <- c(dimg, 1)
-  for ( i in 1:dim(ximg)[3]) 
-    ximg[,,i] <- .Fortran("convolve",
+  for ( i in 1:dim(ximg)[3])
+    ximg[,,i] <- .Fortran(C_convolve,
                           as.double(img[,,i]),
                           as.double(horizontal),
                           eimg=double(lchannel),
@@ -117,9 +117,9 @@ robertcross <- function(img) {
                           as.integer(dim(horizontal)[1]),
                           PACKAGE="adimpro")$eimg
   dim(ximg) <- dimg
-  
-  for ( i in 1:dim(yimg)[3]) 
-    yimg[,,i] <- .Fortran("convolve",
+
+  for ( i in 1:dim(yimg)[3])
+    yimg[,,i] <- .Fortran(C_convolve,
                           as.double(img[,,i]),
                           as.double(vertical),
                           eimg=double(lchannel),
@@ -127,16 +127,16 @@ robertcross <- function(img) {
                           as.integer(dimg[1]),
                           as.integer(dim(vertical)[1]),
                           PACKAGE="adimpro")$eimg
-  
+
   dim(yimg) <- dimg
-  
+
   invisible(sqrt(ximg^2 + yimg^2))
 }
 
 shrink.image.old <- function(img, method = "gap", xt = img$dim[1], yt = img$dim[2], ratio = TRUE, compress=TRUE) {
   if(!check.adimpro(img)) {
     cat(" Consistency check for argument object failed (see warnings). object is returned.\n")
-    return(invisible(img)) 
+    return(invisible(img))
   }
   if(img$compressed) img <- decompress.image(img)
   if(img$type=="RAW") {
@@ -161,7 +161,7 @@ shrink.image.old <- function(img, method = "gap", xt = img$dim[1], yt = img$dim[
   imethod <- switch(method,gap=1,mean=2,nearest=3,1)
   dv <- 3
   img$img <- switch(type,
-                    rgb=array(.Fortran("shrnkrgb",
+                    rgb=array(.Fortran(C_shrnkrgb,
                                        as.integer(img$img),
                                        as.integer(dimg[1]),
                                        as.integer(dimg[2]),
@@ -173,7 +173,7 @@ shrink.image.old <- function(img, method = "gap", xt = img$dim[1], yt = img$dim[
                                        integer(yt+1),
                                        as.integer(imethod),
                                        PACKAGE="adimpro")$imgnew,c(xt,yt,dv)),
-                    csp=array(.Fortran("shrnkcsp",
+                    csp=array(.Fortran(C_shrnkcsp,
                                        as.double(img$img),
                                        as.integer(dimg[1]),
                                        as.integer(dimg[2]),
@@ -185,7 +185,7 @@ shrink.image.old <- function(img, method = "gap", xt = img$dim[1], yt = img$dim[
                                        integer(yt+1),
                                        as.integer(imethod),
                                        PACKAGE="adimpro")$imgnew,c(xt,yt,dv)),
-                    grey=matrix(.Fortran("shrnkgr",
+                    grey=matrix(.Fortran(C_shrnkgr,
                                          as.integer(img$img),
                                          as.integer(dimg[1]),
                                          as.integer(dimg[2]),
@@ -208,7 +208,7 @@ shrink.image.old <- function(img, method = "gap", xt = img$dim[1], yt = img$dim[
 shrink.image <- function(img, method = "median", xt = img$dim[1], yt = img$dim[2], ratio = TRUE, compress=TRUE) {
   if(!check.adimpro(img)) {
     cat(" Consistency check for argument object failed (see warnings). object is returned.\n")
-    return(invisible(img)) 
+    return(invisible(img))
   }
   if(img$compressed) img <- decompress.image(img)
   if(img$type=="RAW") {
@@ -236,7 +236,7 @@ shrink.image <- function(img, method = "median", xt = img$dim[1], yt = img$dim[2
   mc.cores <- setCores(,reprt=FALSE)
   dv <- 3
   img$img <- switch(type,
-                    color=aperm(array(.Fortran("shrinkc",
+                    color=aperm(array(.Fortran(C_shrinkc,
                              as.integer(aperm(img$img,c(3,1,2))),
                              as.integer(dimg[1]),
                              as.integer(dimg[2]),
@@ -249,7 +249,7 @@ shrink.image <- function(img, method = "median", xt = img$dim[1], yt = img$dim[2
                              as.integer(imethod),
                              as.integer(mc.cores),
                              PACKAGE="adimpro")$imgnew,c(dv,xt,yt)),c(2,3,1)),
-                    grey=matrix(.Fortran("shrinkg",
+                    grey=matrix(.Fortran(C_shrinkg,
                              as.integer(img$img),
                              as.integer(dimg[1]),
                              as.integer(dimg[2]),
@@ -310,13 +310,13 @@ rotate.image <- function(img,angle=90,compress=NULL) {
                               "0"=img$xind<-xind,
                               "90"=img$yind<-xind[length(xind):1],
                               "180"=img$xind<-xind[length(xind):1],
-                              "270"=img$yind<-xind) 
+                              "270"=img$yind<-xind)
     if(!is.null(yind)) switch(as.character(angle),
                               "0"=img$yind<-yind,
                               "90"=img$xind<-yind,
                               "180"=img$yind<-yind[length(yind):1],
-                              "270"=img$xind<-yind[length(yind):1]) 
-    
+                              "270"=img$xind<-yind[length(yind):1])
+
   }
   img$dim <- dim(img$img)[1:2]
   img$rotate <- if(is.null(img$rotate)) angle/90 else (angle/90+img$rotate)%%4
@@ -327,7 +327,7 @@ clip.image <- function(img,xind=NULL,yind=NULL,compress=NULL,...) {
   if(!check.adimpro(img)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
-  #  if(is.null(compress))  compress <- img$compressed 
+  #  if(is.null(compress))  compress <- img$compressed
   #  if(img$compressed) img <- decompress.image(img)
   dimg <- img$dim
   ldimg <- switch(img$type,greyscale=2,RAW=2,3)
@@ -374,5 +374,3 @@ clip.image <- function(img,xind=NULL,yind=NULL,compress=NULL,...) {
   show.image(img,main="Clipped image",...)
   invisible(img)
 }
-
-

@@ -1,5 +1,5 @@
       subroutine median3(x,n,y,tol)
-      implicit logical (a-z)
+      implicit none
       integer n
       double precision x(3,n),y(3),tol
       integer i,j
@@ -21,7 +21,7 @@ C  iterate until convergence
       rofy = 1.d10
       j=0
       DO while (rofy.gt.tol)
-C  compute r(y) and check for y=x_k 
+C  compute r(y) and check for y=x_k
          etaofy=0.d0
          r1=0.d0
          r2=0.d0
@@ -46,7 +46,7 @@ C  compute r(y) and check for y=x_k
                t2=t2+x(2,i)/dxy
                t3=t3+x(3,i)/dxy
             END IF
-         END DO      
+         END DO
          rofy=sqrt(r1*r1+r2*r2+r3*r3)
          if(rofy.le.tol) EXIT
          t1=t1/t0
@@ -77,7 +77,7 @@ C  compute r(y) and check for y=x_k
       RETURN
       END
       subroutine median1(x,n,y,tol)
-      implicit logical (a-z)
+      implicit none
       integer n
       double precision x(n),y,tol
       integer i,j
@@ -93,7 +93,7 @@ C  iterate until convergence
       j=0
       y0=y
       DO while (rofy.gt.tol)
-C  compute r(y) and check for y=x_k 
+C  compute r(y) and check for y=x_k
          etaofy=0.d0
          r1=0.d0
          t0=0.d0
@@ -108,7 +108,7 @@ C  compute r(y) and check for y=x_k
                t0=t0+1.d0/dxy
                t1=t1+x(i)/dxy
             END IF
-         END DO      
+         END DO
          rofy=abs(r1)
          if(rofy.le.tol) EXIT
          t1=t1/t0
@@ -124,7 +124,7 @@ C  compute r(y) and check for y=x_k
       RETURN
       END
       subroutine shrinkg(x,nx1,nx2,y,ny1,ny2,tol,z,nz,method,nc)
-      implicit logical (a-z)
+      implicit none
       integer nx1,ny1,nx2,ny2,nz,x(nx1,nx2),y(ny1,ny2),nc
       double precision z(nz,nc),tol
       integer iy1,iy2,ja1,ja2,je1,je2,jx1,jx2,k,method,thrednr
@@ -146,16 +146,20 @@ C   d1  contains the factor for shrinkage in first dimension
       thrednr=1
 C   d1  contains the factor for shrinkage in second dimension
 C$OMP PARALLEL DEFAULT(SHARED)
-C$OMP& PRIVATE(iy2,ja2,je2,iy1,ja1,je1,jx1,jx2,k,l,yy,thrednr)
+C$OMP& PRIVATE(iy2,ja2,je2,iy1,ja1,je1,jx1,jx2,k,yy,thrednr)
 C$OMP DO SCHEDULE(GUIDED)
       DO iy2=1,ny2
 !$         thrednr = omp_get_thread_num()+1
-         ja2=max(1,int(0.5+(iy2-1)*d2))
-         je2=max(1,int(0.5d0+iy2*d2))
+C         ja2=max(1,int(0.5+(iy2-1)*d2))
+C         je2=max(1,int(0.5d0+iy2*d2))
+         ja2=max(1,int(1d-4+(iy2-1)*d2))
+         je2=max(1,int(-1d-4+iy2*d2))
          je2=min(je2,nx2)
          DO iy1=1,ny1
-            ja1=max(1,int(0.5d0+(iy1-1)*d1))
-            je1=max(1,int(0.5d0+iy1*d1))
+C            ja1=max(1,int(0.5d0+(iy1-1)*d1))
+C            je1=max(1,int(0.5d0+iy1*d1))
+            ja1=max(1,int(1+1d-4+(iy1-1)*d1))
+            je1=max(1,int(1-1d-4+iy1*d1))
             je1=min(je1,nx1)
             if(ja1.eq.je1.and.ja2.eq.je2) THEN
                y(iy1,iy2)=x(ja1,ja2)
@@ -195,7 +199,7 @@ C$OMP FLUSH(y)
       RETURN
       END
       subroutine shrinkc(x,nx1,nx2,y,ny1,ny2,tol,z,nz,method,nc)
-      implicit logical (a-z)
+      implicit none
       integer nx1,ny1,nx2,ny2,nz,x(3,nx1,nx2),y(3,ny1,ny2),nc
       double precision z(3,nz,nc),tol
       integer iy1,iy2,ja1,ja2,je1,je2,jx1,jx2,k,method,thrednr
@@ -217,16 +221,22 @@ C   d1  contains the factor for shrinkage in first dimension
       thrednr = 1
 C   d2  contains the factor for shrinkage in second dimension
 C$OMP PARALLEL DEFAULT(SHARED)
-C$OMP& PRIVATE(iy2,ja2,je2,iy1,ja1,je1,jx1,jx2,k,l,yy,thrednr)
+C$OMP& PRIVATE(iy2,ja2,je2,iy1,ja1,je1,jx1,jx2,k,yy,thrednr)
 C$OMP DO SCHEDULE(GUIDED)
       DO iy2=1,ny2
 !$         thrednr = omp_get_thread_num()+1
-         ja2=max(1,int(0.5d0+(iy2-1)*d2))
-         je2=max(1,int(0.5d0+iy2*d2))
+C         ja2=max(1,int(0.5d0+(iy2-1)*d2))
+C         je2=max(1,int(0.5d0+iy2*d2))
+         ja2=max(1,int(1+1d-4+(iy2-1)*d2))
+         je2=max(1,int(1-1d-4+iy2*d2))
          je2=min(je2,nx2)
          DO iy1=1,ny1
-            ja1=max(1,int(0.5d0+(iy1-1)*d1))
-            je1=max(1,int(0.5d0+iy1*d1))
+C            ja1=max(1,int(0.5d0+(iy1-1)*d1))
+C            je1=max(1,int(0.5d0+iy1*d1))
+C            ja1=max(1,int(0.5d0+(iy1-1)*d1))
+C            je1=max(1,int(0.5d0+iy1*d1))
+            ja1=max(1,int(1+1d-4+(iy1-1)*d1))
+            je1=max(1,int(1-1d-4+iy1*d1))
             je1=min(je1,nx1)
             if(ja1.eq.je1.and.ja2.eq.je2) THEN
                y(1,iy1,iy2)=x(1,ja1,ja2)

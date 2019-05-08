@@ -46,7 +46,7 @@ rgb2yiq <- function(obj) {
     dm <- obj$dim
     obj$img <- obj$img / 65535
     dim(obj$img) <- c(prod(dm),3)
-    
+
     conv <- c(0.299,  0.595716,  0.211456,
               0.587, -0.274453, -0.522591,
               0.114, -0.321263,  0.311135)
@@ -54,7 +54,7 @@ rgb2yiq <- function(obj) {
     if(obj$cspace!="sRGB") {
        conv <- conv%*%xyz2rgbmat("sRGB")%*%rgb2xyzmat(obj$cspace)
     }
-    
+
     obj$img <- obj$img %*% t(conv)
     dim(obj$img) <- c(dm,3)
     obj$cspace <- "yiq"
@@ -73,7 +73,7 @@ yiq2rgb <- function(obj, cspace="Adobe", compress=TRUE) {
     if(obj$compressed) obj <- decompress.image(obj)
     dm <- obj$dim
     dim(obj$img) <- c(prod(dm),3)
-    
+
     conv <- c(1,          1,          1,
               0.9562957, -0.2721221, -1.1069890,
               0.6210244, -0.6473806,  1.7046150)
@@ -81,7 +81,7 @@ yiq2rgb <- function(obj, cspace="Adobe", compress=TRUE) {
     if(cspace!="sRGB") {
        conv <- xyz2rgbmat(cspace)%*%rgb2xyzmat("sRGB")%*%conv
     }
-    
+
     obj$img <- as.integer(65535 * pmax(0, pmin(1, obj$img %*% t(conv))))
     dim(obj$img) <- c(dm,3)
     obj$cspace <- cspace
@@ -102,7 +102,7 @@ rgb2yuv <- function(obj) {
     dm <- obj$dim
     obj$img <- obj$img / 65535
     dim(obj$img) <- c(prod(dm),3)
-    
+
     conv <- c(0.299, -0.147,  0.615,
               0.587, -0.289, -0.515,
               0.114,  0.436, -0.100)
@@ -110,7 +110,7 @@ rgb2yuv <- function(obj) {
     if(obj$cspace!="sRGB") {
        conv <- conv%*%xyz2rgbmat("sRGB")%*%rgb2xyzmat(obj$cspace)
     }
-    
+
     obj$img <- obj$img %*% t(conv)
     dim(obj$img) <- c(dm,3)
     obj$cspace <- "yuv"
@@ -130,7 +130,7 @@ rgb2yuvhist <- function(obj) {
     dm <- obj$dim
     obj$img <- obj$img / 65535
     dim(obj$img) <- c(prod(dm),3)
-    
+
     conv <- c(0.299, -0.147,  0.615,
               0.587, -0.289, -0.515,
               0.114,  0.436, -0.100)
@@ -138,7 +138,7 @@ rgb2yuvhist <- function(obj) {
     if(obj$cspace!="sRGB") {
        conv <- conv%*%xyz2rgbmat("sRGB")%*%rgb2xyzmat(obj$cspace)
     }
-    
+
     obj$img <- obj$img %*% t(conv)
     dim(obj$img) <- c(dm,3)
     obj$cspace <- "yuv"
@@ -157,7 +157,7 @@ yuv2rgb <- function(obj, cspace="Adobe", compress=TRUE) {
     if(obj$compressed) obj <- decompress.image(obj)
     dm <- obj$dim
     dim(obj$img) <- c(prod(dm),3)
-    
+
     conv <- c( 1,         1,         1,
               -0.000039, -0.394610,  2.032000,
               1.139828, -0.580500, -0.000481)
@@ -165,7 +165,7 @@ yuv2rgb <- function(obj, cspace="Adobe", compress=TRUE) {
     if(cspace!="sRGB") {
        conv <- xyz2rgbmat(cspace)%*%rgb2xyzmat("sRGB")%*%conv
     }
-    
+
     obj$img <- as.integer(65535 * pmax(0, pmin(1, obj$img %*% t(conv))))
     dim(obj$img) <- c(dm,3)
     obj$cspace <- cspace
@@ -185,37 +185,37 @@ hsi2rgb <- function (obj, cspace="Adobe", compress=TRUE) {
     dm <- obj$dim
     proddm <- prod(dm)
     dim(obj$img) <- c(proddm, 3)
-    
+
     obj$img[, 1] <- obj$img[, 1] * 2 * pi
     obj$img[obj$img[,1]<0,1] <- 0
     obj$img[obj$img[,1]>2*pi,1] <- 2*pi
-    
+
     r <- rep(0, proddm)
     g <- rep(0, proddm)
     b <- rep(0, proddm)
-    
+
     ind1<-(1:proddm)[(obj$img[,1] < 2 * pi/3)]
     ind2<-(1:proddm)[(obj$img[,1] >= 2 * pi/3) & (obj$img[,1] < 4 * pi/3)] # use & operator here to compare vectors!! not &&
     ind3<-(1:proddm)[(obj$img[,1] >= 4 * pi/3)]
-    
+
     b[ind1] <- obj$img[ind1,3] * (1 - obj$img[ind1,2])
     r[ind1] <- obj$img[ind1,3] * (1 + obj$img[ind1,2] * cos(obj$img[ind1,1])/cos(pi/3 - obj$img[ind1,1]))
     g[ind1] <- 3 * obj$img[ind1,3] - (b[ind1] + r[ind1])
-    
+
     r[ind2] <- obj$img[ind2,3] * (1 - obj$img[ind2,2])
     g[ind2] <- obj$img[ind2,3] * (1 + obj$img[ind2,2] * cos(obj$img[ind2,1] - 2 * pi/3)/cos(pi - obj$img[ind2,1]))
     b[ind2] <- 3 * obj$img[ind2,3] - (r[ind2] + g[ind2])
-    
+
     g[ind3] <- obj$img[ind3,3] * (1 - obj$img[ind3,2])
     b[ind3] <- obj$img[ind3,3] * (1 + obj$img[ind3,2] * cos(obj$img[ind3,1] - 4 * pi/3)/cos(5 * pi/3 - obj$img[ind3,1]))
     r[ind3] <- 3 * obj$img[ind3,3] - (g[ind3] + b[ind3])
-    
+
     if(cspace!="sRGB") {
        conv <- xyz2rgbmat(cspace)%*%rgb2xyzmat("sRGB")
        obj$img <- cbind(r, g, b) %*% t(conv)
        if(cspace %in% c("sRGB","Adobe","wGamut","kodak")) obj$img <- as.integer(65535 * pmax(0, pmin(1,obj$img )))
     } else {
-       obj$img <- as.integer(65535 * pmax(0, pmin(1, cbind(r, g, b))))    
+       obj$img <- as.integer(65535 * pmax(0, pmin(1, cbind(r, g, b))))
     }
     dim(obj$img) <- c(dm, 3)
     obj$cspace <- cspace
@@ -242,17 +242,17 @@ rgb2hsi <- function (obj) {
        obj$img <- obj$img%*%t(conv)
        obj$cspace <- "sRGB"
     }
-    
+
     z <- obj$img[,1] - 0.5 * obj$img[,2] - 0.5 * obj$img[,3]
     n <- (obj$img[,1] - obj$img[,2])^2 + (obj$img[,1] - obj$img[,3]) * (obj$img[,2] - obj$img[,3])
     frac <- z[n != 0]/sqrt(n[n != 0])
     frac <- signif(frac, 5)
-    
+
     h <- rep(0, prod(dm))
     h[n != 0] <- acos(frac) # h not defined for n==0
     h[obj$img[, 3] > obj$img[,2]] <- 2 * pi - h[obj$img[,3] > obj$img[,2]]
     h <- h/(2 * pi)
-    
+
     i <- (obj$img[,1] + obj$img[,2] + obj$img[,3])/3
     i <- pmax(0,pmin(1,i))
     s <- rep(0, prod(dm))
@@ -310,7 +310,7 @@ z <- matrix(switch(EXPR=cspace,
                      -1.53726,1.87599,-0.203996,
                      -0.498571,0.0415557,1.05707),
               Adobe=c(2.04148,-0.969258,0.0134455,
-                      -0.564977,1.87599,-0.118373,   
+                      -0.564977,1.87599,-0.118373,
                       -0.344713,0.0415557,1.01527),
               wGamut=c(1.46281,-0.521793,0.0349342,
                        -0.184062,1.44724,-0.0968931,
@@ -342,19 +342,19 @@ rgb2xyz <- function(obj) {
      if(obj$gamma) obj <- invgamma.correction(obj,alg=1)
      if(obj$type=="rgb") obj$img <- obj$img / 65535
      if (obj$cspace!="xyz") {
-#      if object is already in XYZ not much to do ... 
+#      if object is already in XYZ not much to do ...
        dm <- obj$dim
        dim(obj$img) <- c(prod(dm),3)
-    
+
        conv <- rgb2xyzmat(obj$cspace)
-    
+
        obj$img <- obj$img %*% t(conv)
        obj$img[obj$img>1] <- 1
        obj$img[obj$img<0] <- 0
        dim(obj$img) <- c(dm,3)
     } else{
     warning("Error: incorrect image type in rgb2xyz \n")
-    } 
+    }
     obj$cspace <- "xyz"
     obj$type <- "xyz"
   }
@@ -368,7 +368,7 @@ xyz2rgb <- function(obj, cspace="Adobe", black=0, exposure=1, compress=TRUE) {
   if (!(cspace%in%c("sRGB","Adobe","wGamut","kodak","xyz","yuv","yiq","hsi"))){
      warning(paste("invalid color space",cspace,"reset to Adobe"))
      cspace <- "Adobe"
-     } 
+     }
   rgb <- cspace%in%c("sRGB","Adobe","wGamut","kodak")
   if (obj$type!="xyz") {
     warning("Error: image type is not xyz\n")
@@ -384,7 +384,7 @@ xyz2rgb <- function(obj, cspace="Adobe", black=0, exposure=1, compress=TRUE) {
        obj$img[is.na(obj$img)|obj$img<0] <- 0
     }
     conv <- xyz2rgbmat(cspace)*exposure
-    
+
     if(rgb) {
        obj$img <- as.integer(65535 * pmax(0, pmin(1, obj$img %*% t(conv))))
        } else {
@@ -422,13 +422,13 @@ gamma.correction <- function (img, gammatype="ITU",
     cat("   Slope matching factor:",sls * fs,"\n")
     cat("          Segment offset:",sls * c0,"\n")
   }
-  
+
   if(img$type=="rgb"||img$type=="greyscale") img$img <- img$img / 65535 else {
      for(i in 1:dim(img$img)[3])
      img$img[,,i] <- (img$img[,,i]-min(img$img[,,i]))/(max(img$img[,,i])-min(img$img[,,i]))
   }
   di <- dim(img$img)
-  
+
   breaks <- seq(0,1+1/(nbins-1),length=nbins+1)
   nimg <- (nbins-1)*img$img
   iimg <- as.integer(nimg)
@@ -448,7 +448,7 @@ gamma.correction <- function (img, gammatype="ITU",
     img$img[ind] <- fs * img$img[ind]^(1/ga) - c0
     img$img <- sls * img$img
   }
-  
+
   img$img <- as.integer(65535 * img$img)
 if(any(img$img>65535)) cat("large values in gamma\n")
   dim(img$img) <- di
@@ -470,13 +470,13 @@ invgamma.correction <- function (img,
   sls <- 1/(ga/bp^(1/ga - 1) - ga * bp + bp)
   fs <- ga/bp^(1/ga - 1)    # slope divided by sls to easy computation
   c0 <- fs * bp^(1/ga) - bp # segment offset divided by sls to easy computation
-  
+
   img$img <- img$img / 65535
   di <- dim(img$img)
     ind <- (1:length(img$img))[img$img > sls*bp]
     img$img[ind] <- ((img$img[ind]/sls + c0)/fs)^ga
     img$img[-ind] <- img$img[-ind]/sls
-  
+
   img$img <- as.integer(65535 * img$img)
 if(any(img$img>65535)) cat("large values in gamma\n")
   dim(img$img) <- di
@@ -515,8 +515,8 @@ wp
 }
 
 wpofT <- function(temp){
-# Approximate whitepoint coordinates for given color temperature 
-#    
+# Approximate whitepoint coordinates for given color temperature
+#
 if(!is.numeric(temp)) {
 warning("Non-numeric color temperatur. Using 6500 K")
 temp <- 6500
@@ -531,7 +531,7 @@ c(sum(cx*tx),sum(ty*cy))
 
 changewhitepoint <- function(wsource,wdest,kind="Bradford"){
 #
-#  provides transfer matrix from XYZ(wsource) to XYZ(wdest) 
+#  provides transfer matrix from XYZ(wsource) to XYZ(wdest)
 #
 MA <- matrix(switch(EXPR=kind,
              Bradford=c(0.8951,-0.7502,0.0389,
@@ -539,7 +539,7 @@ MA <- matrix(switch(EXPR=kind,
                         -0.1614,0.0367,1.0296),
              XYZscaling=diag(c(1,1,1)),
              VonKries=c(0.40024,-0.22630,0.00000,
-                        0.70760,1.16532,0.00000, 
+                        0.70760,1.16532,0.00000,
                        -0.08081,0.04570,0.91822)),3,3)
 MAinv <- matrix(switch(EXPR=kind,
              Bradford=c(0.986993,0.432305,-0.008529,
@@ -565,7 +565,7 @@ img
 }
 
 adjust.image <- function(img, gammatype=NULL, cspace=NULL, whitep=NULL, temp=NULL, black=0, exposure=1, kind="Bradford", alg = 1, compress=TRUE) {
-  
+
   if(!check.adimpro(img)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
@@ -587,7 +587,7 @@ adjust.image <- function(img, gammatype=NULL, cspace=NULL, whitep=NULL, temp=NUL
         gamma <- gammatype!="None"
         if(img$gamma) img <- invgamma.correction(img,alg=alg)
         if(black!=0) img$img <- as.integer(pmax(0,img$img-black))
-        if(exposure!=1) img$img <- as.integer(pmin(65535,img$img*exposure)) 
+        if(exposure!=1) img$img <- as.integer(pmin(65535,img$img*exposure))
         dim(img$img) <- img$dim
         if(gamma) img <- gamma.correction(img,gammatype=gammatype,alg=alg)
      }
@@ -693,7 +693,7 @@ hequalize <- function(img,compress=TRUE){
   if(img$type=="greyscale"){
      n1 <- img$dim[1]
      n2 <- img$dim[2]
-     z <- .Fortran("hequalg",
+     z <- .Fortran(C_hequalg,
                     as.integer(img$img),
                     as.integer(n1*n2),
                     img=integer(n1*n2),
@@ -708,12 +708,12 @@ hequalize <- function(img,compress=TRUE){
         img1 <- rgb2grey(img,compress=FALSE)
         n1 <- img1$dim[1]
         n2 <- img1$dim[2]
-        cumhist <- .Fortran("cumhist",
+        cumhist <- .Fortran(C_cumhist,
                     as.integer(img1$img),
                     as.integer(n1*n2),
                     cumhist=integer(65536),
                     PACKAGE="adimpro")$cumhist
-        img$img <- array(.Fortran("hequalc",
+        img$img <- array(.Fortran(C_hequalc,
                     as.integer(img$img),
                     as.integer(n1*n2),
                     img=integer(n1*n2*3),
@@ -721,7 +721,7 @@ hequalize <- function(img,compress=TRUE){
                     PACKAGE="adimpro")$img,c(n1,n2,3))
         img$hequal <- cumhist
      } else {
-      warning(paste("not yet implemented for type",type)) 
+      warning(paste("not yet implemented for type",type))
      }
   }
   img$gamma <- TRUE
@@ -739,7 +739,7 @@ hequalize.old <- function(img,compress=TRUE){
   if(img$type=="greyscale"){
      n1 <- img$dim[1]
      n2 <- img$dim[2]
-     z <- .Fortran("hequalg",
+     z <- .Fortran(C_hequalg,
                     as.integer(img$img),
                     as.integer(n1*n2),
                     img=integer(n1*n2),
@@ -754,7 +754,7 @@ hequalize.old <- function(img,compress=TRUE){
         img <- rgb2yuv(img)
         n1 <- img$dim[1]
         n2 <- img$dim[2]
-        z <- .Fortran("hequalg",
+        z <- .Fortran(C_hequalg,
                     as.integer(img$img[,,1]*65535),
                     as.integer(n1*n2),
                     img=integer(n1*n2),
@@ -764,7 +764,7 @@ hequalize.old <- function(img,compress=TRUE){
         img$hequal <- z$cumhist
         img <- yuv2rgb(img,cspace=cspace,compress=FALSE)
      } else {
-      warning(paste("not yet implemented for type",type)) 
+      warning(paste("not yet implemented for type",type))
      }
   }
   img$gamma <- TRUE
@@ -785,7 +785,7 @@ invhequalize <- function(img){
   if(img$type=="greyscale"){
      n1 <- img$dim[1]
      n2 <- img$dim[2]
-     img$img <- matrix(.Fortran("ihequal",
+     img$img <- matrix(.Fortran(C_ihequal,
                     as.integer(img$img),
                     as.integer(n1*n2),
                     img=integer(n1*n2),
@@ -800,7 +800,7 @@ invhequalize <- function(img){
      if(type%in%c("rgb","xyz")){
         n1 <- img$dim[1]
         n2 <- img$dim[2]
-        img$img <- array(.Fortran("ihequalc",
+        img$img <- array(.Fortran(C_ihequalc,
                     as.integer(img$img),
                     as.integer(n1*n2),
                     img=integer(n1*n2*3),
@@ -810,7 +810,7 @@ invhequalize <- function(img){
         img$gamma <- FALSE
         img$gammatype <- "None"
      } else {
-      warning(paste("not yet implemented for type",type)) 
+      warning(paste("not yet implemented for type",type))
      }
   }
   img
@@ -827,7 +827,7 @@ invhequalize.old <- function(img){
   if(img$type=="greyscale"){
      n1 <- img$dim[1]
      n2 <- img$dim[2]
-     img$img <- matrix(.Fortran("ihequal",
+     img$img <- matrix(.Fortran(C_ihequal,
                     as.integer(img$img),
                     as.integer(n1*n2),
                     img=integer(n1*n2),
@@ -845,7 +845,7 @@ invhequalize.old <- function(img){
 #   so we can't use rgb2yuv
         n1 <- img$dim[1]
         n2 <- img$dim[2]
-        img$img[,,1] <- .Fortran("ihequal",
+        img$img[,,1] <- .Fortran(C_ihequal,
                     as.integer(img$img[,,1]*65535),
                     as.integer(n1*n2),
                     img=integer(n1*n2),
@@ -856,7 +856,7 @@ invhequalize.old <- function(img){
         img$gammatype <- "None"
         img <- yuv2rgb(img,cspace=cspace,compress=FALSE)
      } else {
-      warning(paste("not yet implemented for type",type)) 
+      warning(paste("not yet implemented for type",type))
      }
   }
   img

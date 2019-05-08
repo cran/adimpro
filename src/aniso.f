@@ -1,5 +1,5 @@
-      subroutine sm2Dtens(x,n1,n2,h,rho,xhat)
-      implicit logical (a-z)
+      subroutine sm2dtens(x,n1,n2,h,rho,xhat)
+      implicit none
       integer n1,n2
       double precision x(3,n1,n2),h,rho,xhat(3,n1,n2)
       integer i1,i2,j1,j2,ja1,je1,ja2,je2,jx,jy
@@ -49,16 +49,16 @@
       return
       end
       subroutine rangex(a,h,ja,je)
-      implicit logical (a-z)
+      implicit none
       integer ja,je
       double precision a(3),h,z
       z=sqrt(a(3))*h
       ja=int(-z)
       je=int(z)
-      return 
+      return
       end
       subroutine rangey(a,ix,h,ja,je)
-      implicit logical (a-z)
+      implicit none
       integer ix,ja,je
       double precision a(3),h,z1,z2
       z1=-a(2)/a(3)*ix
@@ -77,7 +77,7 @@ C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       double precision function adist2(a,x,y)
 C
-      implicit logical (a-z)
+      implicit none
       integer x,y
       double precision a(3)
       adist2=a(1)*x*x+2.d0*a(2)*x*y+a(3)*y*y
@@ -101,7 +101,7 @@ C   kern     specifies the location kernel
 C   spmax    specifies the truncation point of the stochastic kernel
 C   wght     scaling factor for second and third dimension (larger values shrink)
 C
-      implicit logical (a-z)
+      implicit none
       external kldistd,lkern,adist2
       double precision kldistd,lkern,adist2
       integer n1,n2,dv,kern,skern,y(n1,n2,dv),theta(n1,n2,dv),
@@ -134,7 +134,7 @@ C Characterize anisotropic neighborhood
             a(1)=a(1)/sqrd
             a(2)=a(2)/sqrd
             a(3)=a(3)/sqrd
-C now a descibrs an ellipse with unit volume            
+C now a descibrs an ellipse with unit volume
             bii=bi(i1,i2)/lambda
 C   scaling of sij outside the loop
             swj=0.d0
@@ -197,7 +197,7 @@ C   kern     specifies the location kernel
 C   spmax    specifies the truncation point of the stochastic kernel
 C   wght     scaling factor for second and third dimension (larger values shrink)
 C
-      implicit logical (a-z)
+      implicit none
       external kldistgc,lkern,adist2
       double precision kldistgc,lkern,adist2
       integer n1,n2,dv,kern,skern,nvpar,y(n1,n2,dv),theta(n1,n2,dv),
@@ -205,7 +205,7 @@ C
       logical aws
       double precision bi(n1,n2),lambda,spmax,spmin,hakt,wghts(dv),
      2       vcoef(nvpar,dv),chcorr(*),meanvar(dv),ani(3,n1,n2)
-      integer i1,i2,j1,j2,ja1,je1,ja2,je2,l,k,n,info,kdv,jx,jy,
+      integer i1,i2,j1,j2,ja1,je1,ja2,je2,l,k,n,info,kdv,jx,jy,i,
      1        m0,thi(4)
       double precision bii,sij,swj,swjy(dv),wj,hakt2,spf,thij(4),
      1       s2i(16),si(4),sqrd,d,a(3)
@@ -232,7 +232,7 @@ C   compute location weights first
             a(1)=a(1)/sqrd
             a(2)=a(2)/sqrd
             a(3)=a(3)/sqrd
-C now a descibrs an ellipse with unit volume            
+C now a descibrs an ellipse with unit volume
             bii=bi(i1,i2)/lambda
 C   scaling of sij outside the loop
             swj=0.d0
@@ -240,7 +240,7 @@ C   scaling of sij outside the loop
                swjy(k)=0.d0
                thi(k)=theta(i1,i2,k)
                si(k) = vcoef(1,k)
-               if(nvpar.gt.1) THEN 
+               if(nvpar.gt.1) THEN
                   si(k) = si(k) + vcoef(2,k) * thi(k)
                END IF
                si(k) = dsqrt(dmax1(si(k),0.1*meanvar(k)))

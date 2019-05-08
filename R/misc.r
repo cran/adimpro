@@ -11,47 +11,80 @@
   }
   dcraw <- Sys.which("dcraw")
   if(!file.exists(dcraw)) packageStartupMessage("Reading RAW images requires to install dcraw, see \n
-    http://cybercom.net/~dcoffin/dcraw/ for LINUX and http://www.insflug.org/raw/ 
+    http://cybercom.net/~dcoffin/dcraw/ for LINUX and http://www.insflug.org/raw/
     for MAC OS and Windows \n")
+  if (requireNamespace("awsMethods", quietly = TRUE)) {
+      packageStartupMessage("Use awsMethods::setCores(ncores) to specify number of cores for openMP")
+    } else {
+      packageStartupMessage("Please install package awsMethods for openMP support")
+    }
 }
+
+.adimproOpts <- new.env(TRUE,emptyenv())
 
 .onLoad <- function(lib, pkg){
-#  if(!exists(.adimpro)) {
-#    attach(what=NULL,2L)
-    #  .adimpro <- list(xsize=xsize,ysize=ysize)
-    #  rm(xsize,ysize)
-    #  attach(.adimpro)
-    #  detach(.adimpro)
-#  }
-  adimpro.options()
+  assign(".rimage", list("zquantiles" = c(0,1),
+               "low" = "black",
+               "up" = "white",
+               "NAcolor" = 0,
+               "col" = grey(0:255/255),
+               "asp" = TRUE,
+               "xlab" = "x", "ylab" = "y",
+               "xaxt" = "s", "yaxt" ="s",
+               "swapx" = FALSE, "swapy" = FALSE,
+               "bty" = "o"),
+               envir = .adimproOpts)
+   adimpro.options()
+   invisible(NULL)
 }
 
-.onUnload <- function(libpath){
-   options(adimpro.xsize=NULL,adimpro.ysize=NULL)
-}
 
 adimpro.options <- function(xsize = NULL,
                             ysize = NULL){
-#  if (Sys.info()["sysname"] == "Linux") {
-    ## we now have >which< on our system and test for >xdpyinfo< 
-#    test <- system("which xdpyinfo", ignore.stderr=TRUE, intern = TRUE)
-      test <- Sys.which("xdpyinfo")
-#      if (length(test) > 0) {
-      if(nchar(test)>0){
-      resolution <- strsplit(system("xdpyinfo  | grep 'dimensions:'", intern=TRUE, ignore.stderr=TRUE), "x")
-      if(length(resolution) > 0){
-        resx <- strsplit(resolution[[1]][1]," ")[[1]]
-        if (is.null(xsize)) xsize <- as.integer(resx[length(resx)])
-        if (is.null(ysize)) ysize <- as.integer(strsplit(resolution[[1]][2]," ")[[1]][1])
+      if(!is.integer(xsize)) xsize <- NULL
+      if(!is.integer(ysize)) ysize <- NULL
+      if(is.null(xsize)|is.null(ysize)){
+#  try to use half of screen dimensions
+         test <- Sys.which("xdpyinfo")
+         if(nchar(test)>0){
+            resolution <- strsplit(system("xdpyinfo  | grep 'dimensions:'", intern=TRUE, ignore.stderr=TRUE), "x")
+            if(length(resolution) > 0){
+            resx <- strsplit(resolution[[1]][1]," ")[[1]]
+            if (is.null(xsize)) xsize <- as.integer(resx[length(resx)])/2
+            if (is.null(ysize)) ysize <- as.integer(strsplit(resolution[[1]][2]," ")[[1]][1])/2
+         } else {
+            if(is.null(xsize)||is.na(xsize)) xsize <- 512L
+            if(is.null(ysize)||is.na(ysize)) ysize <- 384L
+         }
       }
     }
-#  }
-  if(is.null(xsize)||is.na(xsize)) xsize <- 1920
-  if(is.null(ysize)||is.na(ysize)) ysize <- 1080
-  options(adimpro.xsize=xsize,adimpro.ysize=ysize)
+  assign(".adimpro", list(xsize=xsize,ysize=ysize),
+              envir = .adimproOpts)
   invisible(NULL)
 }
-#.adimpro <- adimpro.options()
+
+rimage.options <- function(...){
+  args <- list(...)
+  imagepars <- get(".rimage", envir=.adimproOpts)
+  if(length(args)>0){
+  if("zquantiles" %in% names(args))
+        imagepars[["zquantiles"]] <- pmax(0,pmin(1,args[["zquantiles"]]))
+  if("low" %in% names(args)) imagepars[["low"]] <- args[["low"]]
+  if("up" %in% names(args)) imagepars[["up"]] <- args[["up"]]
+  if("NAcolor" %in% names(args)) imagepars[["NAcolor"]] <- args[["NAcolor"]]
+  if("col" %in% names(args)) imagepars[["col"]] <- args[["col"]]
+  if("asp" %in% names(args)) imagepars[["asp"]] <- args[["asp"]]
+  if("xlab" %in% names(args)) imagepars[["xlab"]] <- args[["xlab"]]
+  if("ylab" %in% names(args)) imagepars[["ylab"]] <- args[["ylab"]]
+  if("xaxt" %in% names(args)) imagepars[["xaxt"]] <- args[["xaxt"]]
+  if("yaxt" %in% names(args)) imagepars[["yaxt"]] <- args[["yaxt"]]
+  if("bty" %in% names(args)) imagepars[["bty"]] <- args[["bty"]]
+  if("swapx" %in% names(args)) imagepars[["swapx"]] <- args[["swapx"]]
+  if("swapy" %in% names(args)) imagepars[["swapy"]] <- args[["swapy"]]
+  assign(".rimage", imagepars, envir = .adimproOpts)
+}
+  invisible(imagepars)
+}
 
 check.adimpro <- function(object){
   # Returns true if object is of class adimpro, has
@@ -75,7 +108,7 @@ check.adimpro <- function(object){
         check <- 2
         break
       } else dimg <- dim(object$img)
-      
+
       if(!(length(dimg)%in%c(2,3))) {
         check <- 2
         break
@@ -83,7 +116,7 @@ check.adimpro <- function(object){
       if(is.null(object$dim)) {
         check <- 3
         break
-      } else dim <- dim(object$dim) 
+      } else dim <- dim(object$dim)
       if(!all(dimg[1:2]==dim)) {
         check <- 3
         break
@@ -100,7 +133,7 @@ check.adimpro <- function(object){
     if(mode(object$gamma)!="logical") {
       check <- 6
       break
-    } 
+    }
     if(is.null(object$depth)){
       check <- 7
       break
@@ -108,7 +141,7 @@ check.adimpro <- function(object){
     if(!(depth %in% c("8bit","16bit"))){
       check <- 7
       break
-    } 
+    }
     if(mode(object$wb)!="character") {
       check <- 8
       break
@@ -144,11 +177,12 @@ check.adimpro <- function(object){
   adimpro
 }
 
+
 Spatialvar.gauss <- function(h,h0) {
-  #   Calculates the factor of variance reduction obtained for Gaussian Kernel and bandwidth h in 
+  #   Calculates the factor of variance reduction obtained for Gaussian Kernel and bandwidth h in
   #   case of colored noise that was produced by smoothing with Gaussian kernel and bandwidth h0
-  #   Spatialvariance(lkern,h,h0,d)/Spatialvariance(lkern,h,1e-5,d) gives the 
-  #   a factor for lambda to be used with bandwidth h 
+  #   Spatialvariance(lkern,h,h0,d)/Spatialvariance(lkern,h,1e-5,d) gives the
+  #   a factor for lambda to be used with bandwidth h
   if(length(h)==1) h<-rep(h,2)
   ih<-trunc(4*h)
   ih<-pmax(1,ih)
@@ -180,7 +214,7 @@ geth.gauss <- function(corr,step=1.01) {
   #  keep it simple result does not depend on d
   if (corr < 0.065) {
     h <- 1e-5
-  } else { 
+  } else {
     h <- .3
     z <- 0
     while (z<corr) {
@@ -193,7 +227,7 @@ geth.gauss <- function(corr,step=1.01) {
 }
 
 get.corr.gauss <- function(h,interv=1) {
-  #   Calculates the correlation of 
+  #   Calculates the correlation of
   #   colored noise that was produced by smoothing with "gaussian" kernel and bandwidth h
   #   Result does not depend on d for "Gaussian" kernel !!
   h <- h*interv
@@ -212,7 +246,7 @@ Varcor.gauss <- function(h) {
     ih<-trunc(4*h)
     dx<-2*ih+1
     penl <- outer(dnorm(((-ih[1]):ih[1])/h[1]),dnorm(((-ih[2]):ih[2])/h[2]),"*")
-    vcg <- 2*sum(penl)^2/sum(diff(penl)^2) 
+    vcg <- 2*sum(penl)^2/sum(diff(penl)^2)
   }
   vcg
 }
@@ -262,7 +296,7 @@ mask.create <- function(img,range1=c(0,1),range2=c(0,1),range3=c(0,1),locate=TRU
 compress.image <- function(img){
   if(!check.adimpro(img)) {
     cat(" Consistency check for argument object failed (see warnings). object is returned.\"n")
-    return(invisible(img)) 
+    return(invisible(img))
   }
   if(is.null(img$compressed)||!img$compressed){
     type <- img$type
@@ -281,7 +315,7 @@ compress.image <- function(img){
 decompress.image <- function(img){
   if(!check.adimpro(img)) {
     cat(" Consistency check for argument object failed (see warnings). object is returned.\"n")
-    return(invisible(img)) 
+    return(invisible(img))
   }
   if(!is.null(img$compressed)&&img$compressed){
     type <- img$type
@@ -301,14 +335,14 @@ decompress.image <- function(img){
 }
 
 getvofh2 <- function(bw,lkern){
-.Fortran("getvofh2",
+.Fortran(C_getvofh2,
          as.double(bw),
          as.integer(lkern),
          vol=double(1),
          PACKAGE="adimpro")$vol
 }
 geth2 <- function(x,y,lkern,value,eps=1e-2){
-.Fortran("geth2",
+.Fortran(C_geth2,
          as.double(x),
          as.double(y),
          as.integer(lkern),
@@ -320,14 +354,14 @@ geth2 <- function(x,y,lkern,value,eps=1e-2){
 
 median1 <- function(x,tol=1e-8){
    if(!is.null(dim(x))&&dim(x)[2]==3) {
-      z <- .Fortran("median3",
+      z <- .Fortran(C_median3,
                     as.double(x),
                     as.integer(dim(x)[1]),
                     median=double(3),
                     as.double(tol),
                     PACKAGE="adimpro")$median
    } else {
-      z <- .Fortran("median1",
+      z <- .Fortran(C_median1,
                     as.double(x),
                     as.integer(length(x)),
                     median=double(1),
@@ -336,4 +370,3 @@ median1 <- function(x,tol=1e-8){
    }
 z
 }
-

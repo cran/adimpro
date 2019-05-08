@@ -1,6 +1,6 @@
       subroutine smsensor(s,shat,th,n1,n2,nt1,nt2,bayer,vcoef,
      1                    meanvar,hakt,lambda,bi,kern,spmin,lw)
-      implicit logical (a-z)
+      implicit none
       integer n1,n2,nt1,nt2,s(n1,n2),shat(n1,n2),th(nt1,nt2,3),
      1        kern,bayer
       double precision vcoef(2,3),bi(n1,n2),hakt,spmin,lw(*),lambda,
@@ -48,7 +48,7 @@ C  first location weights
 C  k in vcoef refers to variance parameters in the channels of the sensor data
                s2i(k) = 1.d0/max(vcoef(1,k) + vcoef(2,k) * thi(k),
      1                               .1*meanvar(k))
-C  thats inverse standard deviation 
+C  thats inverse standard deviation
             END DO
             DO jw2=1,dlw
                j2=jw2-clw+i2
@@ -90,7 +90,7 @@ C   search for homogeneous regions
 C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       subroutine dhomogen(img,n1,n2,imghom,bayer)
-      implicit logical (a-z)
+      implicit none
       external channel
       integer i,j,n1,n2,bayer,ch,channel
       integer img(n1,n2),imghom(n1,n2)
@@ -135,7 +135,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       RETURN
       END
       subroutine smsens0(s,shat,bi,n1,n2,bayer)
-      implicit logical (a-z)
+      implicit none
       integer n1,n2,s(n1,n2),shat(n1,n2),bayer
       double precision bi(n1,n2)
       external channel
@@ -172,7 +172,7 @@ C  we don't smooth sensor data from different channel
       RETURN
       END
       subroutine senvar(s,n1,n2,shat,bi,bayer,vcoef,mvar,nothom)
-      implicit logical (a-z)
+      implicit none
       integer n1,n2,s(n1,n2),shat(n1,n2),bayer
       double precision vcoef(2,3),bi(n1,n2),mvar(3)
       logical nothom(n1,n2)
@@ -227,12 +227,12 @@ C
 C
 C          Compute the Kullback-Leibler Distance
 C
-C          Gaussian   
+C          Gaussian
 C
 C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       double precision function kldisdem(thij,s2ii)
-      implicit logical (a-z)
+      implicit none
       double precision thij(3),s2ii(3)
       kldisdem = thij(1)*thij(1)*s2ii(1)+
      1           thij(2)*thij(2)*s2ii(2)+

@@ -1,7 +1,7 @@
       subroutine convolve(img, kernel, eimg, height, width, ksize)
 
       integer height, width, ksize, i, j
-      double precision img(width,height), kernel(ksize,ksize), 
+      double precision img(width,height), kernel(ksize,ksize),
      1       eimg(width,height)
       double precision tmp1,tmp2,tmp3,tmp4,tmp5
 
@@ -42,7 +42,7 @@ C$OMP DO SCHEDULE(GUIDED)
 C$OMP END DO NOWAIT
 C$OMP END PARALLEL
 C$OMP FLUSH(eimg)
-      else if (ksize.eq.3) then 
+      else if (ksize.eq.3) then
 C$OMP PARALLEL DEFAULT(SHARED)
 C$OMP& PRIVATE(i,j,tmp1,tmp2,tmp3)
 C$OMP DO SCHEDULE(GUIDED)
@@ -69,9 +69,9 @@ C$OMP& PRIVATE(i,j)
 C$OMP DO SCHEDULE(GUIDED)
          do j=1,height-1
             do i=1,width-1
-               eimg(i,j) = img(i,j) * kernel(1,1) 
-     1              + img(i,j+1) * kernel(1,2) 
-     2              + img(i+1,j) * kernel(2,1) 
+               eimg(i,j) = img(i,j) * kernel(1,1)
+     1              + img(i,j+1) * kernel(1,2)
+     2              + img(i+1,j) * kernel(2,1)
      3              + img(i+1,j+1) * kernel(2,2)
             end do
          end do
@@ -89,17 +89,17 @@ C$OMP FLUSH(eimg)
      1                    method)
 C
 C   shrink an RGB image
-C      
+C
 C   indx, indy  -  index vectors of length nxnew+1 and nynew+1
 C
-      implicit logical (a-z)
+      implicit none
       integer nx,ny,dv,img(nx,ny,dv),nxnew,nynew,
      1        imgnew(nxnew,nynew,dv),indx(*),indy(*),method
       integer i,j,inew,jnew,k,nij,ibest,jbest
       double precision z,znew,gap,zmean(4),dist,bestdist
-C     
+C
 C     First generate index vectors
-C 
+C
       z = nx
       znew = nxnew
       gap = z/znew
@@ -127,7 +127,7 @@ C
             DO inew=1,nxnew
                i=(indx(inew)+indx(inew+1)-1)/2
                j=(indy(jnew)+indy(jnew+1)-1)/2
-               DO k=1,dv               
+               DO k=1,dv
                   imgnew(inew,jnew,k)=img(i,j,k)
                END DO
             END DO
@@ -206,17 +206,17 @@ C
      1                    method)
 C
 C   shrink an RGB image
-C      
+C
 C   indx, indy  -  index vectors of length nxnew+1 and nynew+1
 C
-      implicit logical (a-z)
+      implicit none
       integer nx,ny,dv,nxnew,nynew,indx(*),indy(*),method
       double precision img(nx,ny,dv),imgnew(nxnew,nynew,dv)
       integer i,j,inew,jnew,k,nij,ibest,jbest
       double precision z,znew,gap,zmean(4),dist,bestdist
-C     
+C
 C     First generate index vectors
-C 
+C
       z = nx
       znew = nxnew
       gap = z/znew
@@ -244,7 +244,7 @@ C
             DO jnew=1,nynew
                i=(indx(inew)+indx(inew+1)-1)/2
                j=(indy(jnew)+indy(jnew+1)-1)/2
-               DO k=1,dv               
+               DO k=1,dv
                   imgnew(inew,jnew,k)=img(i,j,k)
                END DO
             END DO
@@ -311,7 +311,7 @@ C
                      END IF
                   END DO
                END DO
-               DO k=1,dv               
+               DO k=1,dv
                   imgnew(inew,jnew,k)=img(ibest,jbest,k)
                END DO
             END DO
@@ -323,17 +323,17 @@ C
      1                    method)
 C
 C   shrink an RGB image
-C      
+C
 C   indx, indy  -  index vectors of length nxnew+1 and nynew+1
 C
-      implicit logical (a-z)
+      implicit none
       integer nx,ny,img(nx,ny),nxnew,nynew,
      1        imgnew(nxnew,nynew),indx(*),indy(*),method
       integer i,j,inew,jnew,nij,ibest,jbest
       double precision z,znew,gap,zmean,dist,bestdist
-C     
+C
 C     First generate index vectors
-C 
+C
       z = nx
       znew = nxnew
       gap = z/znew

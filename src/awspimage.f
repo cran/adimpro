@@ -27,7 +27,7 @@ C   wght     weight for color channels
 C
 C   temporary arrays set for maximum degree 2
 C
-      implicit logical (a-z)
+      implicit none
       external kldistp2,lkern
       double precision kldistp2,lkern
       integer n1,n2,dv,kern,nv,degr,ind(*),y(*)
@@ -39,7 +39,7 @@ C
      2        dp1,dp2,dnp1,ihs,csw,dsw,kw,l,lk,dsw2
       double precision bii(15),sij,swj(15),swjy(18),z1,z2,wj,swj0,si,
      1  thi(18),hakt2,thij(18),zz(15),lwj,hs2,hs,z,cc,wjy,spf,wghti(4)
-C   arrays with variable length are organized as 
+C   arrays with variable length are organized as
 C   theta(n1,n2,dp1,dv)
 C   bi(n1,n2,dp2)
 C   arrays of fixed length correspond to degr=2
@@ -52,7 +52,7 @@ C   first set dimensions for arrays depending on degree
       ELSE IF (degr.eq.1) THEN
          dp1=3
          dp2=6
-      ELSE 
+      ELSE
          dp1=6
          dp2=15
       END IF
@@ -136,7 +136,7 @@ C  get directional differences that only depend on i2-j2
                   jwind=jw1+jwind2
                   wj=lw(jwind)
                   z1=jw1-clw
-C  get rest of directional differences 
+C  get rest of directional differences
                   IF(dp1.gt.1) THEN
                      zz(2)=z1
                      zz(4)=z1*z1
@@ -217,7 +217,7 @@ C
                   jind=j1+jind2
                   lwj=slw(jwind)
                   wj=sw(jwind)
-                  if(lwj.le.0.d0.and.wj.le.0.d0) CYCLE  
+                  if(lwj.le.0.d0.and.wj.le.0.d0) CYCLE
                   IF(dp1.gt.1) THEN
                      zz(2)=z1
                      zz(4)=z1*z1
@@ -232,7 +232,7 @@ C
                      zz(13)=z1*zz(9)
                      zz(14)=z1*zz(10)
                   END IF
-                  if(wj.le.0.d0) CYCLE  
+                  if(wj.le.0.d0) CYCLE
                   DO k=1,dp2
                      swj(k)=swj(k)+wj*zz(k)
                   END DO
@@ -269,7 +269,7 @@ C     wght     weight for color channels
 C     nwght    number of positive weights (<=dv)
 C     ind   index matrix to access the correct elements in bii
 C
-      implicit logical (a-z)
+      implicit none
       integer dp1,dv,ind(dp1,dp1)
       double precision thij(*),bii(*),wght(dv),thijl
       integer i,j,l,k
@@ -301,7 +301,7 @@ C     hw   bandwidth for smoothing of w
 C     sw   array of smoothed weights dim(dsw,dsw)   dsw=2*(ihw+ih)+1
 C     cc   dumping factor of weights
 C
-      implicit logical (a-z)
+      implicit none
       integer dw,dsw,cw,csw,cdiff
       double precision w(dw,dw),sw(dsw,dsw),hw,hakt,cc
       integer i1,i2,id,jd,ja1,je1,ja2,je2,j1,j2,i10,i20
@@ -437,55 +437,17 @@ C
 C      Generate estimates from ai and bi (bivariate case)
 C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-      subroutine mpaws20(n,dp1,dp2,ai,bi,theta,ind)
-C
-C     n          number of design points
-C     dp1        number of parameters  (p+1)
-C     dp2        number of components in bi  (1,6,15)
-C     ai         \sum \Psi^T Wi^k Y       
-C     bi         \sum \Psi^T Wi^k \Psi    
-C     theta      new parameter estimate
-C     restricted to dp2<=20
-      implicit logical (a-z)
-      integer n,dp1,dp2
-      double precision ai(dp1,n),bi(dp2,n),theta(dp1,n)
-      integer i,j,k,info,ind(dp1,dp1)
-      double precision aa(20),dmat(36)
-C$OMP PARALLEL DEFAULT(NONE)
-C$OMP& SHARED(n,dp1,dp2,ai,bi,theta,ind)
-C$OMP& PRIVATE(i,j,k,info,aa,dmat)
-C$OMP DO SCHEDULE(GUIDED)
-      DO i=1,n
-         DO k=1,dp1
-            DO j=k,dp1
-               dmat(k+(j-1)*dp1)=bi(ind(k,j),i)
-            END DO
-            aa(k)=ai(k,i)
-         END DO
-C     now calculate theta as B_i^{-1} A_i
-         call dposv("U",dp1,1,dmat,dp1,aa,dp1,info)
-C    if info>0 just keep the old estimate
-         IF (info.gt.0) CYCLE  
-         DO j=1,dp1
-            theta(j,i)=aa(j)
-         END DO
-      END DO
-C$OMP END DO NOWAIT
-C$OMP END PARALLEL
-C$OMP FLUSH(theta)      
-      RETURN
-      END
       subroutine mpaws2(n,dp1,dp2,ai,bi,theta,dmat,ind)
 C
 C     n          number of design points
 C     dp1        number of parameters  (p+1)
 C     dp2        number of components in bi  (1,6,15)
-C     ai         \sum \Psi^T Wi^k Y       
-C     bi         \sum \Psi^T Wi^k \Psi    
+C     ai         \sum \Psi^T Wi^k Y
+C     bi         \sum \Psi^T Wi^k \Psi
 C     theta      new parameter estimate
 C     dmat       working arrays
 C     restricted to dp2<=20
-      implicit logical (a-z)
+      implicit none
       integer n,dp1,dp2
       double precision ai(n,dp1),bi(n,dp2),theta(n,dp1),dmat(dp1,dp1)
       integer i,j,k,info,ind(dp1,dp1)
@@ -500,14 +462,14 @@ C     restricted to dp2<=20
 C     now calculate theta as B_i^{-1} A_i
          call dposv("U",dp1,1,dmat,dp1,aa,dp1,info)
 C    if info>0 just keep the old estimate
-         IF (info.gt.0) CYCLE  
+         IF (info.gt.0) CYCLE
          DO j=1,dp1
             theta(i,j)=aa(j)
          END DO
       END DO
       RETURN
       END
-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC 
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C
 C
 C    Estimate variance parameters
@@ -515,7 +477,7 @@ C
 C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       subroutine epsigmac(y,n,dv,theta,bi,quant,varcoef,mvar,dp1)
-      implicit logical (a-z)
+      implicit none
       integer n,dv,y(n,dv),theta(n,dv),quant(dv),dp1
       double precision bi(n),varcoef(dv),mvar(dv)
       integer i,k
@@ -544,7 +506,7 @@ C$OMP END PARALLEL DO
       RETURN
       END
       subroutine epsigmal(y,n,dv,theta,bi,quant,varcoef,mvar,dp1)
-      implicit logical (a-z)
+      implicit none
       integer n,dv,y(n,dv),theta(n,dv),quant(dv),dp1
       double precision bi(n),varcoef(2,dv),
      1       mvar(dv),res

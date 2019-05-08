@@ -3,7 +3,7 @@ C
 C   h1 = (n1%/%2)-1
 C   h2 = (n2%/%2)-1
 C
-      implicit logical (a-z)
+      implicit none
       external channel
       integer n1,n2,h1,h2,sensor(n1,n2),theta(h1,h2,3),bayer
       integer j1,j2,i1,i2,channel,s(3,3),k1,k2,ch
@@ -56,7 +56,7 @@ C
       return
       end
       subroutine median2(x,n,y,tol)
-      implicit logical (a-z)
+      implicit none
       integer n,x(2,n),y(2)
       double precision tol
       integer i,j
@@ -75,7 +75,7 @@ C  iterate until convergence
       rofy = 1.d10
       j=0
       DO while (rofy.gt.tol)
-C  compute r(y) and check for y=x_k 
+C  compute r(y) and check for y=x_k
          etaofy=0.d0
          r1=0.d0
          r2=0.d0
@@ -95,7 +95,7 @@ C  compute r(y) and check for y=x_k
                t1=t1+x(1,i)/dxy
                t2=t2+x(2,i)/dxy
             END IF
-         END DO      
+         END DO
          rofy=sqrt(r1*r1+r2*r2)
          if(rofy.le.tol) EXIT
          t1=t1/t0
@@ -120,7 +120,7 @@ C  compute r(y) and check for y=x_k
       RETURN
       END
       subroutine demmed4(sensor,theta,n1,n2,h1,h2,bayer)
-      implicit logical (a-z)
+      implicit none
       external channel
       integer n1,n2,h1,h2,sensor(n1,n2),theta(h1,h2,3),bayer
       integer i1,i2,channel,ch,ch1,z(2,8),y(2)
@@ -154,7 +154,7 @@ C   red channel in i1-1,i2
                 END IF
                call median2(z,4,y,1.d-3)
                theta(i1-1,i2-1,1)=y(1)
-               theta(i1-1,i2-1,3)=y(2) 
+               theta(i1-1,i2-1,3)=y(2)
             ELSE
 C  red or blue channel
                z(1,1)=sensor(i1-1,i2)
@@ -182,7 +182,7 @@ C  red or blue channel
       RETURN
       END
       subroutine median2b(x,n,y,tol)
-      implicit logical (a-z)
+      implicit none
       integer n,x(2,n),y(2)
       double precision tol
       integer i,j
@@ -195,7 +195,7 @@ C  iterate until convergence
       rofy = 1.d10
       j=0
       DO while (rofy.gt.tol)
-C  compute r(y) and check for y=x_k 
+C  compute r(y) and check for y=x_k
          etaofy=0.d0
          r1=0.d0
          r2=0.d0
@@ -215,7 +215,7 @@ C  compute r(y) and check for y=x_k
                t1=t1+x(1,i)/dxy
                t2=t2+x(2,i)/dxy
             END IF
-         END DO      
+         END DO
          rofy=sqrt(r1*r1+r2*r2)
          if(rofy.le.tol) EXIT
          t1=t1/t0
@@ -240,7 +240,7 @@ C  compute r(y) and check for y=x_k
       RETURN
       END
       subroutine demmed4b(sensor,theta,n1,n2,h1,h2,bayer)
-      implicit logical (a-z)
+      implicit none
       external channel
       integer n1,n2,h1,h2,sensor(n1,n2),theta(h1,h2,3),bayer
       integer i1,i2,channel,ch,ch1,z(2,8),y(2)
@@ -276,7 +276,7 @@ C   red channel in i1-1,i2
                 END IF
                call median2b(z,4,y,1.d-3)
                theta(i1-1,i2-1,1)=y(1)
-               theta(i1-1,i2-1,3)=y(2) 
+               theta(i1-1,i2-1,3)=y(2)
             ELSE
 C  red or blue channel
                z(1,1)=sensor(i1-1,i2)
@@ -306,7 +306,7 @@ C  red or blue channel
       RETURN
       END
       subroutine median16(x,n,th,tol)
-      implicit logical (a-z)
+      implicit none
       integer n,x(16,n),th(3)
       double precision y(16),tol
       integer i,j,k
@@ -315,7 +315,7 @@ C  red or blue channel
 C  use mean as init
       DO j=1,16
          y(j)=x(j,1)
-      END DO 
+      END DO
       DO i=1,n
          DO j=2,16
             y(j)=y(j)+x(j,i)
@@ -323,17 +323,17 @@ C  use mean as init
       END DO
       DO j=1,16
          y(j)=y(j)/n
-      END DO 
+      END DO
 C  iterate until convergence
       rofy = 1.d10
       k=0
       DO while (rofy.gt.tol)
-C  compute r(y) and check for y=x_k 
+C  compute r(y) and check for y=x_k
          etaofy=0.d0
          DO j=1,16
             r(j)=0.d0
             t(j)=0.d0
-         END DO 
+         END DO
          t0=0.d0
          DO i=1,n
             dxy=0.d0
@@ -341,7 +341,7 @@ C  compute r(y) and check for y=x_k
                z=x(j,i)-y(j)
                dxy=dxy+z*z
                di(j)=z
-            END DO 
+            END DO
             dxy=sqrt(dxy)
             if(dxy.lt.1e-8) THEN
                etaofy=etaofy+1.d0
@@ -349,14 +349,14 @@ C  compute r(y) and check for y=x_k
                DO j=1,16
                   r(j)=r(j)+di(j)/dxy
                   t(j)=t(j)+x(j,i)/dxy
-               END DO 
+               END DO
                t0=t0+1.d0/dxy
             END IF
          END DO
          rofy=r(1)*r(1)
          DO j=2,16
             rofy=rofy+r(j)*r(j)
-         END DO 
+         END DO
          rofy=sqrt(rofy)
          if(rofy.le.tol) EXIT
          DO j=1,16
@@ -383,7 +383,7 @@ C  compute r(y) and check for y=x_k
       RETURN
       END
       subroutine demmed16(sensor,theta,n1,n2,h1,h2,bayer)
-      implicit logical (a-z)
+      implicit none
       external channel
       integer n1,n2,h1,h2,sensor(n1,n2),theta(h1,h2,3),bayer
       integer i1,i2,channel,k1,k2,ch,j1,j2,z(16,16)
@@ -405,7 +405,7 @@ C  h1 == n1-6,  h2 == n2-6
                         kk2=jj2+k2
                         ch = channel(kk1,kk2,bayer)
                         select case (ch)
-                           case (1) 
+                           case (1)
                            z(ir,k)=sensor(kk1,kk2)
                            ir=ir+1
                            case (2)
@@ -431,7 +431,7 @@ C  h1 == n1-6,  h2 == n2-6
       RETURN
       END
       subroutine fullsize(sensor,theta,n1,n2,h1,h2,bayer)
-      implicit logical (a-z)
+      implicit none
       external channel
       integer h1,h2,n1,n2,sensor(n1,n2),theta(h1,h2,3),bayer
       integer i1,i2,channel,s(3,3),k1,k2,ch,j1,j2
@@ -487,7 +487,7 @@ C  h1 == n1-6,  h2 == n2-6
 C
 C   this is bilinear interpolation
 C
-      implicit logical (a-z)
+      implicit none
       integer n1,n2,sensor(n1,n2),theta(n1,n2,3),bi(n1,n2),
      1        bi3(n1,n2,3),bayer
       integer i1,i2,icolor,channel,sn(8),bni(8),which
@@ -517,7 +517,7 @@ C
 C
 C    copy sensor data from neighboring pixel clockwise into sn
 C
-      implicit logical (a-z)
+      implicit none
       external channel
       logical i1a,i1e,i2a,i2e
       integer n1,n2,sensor(n1,n2),sn(8),i1,i2,j,which,bayer
@@ -583,13 +583,13 @@ C   make edges of the image homogeneous by mirroring
       subroutine ingreen4(sn,sni,bi,bii,bir,big,bib,red,green,blue,
      1                   which)
 C
-C   demosaicing for green pixel 
+C   demosaicing for green pixel
 C   sensori contains the observed green pixel
 C   sn the sendor data from neighboring pixel (clockwise)
-C   which contains information on wether 
+C   which contains information on wether
 C   sn(2) corresponds to a red (which=1) or blue (which=3) pixel
 C
-      implicit logical (a-z)
+      implicit none
       integer sn(8),sni,red,green,blue,which,bi(8),bii,bib,bir,big
 C   first check if we have homogeneity based on green
       green=sni
@@ -609,11 +609,11 @@ C   first check if we have homogeneity based on green
       end
       subroutine inred4(sn,sni,bi,bii,bir,big,bib,red,green,blue)
 C
-C   demosaicing for red pixel 
+C   demosaicing for red pixel
 C   sni contains the observed red pixel
 C   sn the sendor data from neighboring pixel (clockwise)
-C   
-      implicit logical (a-z)
+C
+      implicit none
       integer sn(8),sni,red,green,blue,bi(8),bii,bir,big,bib
       red=sni
       bir=bii
@@ -625,11 +625,11 @@ C
       end
       subroutine inblue4(sn,sni,bi,bii,bir,big,bib,red,green,blue)
 C
-C   demosaicing for blue pixel 
+C   demosaicing for blue pixel
 C   sni contains the observed blue pixel
 C   sn the sendor data from neighboring pixel (clockwise)
-C   
-      implicit logical (a-z)
+C
+      implicit none
       integer sn(8),sni,red,green,blue,bi(8),bii,
      1       bir,big,bib
       blue=sni
@@ -642,7 +642,7 @@ C
       end
 
       subroutine wbalance(sensor,n1,n2,wb,bayer)
-      implicit logical (a-z)
+      implicit none
       external channel
       integer n1,n2,sensor(n1,n2),bayer,channel,z
       double precision wb(3)
@@ -662,14 +662,14 @@ C        identify is a pixel is r, g or b in a Bayer map
 C
 C##########################################################################
       integer function channel(i,j,bayer)
-      implicit logical (a-z)
+      implicit none
       integer i,j,k,l,bayer
          k=mod(i,2)
          l=mod(j,2)
          channel=1
          IF(bayer.eq.1) THEN
 C  e.g. Canon Powershot S30 (Bayer RGGB)
-            IF(k+l.ne.1) THEN 
+            IF(k+l.ne.1) THEN
                channel=2
             ELSE IF(k.eq.1) THEN
                channel=1
@@ -678,7 +678,7 @@ C  e.g. Canon Powershot S30 (Bayer RGGB)
             ENDIF
 C  (Bayer GRBG)
          ELSE IF(bayer.eq.2) THEN
-            IF(k+l.eq.1) THEN 
+            IF(k+l.eq.1) THEN
                channel=2
             ELSE IF(k.ne.0) THEN
                channel=3
@@ -687,7 +687,7 @@ C  (Bayer GRBG)
             ENDIF
          ELSE IF(bayer.eq.3) THEN
 C  (Bayer BGGR)
-            IF(k+l.ne.1) THEN 
+            IF(k+l.ne.1) THEN
                channel=2
             ELSE IF(k.eq.1) THEN
                channel=3
@@ -696,7 +696,7 @@ C  (Bayer BGGR)
             ENDIF
          ELSE IF(bayer.eq.4) THEN
 C  e.g. Lumix LX 2  (Bayer GBRG)
-            IF(k+l.eq.1) THEN 
+            IF(k+l.eq.1) THEN
                channel=2
             ELSE IF(k.ne.0) THEN
                channel=1
@@ -712,8 +712,8 @@ C  array(as.integer(pmax(0,pmin(zobj$theta %*% out.cam,65535))),c(dimg,3))
 C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       subroutine cam2rgb(theta,n,outcam,thetanew)
-      implicit logical (a-z)
-      integer n,theta(n,3),thetanew(n,3) 
+      implicit none
+      integer n,theta(n,3),thetanew(n,3)
       double precision outcam(3,3)
       integer i,j,k
       double precision z
