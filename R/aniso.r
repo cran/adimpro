@@ -1,6 +1,6 @@
 imganiso2D <- function(x,satexp=.25,g=3,rho=0){
 # x should be an array of dimension (3,n1,n2)
-if(inherits(x,"adimpro")) x <- tensor2D(x,g=g,rho=rho)
+if(class(x)=="adimpro") x <- tensor2D(x,g=g,rho=rho)
 x[c(1,3),,] <- x[c(1,3),,]*(1+1.e-8)+rho
 p <- x[1,,]+x[3,,]
 q <- x[1,,]*x[3,,]-x[2,,]^2
@@ -21,7 +21,7 @@ invisible(make.image(img,xmode="hsi"))
 
 
 tensor2D <- function(x,g=0,rho=0){
-if(inherits(x,"adimpro")) {
+if(class(x)=="adimpro") {
    x <- extract.image(x)
 }
 storage.mode(x) <- "numeric"

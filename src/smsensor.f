@@ -34,6 +34,7 @@ C  first location weights
             lw(jind)=wj
          END DO
       END DO
+      call rchkusr()
       DO i1=1,n1
          i1th=min(n1-1,max(2,i1))-1
          DO i2=1,n2
@@ -78,6 +79,7 @@ C  we don't smooth sensor data from different channels
             END DO
             shat(i1,i2)=int(swy/sw)
             bi(i1,i2)=sw
+            call rchkusr()
          END DO
       END DO
       RETURN
@@ -142,6 +144,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       double precision hakt,hakt2,z2,sw,swy
       hakt=2.1d0
       hakt2=hakt*hakt
+      call rchkusr()
       DO i1=1,n1
          DO i2=1,n2
             ch=channel(i1,i2,bayer)
@@ -163,14 +166,16 @@ C  we don't smooth sensor data from different channel
             END DO
             shat(i1,i2)=int(swy/sw)
             bi(i1,i2)=sw
+            call rchkusr()
          END DO
       END DO
       RETURN
       END
       subroutine senvar(s,n1,n2,shat,bi,bayer,vcoef,mvar,nothom)
       implicit none
-      integer n1,n2,s(n1,n2),shat(n1,n2),bayer,nothom(n1,n2)
+      integer n1,n2,s(n1,n2),shat(n1,n2),bayer
       double precision vcoef(2,3),bi(n1,n2),mvar(3)
+      logical nothom(n1,n2)
       external channel
       integer channel,ch,i1,i2,n(3)
       double precision s0(3),s1(3),s2(3),t0(3),t1(3),ms(3),bii,wght,
@@ -186,7 +191,7 @@ C  we don't smooth sensor data from different channel
       END DO
       DO i1=1,n1
          DO i2=1,n2
-            if(nothom(i1,i2).ne.0) CYCLE
+            if(nothom(i1,i2)) CYCLE
             ch=channel(i1,i2,bayer)
             ms(ch)=ms(ch)+s(i1,i2)
             n(ch)=n(ch)+1

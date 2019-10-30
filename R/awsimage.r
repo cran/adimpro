@@ -246,7 +246,7 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
     if(is.null(mask)){
         zobj <- .Fortran(C_awsvimg0,
                          as.integer(img),
-                         fix=as.integer(fix),
+                         fix=as.logical(fix),
                          as.integer(n1),
                          as.integer(n2),
                          as.integer(n1*n2),
@@ -266,15 +266,15 @@ awsimage <- function (object, hmax=4, aws=TRUE, varmodel=NULL,
                          as.double(spmin),
                          as.double(sqrt(wghts)),
                          double(twohp1*twohp1),# array for location weights
-                         as.integer(earlystop),
-                         as.integer(homogen),
+                         as.logical(earlystop),
+                         as.logical(homogen),
                       PACKAGE="adimpro")[c("bi","bi0","theta","hakt","hhom","fix")]
     } else {
       # all other cases
       zobj <- .Fortran(C_mawsimg0,
                        as.integer(img),
-                       as.integer(fix),
-		                   as.integer(mask[xind,yind]),
+                       as.logical(fix),
+		       as.logical(mask[xind,yind]),
                        as.integer(n1),
                        as.integer(n2),
                        as.integer(dv),
@@ -1074,7 +1074,7 @@ awsprop <- function (object, hmax=10, lambda=10, wghts=c(1,1,1,1), lkern="Platea
         if(lambda[step+1]<1e20){
         zobj <- .Fortran(C_awsvimg0,
                          as.integer(img),
-                         fix=as.integer(fix),
+                         fix=as.logical(fix),
                          as.integer(n1),
                          as.integer(n2),
                          as.integer(n1*n2),

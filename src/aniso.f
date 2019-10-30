@@ -117,6 +117,7 @@ C      spf=spmax/(spmax-spmin)
       aws=lambda.lt.1d40
       n=n1*n2
 C   compute location weights first
+      call rchkusr()
       DO i2=1,n2
          DO i1=1,n1
 C Characterize anisotropic neighborhood
@@ -171,6 +172,7 @@ C  skern == "Exp"
                thnew(i1,i2,k)=int(swjy(k)/swj)
             END DO
             bi(i1,i2)=swj
+            call rchkusr()
          END DO
       END DO
       RETURN
@@ -214,6 +216,7 @@ C  maximaum dv = 4
       aws=lambda.lt.1d40
       n=n1*n2
 C   compute location weights first
+      call rchkusr()
       DO i2=1,n2
          DO i1=1,n1
             a(1)=ani(1,i1,i2)
@@ -256,9 +259,9 @@ C  Now fill estimated Covariancematrix in pixel i
                END DO
             END DO
             call dpotrf("U",dv,s2i,dv,info)
-C            IF (info.ne.0) call intpr("non-definite matrix 1",21,i,1)
+            IF (info.ne.0) call intpr("non-definite matrix 1",21,i,1)
             call dpotri("U",dv,s2i,dv,info)
-C            IF (info.ne.0) call intpr("non-definite matrix 2",21,i,1)
+            IF (info.ne.0) call intpr("non-definite matrix 2",21,i,1)
             IF(dv.gt.1) THEN
                DO k=2,dv
                   kdv = (k-1)*dv
@@ -300,6 +303,7 @@ C  skern == "Exp"
                thnew(i1,i2,k)=int(swjy(k)/swj)
             END DO
             bi(i1,i2)=swj
+            call rchkusr()
          END DO
       END DO
       RETURN

@@ -64,6 +64,7 @@ C
             y=z
             fw2=fw3
          ENDIF
+               call rchkusr()
       END DO
       if(fw2/value.gt.value/fw1) THEN
           bw=x+(value-fw1)/(fw2-fw1)*(y-x)
