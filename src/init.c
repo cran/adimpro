@@ -79,7 +79,7 @@ void F77_NAME(senvar)( int* s, int* n1, int* n2, int* shat, double* bi,
   int* bayer, double* vcoef, double* mvar, int* nothom);
 void F77_NAME(shrinkc)(int* x, int* nx1, int* nx2, int* y, int* ny1, int* ny2,
   double* tol, double* z, int* nz, int* method, int* nc);
-void F77_NAME(shrnkcsp)(int* img, int* nx, int* ny, int* dv, int* imgnew,
+void F77_NAME(shrnkcsp)(double* img, int* nx, int* ny, int* dv, double* imgnew,
   int* nxnew, int* nynew, int* indx, int* indy, int* method);
 void F77_NAME(shrinkg)(int* x, int* nx1, int* nx2, int* y, int* ny1, int* ny2,
   double* tol, double* z, int* nz, int* method, int* nc);
@@ -94,7 +94,7 @@ void F77_NAME(smsens0)(int* s, int* shat, double* bi, int* n1, int* n2,
 void F77_NAME(smsensor)(int* s, int* shat, int* th, int* n1, int* n2, int* nt1,
   int* nt2, int* bayer, double* vcoef, double* meanvar, double* hakt,
   double* lambda, double* bi, int* kern, double* spmin, double* lw);
-void F77_NAME(wbalance)( int* sensor, int* n1, int* n2, int* wb, int* bayer);
+void F77_NAME(wbalance)( int* sensor, int* n1, int* n2, double* wb, int* bayer);
 
 static R_NativePrimitiveArgType aniawsim_t[]={INTSXP, INTSXP, INTSXP, INTSXP,
   REALSXP, REALSXP, REALSXP, INTSXP, REALSXP, INTSXP, INTSXP,
@@ -110,13 +110,13 @@ static R_NativePrimitiveArgType awspimg_t[]={INTSXP, INTSXP, INTSXP, INTSXP,
   INTSXP, REALSXP, REALSXP, INTSXP, REALSXP, REALSXP, REALSXP, REALSXP, REALSXP,
   REALSXP, REALSXP, INTSXP, REALSXP, REALSXP, REALSXP, REALSXP, REALSXP,
   REALSXP, INTSXP};
-static R_NativePrimitiveArgType awsvimg0_t[]={INTSXP, LGLSXP, INTSXP, INTSXP,
+static R_NativePrimitiveArgType awsvimg0_t[]={INTSXP, INTSXP, INTSXP, INTSXP,
   INTSXP, INTSXP, REALSXP, INTSXP, REALSXP, REALSXP, REALSXP, REALSXP, REALSXP,
-  INTSXP, REALSXP, REALSXP, INTSXP, INTSXP, REALSXP, REALSXP, REALSXP, LGLSXP,
-  LGLSXP};
+  INTSXP, REALSXP, REALSXP, INTSXP, INTSXP, REALSXP, REALSXP, REALSXP, INTSXP,
+  INTSXP};
 static R_NativePrimitiveArgType cam2rgb_t[]={ INTSXP, INTSXP, REALSXP, INTSXP};
 static R_NativePrimitiveArgType connect1_t[]={ INTSXP, INTSXP, INTSXP, INTSXP,
-  INTSXP, INTSXP, INTSXP, LGLSXP};
+  INTSXP, INTSXP, INTSXP, INTSXP};
 static R_NativePrimitiveArgType convolve_t[]={ REALSXP, REALSXP, REALSXP,
   INTSXP, INTSXP, INTSXP};
 static R_NativePrimitiveArgType cumhist_t[]={ INTSXP, INTSXP, INTSXP};
@@ -153,7 +153,7 @@ static R_NativePrimitiveArgType ihequal_t[]={ INTSXP, INTSXP, INTSXP, INTSXP};
 static R_NativePrimitiveArgType ihequalc_t[]={ INTSXP, INTSXP, INTSXP, INTSXP};
 static R_NativePrimitiveArgType indemos4_t[]={ INTSXP, INTSXP, INTSXP, INTSXP,
   INTSXP, INTSXP, INTSXP};
-static R_NativePrimitiveArgType mawsimg0_t[]={INTSXP, LGLSXP, LGLSXP, INTSXP,
+static R_NativePrimitiveArgType mawsimg0_t[]={INTSXP, INTSXP, INTSXP, INTSXP,
   INTSXP, INTSXP, REALSXP, REALSXP, INTSXP, REALSXP, REALSXP, INTSXP, INTSXP,
   REALSXP, REALSXP, REALSXP};
 static R_NativePrimitiveArgType median1_t[]={REALSXP, INTSXP, REALSXP, REALSXP};
@@ -164,11 +164,11 @@ static R_NativePrimitiveArgType segment_t[]={INTSXP, REALSXP, REALSXP, INTSXP,
   INTSXP, REALSXP, REALSXP, INTSXP, REALSXP, INTSXP, REALSXP, REALSXP, REALSXP,
   INTSXP, INTSXP, REALSXP, REALSXP, REALSXP, INTSXP, REALSXP, REALSXP, REALSXP};
 static R_NativePrimitiveArgType senvar_t[]={INTSXP, INTSXP, INTSXP, INTSXP,
-  REALSXP, INTSXP, REALSXP, REALSXP, LGLSXP};
+  REALSXP, INTSXP, REALSXP, REALSXP, INTSXP};
 static R_NativePrimitiveArgType shrinkc_t[]={INTSXP, INTSXP, INTSXP, INTSXP,
   INTSXP, INTSXP, REALSXP, REALSXP, INTSXP, INTSXP, INTSXP};
-static R_NativePrimitiveArgType shrnkcsp_t[]={INTSXP, INTSXP, INTSXP, INTSXP,
-  INTSXP, INTSXP, INTSXP, INTSXP, INTSXP, INTSXP};
+static R_NativePrimitiveArgType shrnkcsp_t[]={REALSXP, INTSXP, INTSXP, INTSXP,
+  REALSXP, INTSXP, INTSXP, INTSXP, INTSXP, INTSXP};
 static R_NativePrimitiveArgType shrinkg_t[]={INTSXP, INTSXP, INTSXP, INTSXP,
   INTSXP, INTSXP, REALSXP, REALSXP, INTSXP, INTSXP, INTSXP};
 static R_NativePrimitiveArgType shrnkgr_t[]={INTSXP, INTSXP, INTSXP, INTSXP,
@@ -182,7 +182,7 @@ static R_NativePrimitiveArgType smsens0_t[]={INTSXP, INTSXP, REALSXP, INTSXP, IN
 static R_NativePrimitiveArgType smsensor_t[]={INTSXP, INTSXP, INTSXP, INTSXP,
   INTSXP, INTSXP, INTSXP, INTSXP, REALSXP, REALSXP, REALSXP, REALSXP, REALSXP,
   INTSXP, REALSXP, REALSXP};
-static R_NativePrimitiveArgType wbalance_t[]={ INTSXP, INTSXP, INTSXP, INTSXP,
+static R_NativePrimitiveArgType wbalance_t[]={ INTSXP, INTSXP, INTSXP, REALSXP,
   INTSXP};
 
 static const R_FortranMethodDef fmethods[] = {

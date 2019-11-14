@@ -173,9 +173,8 @@ C  we don't smooth sensor data from different channel
       END
       subroutine senvar(s,n1,n2,shat,bi,bayer,vcoef,mvar,nothom)
       implicit none
-      integer n1,n2,s(n1,n2),shat(n1,n2),bayer
+      integer n1,n2,s(n1,n2),shat(n1,n2),bayer,nothom(n1,n2)
       double precision vcoef(2,3),bi(n1,n2),mvar(3)
-      logical nothom(n1,n2)
       external channel
       integer channel,ch,i1,i2,n(3)
       double precision s0(3),s1(3),s2(3),t0(3),t1(3),ms(3),bii,wght,
@@ -191,7 +190,7 @@ C  we don't smooth sensor data from different channel
       END DO
       DO i1=1,n1
          DO i2=1,n2
-            if(nothom(i1,i2)) CYCLE
+            if(nothom(i1,i2).ne.0) CYCLE
             ch=channel(i1,i2,bayer)
             ms(ch)=ms(ch)+s(i1,i2)
             n(ch)=n(ch)+1

@@ -133,7 +133,7 @@ awsraw <- function (object, hmax=4, aws=TRUE, wb=c(1,1,1), cspace="Adobe", ladju
                     as.integer(bayer),
                     coef=double(6),
                     meanvar=double(3),
-                    as.logical(indnothom),
+                    as.integer(indnothom),
                     PACKAGE="adimpro")[c("coef","meanvar")]
       dim(vobj$coef) <- c(2,3)
       cat("Estimated mean variance",signif(vobj$meanvar/65635^2,3),"\n")
@@ -234,7 +234,7 @@ awsraw <- function (object, hmax=4, aws=TRUE, wb=c(1,1,1), cspace="Adobe", ladju
                     as.integer(bayer),
                     coef=double(6),
                     meanvar=double(3),
-                    as.logical(indnothom),
+                    as.integer(indnothom),
                     PACKAGE="adimpro")[c("coef","meanvar")]
       dim(vobj$coef) <- c(2,3)
       cat("Estimated mean variance",signif(vobj$meanvar/65635^2,3),"\n")
