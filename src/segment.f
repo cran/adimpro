@@ -39,7 +39,6 @@ C  first stochastic term
             lw(jind)=wj
          END DO
       END DO
-      call rchkusr()
 C  fill field of pvalues
       a = level-delta
       b = level+delta

@@ -51,7 +51,6 @@ C  first stochastic term
          END DO
       END DO
       bi0=swj0
-      call rchkusr()
 C$OMP PARALLEL DEFAULT(NONE)
 C$OMP& SHARED(n1,n2,dv,kern,y,theta,thnew,fix,mask,bi,bi0,lambda,
 C$OMP& spmin,wght,hakt,lw)
@@ -145,7 +144,6 @@ C
             lw(jind)=wj
          END DO
       END DO
-      call rchkusr()
       DO i2=1,n2
          DO i1=1,n1
             swj=0.d0
@@ -172,7 +170,6 @@ C
                thnew(i1,i2,k)=int(swjy(k)/swj)
             END DO
             bi(i1,i2)=swj
-            call rchkusr()
          END DO
       END DO
       RETURN
@@ -221,7 +218,6 @@ C
             lw(jind)=wj
          END DO
       END DO
-      call rchkusr()
 C$OMP PARALLEL DEFAULT(NONE)
 C$OMP& SHARED(n1,n2,dv,kern,y,thnew,bi,hakt,lw,swj0,swjy,clw,dlw,
 C$OMP&        ih,n,hakt2,z1,jind,jind2)
@@ -328,7 +324,6 @@ C  first location weight
          END DO
       END DO
       bi0=swj0
-      call rchkusr()
 C$OMP PARALLEL DEFAULT(NONE)
 C$OMP& SHARED(n1,n2,dv,kern,nvpar,y,theta,thnew,fix,early,homogen,
 C$OMP&        bi,lambda,spmin,hakt,lw,wghts,vcoef,chcorr,meanvar,
@@ -385,9 +380,9 @@ C  Now fill estimated Covariancematrix in pixel i
             END DO
          END DO
          call dpotrf("U",dv,s2i(1),dv,info)
-         IF (info.ne.0) call intpr("non-definite matrix 1",21,info,1)
+C         IF (info.ne.0) call intpr("non-definite matrix 1",21,info,1)
          call dpotri("U",dv,s2i(1),dv,info)
-         IF (info.ne.0) call intpr("non-definite matrix 2",21,info,1)
+C         IF (info.ne.0) call intpr("non-definite matrix 2",21,info,1)
          IF(dv.gt.1) THEN
             DO k=2,dv
                kdv = (k-1)*dv
@@ -678,7 +673,7 @@ C     now calculate theta as B_i^{-1} A_i
          call dposv("U",3,3,mat,3,imat,3,info)
 C    if info>0 just keep the old estimate
          IF (info.gt.0) THEN
-             call intpr("info",4,info,1)
+C             call intpr("info",4,info,1)
              varcoef(1,k)=1d-2
              varcoef(2,k)=0d0
              varcoef(3,k)=0d0

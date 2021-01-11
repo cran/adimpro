@@ -92,7 +92,6 @@ C  first stochastic term
       bi0=swj0
 C  now stochastic term
       zz(1)=1.d0
-      call rchkusr()
       DO i2=1,n2
          DO i1=1,n1
             iind=i1+(i2-1)*n1
@@ -252,7 +251,6 @@ C
             DO k=1,dp2
                bi(iind+(k-1)*n)=swj(k)
             END DO
-            call rchkusr()
          END DO
       END DO
       RETURN

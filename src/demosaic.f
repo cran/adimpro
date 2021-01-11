@@ -415,7 +415,7 @@ C  h1 == n1-6,  h2 == n2-6
                            z(ib,k)=sensor(kk1,kk2)
                            ib=ib+1
                            CASE DEFAULT
-                           call intpr("wrong channel",13,channel,1)
+C                           call intpr("wrong channel",13,channel,1)
                         END SELECT
                      END DO
                   END DO

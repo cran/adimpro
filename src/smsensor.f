@@ -34,7 +34,6 @@ C  first location weights
             lw(jind)=wj
          END DO
       END DO
-      call rchkusr()
       DO i1=1,n1
          i1th=min(n1-1,max(2,i1))-1
          DO i2=1,n2
@@ -79,7 +78,6 @@ C  we don't smooth sensor data from different channels
             END DO
             shat(i1,i2)=int(swy/sw)
             bi(i1,i2)=sw
-            call rchkusr()
          END DO
       END DO
       RETURN
@@ -144,7 +142,6 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       double precision hakt,hakt2,z2,sw,swy
       hakt=2.1d0
       hakt2=hakt*hakt
-      call rchkusr()
       DO i1=1,n1
          DO i2=1,n2
             ch=channel(i1,i2,bayer)
@@ -166,7 +163,6 @@ C  we don't smooth sensor data from different channel
             END DO
             shat(i1,i2)=int(swy/sw)
             bi(i1,i2)=sw
-            call rchkusr()
          END DO
       END DO
       RETURN
