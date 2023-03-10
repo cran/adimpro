@@ -1,13 +1,14 @@
 ## TODO: the extraction of EXIF tags with identify does not work!
 
 read.image <- function(filename, compress=TRUE) {
-  convert.path <- paste(Sys.getenv("ImageMagick"),"convert",sep="")
   fileparts <- strsplit(filename,"\\.")[[1]]
   ext <- tolower(fileparts[length(fileparts)])
   name <- filename
 
   if (ext %in% c("tif","tiff","pgm","ppm","png","pnm","gif","jpg","jpeg","bmp")) {
     if (ext %in% c("tif","tiff","png","gif","jpg","jpeg","bmp")) {
+      if(is.na(Sys.getenv("ImageMagick",unset=NA))) stop("need ImageMagick installed to read image files")
+      convert.path <- file.path(Sys.getenv("ImageMagick"),"convert")
       imgctype <- system(paste(Sys.getenv("ImageMagick"),"identify -format %r \"",filename,"\"",sep=""),intern=TRUE)
       if(regexpr("Gray",imgctype)!=-1){
       tmpfile <- paste(tempfile("pgm"),".pgm",sep="")
@@ -55,7 +56,9 @@ read.image <- function(filename, compress=TRUE) {
         object$img <- object$img[,,1]
         object$type <- "greyscale"
       }
-    description <- paste(system(paste(Sys.getenv("ImageMagick"),"identify -format %c \"",name,"\" ",sep=""),intern=TRUE),collapse="\n",sep="")
+    description <- if(!is.na(Sys.getenv("ImageMagick",unset=NA)))
+        paste(system(paste(Sys.getenv("ImageMagick"),"identify -format %c \"",name,"\" ",sep=""),intern=TRUE),collapse="\n",sep="")
+    else ""
     interpolation <- extract.info(description,"Interpolation")
     if(is.null(interpolation)) interpolation <- "unknown"
     object$interp <- interpolation
@@ -116,7 +119,8 @@ read.image <- function(filename, compress=TRUE) {
 write.image <- function(img, file="tmp.ppm", max.x = NULL, max.y =NULL, depth=NULL,
        gammatype="ITU", whitep = NULL, temp = NULL, cspace = NULL, black=0, exposure=1) {
 
-  convert.path <- paste(Sys.getenv("ImageMagick"),"convert",sep="")
+  if(is.na(Sys.getenv("ImageMagick",unset=NA))) stop("need ImageMagick installed to write image files")
+  convert.path <- file.path(Sys.getenv("ImageMagick"),"convert")
   if(!check.adimpro(img)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
@@ -230,7 +234,8 @@ write.image <- function(img, file="tmp.ppm", max.x = NULL, max.y =NULL, depth=NU
 }
 write.raw <- function(img, filename="tmp.png") {
 
-  convert.path <- paste(Sys.getenv("ImageMagick"),"convert",sep="")
+  if(is.na(Sys.getenv("ImageMagick",unset=NA))) stop("need ImageMagick installed to write image file")
+  convert.path <- file.path(Sys.getenv("ImageMagick"),"convert")
   if(!check.adimpro(img)) {
     stop(" Consistency check for argument object failed (see warnings).\n")
   }
@@ -536,7 +541,10 @@ read.raw <- function (filename,type="PPM",wb="CAMERA",cspace="Adobe",interp="Bil
   #  VNG seems to provide minimal spatial correlation
   tmpfile0 <- tempfile("raw")
   tmpfile <- paste(c(tmpfile0,ext),collapse=".")
-  file.copy(filename,tmpfile)
+  file.copy(filename,tmpfile)  
+  if(!file.exists(Sys.which("dcraw"))) stop("Reading RAW images requires to install dcraw, see \n
+    http://cybercom.net/~dcoffin/dcraw/ for LINUX and http://www.insflug.org/raw/
+    for macOS and Windows \n")
   system(paste("dcraw", opt1, opt2, opt3, opt4, tmpfile))
 
   object <- list()
@@ -816,7 +824,7 @@ extract.image <- function (object) {
 ## TODO: This function should be generalized to arbitrary Tags and should still work for RAW and JPG
 
 extract.info <- function(object, what="Bayer"){
-  if (class(object)=="adimpro") {
+  if (inherits(object, "adimpro")) {
       description <- object$description
   } else {
 description <- as.character(object)

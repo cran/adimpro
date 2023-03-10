@@ -1,14 +1,14 @@
 6d89c32648d26b85645f55c406ee2860 *ChangeLog
-88f4fab1166aeefd7287a5ff4745b07a *DESCRIPTION
+66d64ca4072645b6b7ec9fb125e17f0f *DESCRIPTION
 2b0226d50236a31c72446eaef22f5794 *NAMESPACE
-5c100194db21f28d56877fb8dcef090c *R/aniso.r
+b1985558cd8a33c4b4d7cee67e18561a *R/aniso.r
 f58f501dc062aa495f97fc3d86391432 *R/awsimage.r
 ec983321e2d980b063c7139b2b72096c *R/camera.R
 54392c3800591345ca37788d9c64e114 *R/color.R
 4f18ab54a0433880058d445888e7c7bd *R/demosaic.r
 0dd4d3ada8c007d6bb1e8d62173e4b1a *R/edges.R
-099dd3a3857bb881cbcb06d876ef5f81 *R/io2.R
-bd0f8452e12b5beb90cb2a717b76cf68 *R/misc.r
+13263e2a26598039e9834f2cf26136b1 *R/io2.R
+b69ba4c3b565021ecea3e6fd50e33f9a *R/misc.r
 84208a45938853f4812c34b1bed09bce *R/rimage.r
 806cde1f78bd7a5c503dc2e3f0bfe467 *R/segment.r
 df88f973b91c2a6a8116f572514cc05e *demo/00Index
@@ -21,7 +21,7 @@ df88f973b91c2a6a8116f572514cc05e *demo/00Index
 9f50be196724d0d492c39664e6db9342 *demo/manipulate.r
 aae303efc442196ef4d2add31a0b7f2b *demo/raw.r
 5b809e1033b6089457b996f782d16277 *demo/segment.r
-868b8ef23356b3083af3a7ae07099b61 *inst/CITATION
+89c7110b327eddc7c43d17d3805edb0b *inst/CITATION
 1425a9eeb485e3fab29186386c0493d5 *inst/adjust/adjust.r
 6dd3ba6f99284a9993ced257a09f8d6f *inst/img/rawimage.png
 a688fe5d3ed5bde5f3c3190073ea236c *inst/img/wias-noise.ppm
