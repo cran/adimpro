@@ -95,7 +95,7 @@ check.adimpro <- function(object){
   # all necessary components and no contradicting information
   check <- NULL
   repeat{
-    if(inherits(object,"adimpro")) {
+    if(!inherits(object,"adimpro")) {
       check <- 1
       break
     }
