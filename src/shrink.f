@@ -124,13 +124,14 @@ C  compute r(y) and check for y=x_k
       RETURN
       END
       subroutine shrinkg(x,nx1,nx2,y,ny1,ny2,tol,z,nz,method,nc)
+      use omp_lib
       implicit none
       integer nx1,ny1,nx2,ny2,nz,x(nx1,nx2),y(ny1,ny2),nc
       double precision z(nz,nc),tol
       integer iy1,iy2,ja1,ja2,je1,je2,jx1,jx2,k,method,thrednr
       double precision yy,d1,d2
-!$      integer omp_get_thread_num
-!$      external omp_get_thread_num
+C!$      integer omp_get_thread_num
+C!$      external omp_get_thread_num
 C
 C   x - original image
 C   y - new image
@@ -199,13 +200,14 @@ C$OMP FLUSH(y)
       RETURN
       END
       subroutine shrinkc(x,nx1,nx2,y,ny1,ny2,tol,z,nz,method,nc)
+      use omp_lib
       implicit none
       integer nx1,ny1,nx2,ny2,nz,x(3,nx1,nx2),y(3,ny1,ny2),nc
       double precision z(3,nz,nc),tol
       integer iy1,iy2,ja1,ja2,je1,je2,jx1,jx2,k,method,thrednr
       double precision yy(3),d1,d2
-!$      integer omp_get_thread_num
-!$      external omp_get_thread_num
+C!$      integer omp_get_thread_num
+C!$      external omp_get_thread_num
 C
 C   x - original image
 C   y - new image

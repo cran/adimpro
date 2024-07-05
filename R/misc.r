@@ -4,15 +4,19 @@
   path2imagemagick <- strsplit(mogrify,"mogrify")[[1]][1]
   if(file.exists(mogrify) & (!is.na(path2imagemagick))) {
     Sys.setenv(ImageMagick=path2imagemagick)
+    if(!file.exists(file.path(path2imagemagick,"convert"))|| !file.exists(file.path(path2imagemagick,"identify"))) 
+      packageStartupMessage(paste("did not find convert or identify in directory",path2imagemagick,"\n
+    please set the correct path to Imagemagick routines manually using \n
+    'Sys.setenv(ImageMagick='path2imagemagick')'"))
   } else {
-    warning("could not determine path to Imagemagick \n
+    packageStartupMessage("could not determine path to Imagemagick \n
     please set the correct path manually using \n
     'Sys.setenv(ImageMagick='path2imagemagick')'")
   }
   dcraw <- Sys.which("dcraw")
   if(!file.exists(dcraw)) packageStartupMessage("Reading RAW images requires to install dcraw, see \n
     http://cybercom.net/~dcoffin/dcraw/ for LINUX and http://www.insflug.org/raw/
-    for MAC OS and Windows \n")
+    for macOS and Windows \n")
   if (requireNamespace("awsMethods", quietly = TRUE)) {
       packageStartupMessage("Use awsMethods::setCores(ncores) to specify number of cores for openMP")
     } else {
@@ -91,7 +95,7 @@ check.adimpro <- function(object){
   # all necessary components and no contradicting information
   check <- NULL
   repeat{
-    if(class(object)!="adimpro") {
+    if(!inherits(object,"adimpro")) {
       check <- 1
       break
     }

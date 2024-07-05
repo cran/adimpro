@@ -39,7 +39,6 @@ C  first stochastic term
             lw(jind)=wj
          END DO
       END DO
-      call rchkusr()
 C  fill field of pvalues
       a = level-delta
       b = level+delta
@@ -136,8 +135,8 @@ C$OMP FLUSH(segm,bi,thnew,varest)
       END
       subroutine connect1(segm,n1,n2,i1,i2,ind1,ind2,checked)
       implicit none
-      integer n1,n2,segm(n1,n2),i1,i2,ind1(*),ind2(*)
-      logical final,checked(*)
+      integer n1,n2,segm(n1,n2),i1,i2,ind1(*),ind2(*),checked(*)
+      logical final
       integer j1,j2,k,l1,l2,lind,lind0,isegm
 C     first find pixel close to (i1,i2) with segm(j1,j2)=0
       isegm=segm(i1,i2)
@@ -147,12 +146,12 @@ C     first find pixel close to (i1,i2) with segm(j1,j2)=0
       lind=1
       lind0=1
       DO k=1,n1*n2
-         checked(k)=.FALSE.
+         checked(k)=0
       END DO
       final=.FALSE.
       DO while(.not.final)
          DO k=1,lind0
-            if(checked(k)) CYCLE
+            if(checked(k).ne.0) CYCLE
             DO l1=-1,1
                DO l2=-1,1
                   if(l1.eq.0.and.l2.eq.0) CYCLE

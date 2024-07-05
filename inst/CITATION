@@ -1,20 +1,18 @@
-citHeader("To cite adimpro in publications use:")
+bibentry(bibtype = "Article",
+         title   = "Adaptive Smoothing of Digital Images: The {R} Package {adimpro}",
+         author  = c(person("J\\\"org", "Polzehl"),
+                     person("Karsten", "Tabelow")),
+         journal = "Journal of Statistical Software",
+         year    = "2007",
+         volume  = "19",
+         number  = "1",
+         pages   = "1--17",
+         doi     = "10.18637/jss.v019.i01",
 
-citEntry(entry = "Article",
-  title        = "Adaptive Smoothing of Digital Images: The {R} Package {adimpro}",
-  author       = personList(as.person("J\\\"org Polzehl"),
-                   as.person("Karsten Tabelow")),
-  journal      = "Journal of Statistical Software",
-  year         = "2007",
-  volume       = "19",
-  number       = "1",
-  pages        = "1--17",
-  url          = "https://dx.doi.org/10.18637/jss.v019.i01",
-
-  textVersion  =
-  paste("Joerg Polzehl, Karsten Tabelow (2007).",
-        "Adaptive Smoothing of Digital Images: The R Package adimpro.",
-        "Journal of Statistical Software, 19(1), 1-17.",
-        "URL https://dx.doi.org/10.18637/jss.v019.i01")
+    textVersion  = paste("Joerg Polzehl, Karsten Tabelow (2007).",
+                         "Adaptive Smoothing of Digital Images: The R Package adimpro.",
+                         "Journal of Statistical Software, 19(1), 1-17.",
+                         "URL https://dx.doi.org/10.18637/jss.v019.i01"),
+        header   = "To cite package adimpro in publications use:"
 )
 

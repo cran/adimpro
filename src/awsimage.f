@@ -20,8 +20,8 @@ C
       external kldistd,lkern
       double precision kldistd,lkern
       integer n1,n2,dv,kern,y(dv,n1,n2),theta(dv,n1,n2),
-     1        thnew(dv,n1,n2)
-      logical aws,fix(n1,n2),mask(n1,n2)
+     1        thnew(dv,n1,n2),fix(n1,n2),mask(n1,n2)
+      logical aws
       double precision bi(n1,n2),bi0,lambda,spmin,wght(dv),hakt,lw(*)
       integer ih,ih1,i1,i2,j1,j2,k,n,
      1        jind,jind2,jwind2,dlw,clw,jw1,jw2
@@ -51,7 +51,6 @@ C  first stochastic term
          END DO
       END DO
       bi0=swj0
-      call rchkusr()
 C$OMP PARALLEL DEFAULT(NONE)
 C$OMP& SHARED(n1,n2,dv,kern,y,theta,thnew,fix,mask,bi,bi0,lambda,
 C$OMP& spmin,wght,hakt,lw)
@@ -62,7 +61,7 @@ C$OMP DO SCHEDULE(GUIDED)
       DO i2=1,n2
          DO i1=1,n1
 C            iind=i1+(i2-1)*n1
-            IF (fix(i1,i2)) CYCLE
+            IF (fix(i1,i2).ne.0) CYCLE
 C    nothing to do, final estimate is already fixed by control
             bii=bi(i1,i2)/lambda
 C   scaling of sij outside the loop
@@ -79,7 +78,7 @@ C   scaling of sij outside the loop
                DO jw1=clw-ih1,clw+ih1
                   j1=jw1-clw+i1
                   if(j1.lt.1.or.j1.gt.n1) CYCLE
-                  if(.not.mask(j1,j2)) CYCLE
+                  if(mask(j1,j2).eq.0) CYCLE
                   wj=lw(jw1+jwind2)
                   IF (aws) THEN
               sij=bii*kldistd(theta(1,i1,i2),theta(1,j1,j2),1,wght,dv)
@@ -145,7 +144,6 @@ C
             lw(jind)=wj
          END DO
       END DO
-      call rchkusr()
       DO i2=1,n2
          DO i1=1,n1
             swj=0.d0
@@ -172,7 +170,6 @@ C
                thnew(i1,i2,k)=int(swjy(k)/swj)
             END DO
             bi(i1,i2)=swj
-            call rchkusr()
          END DO
       END DO
       RETURN
@@ -192,6 +189,7 @@ C   thnew    non-adaptive estimates    (output)
 C   kern     specifies the location kernel
 C   wght     scaling factor for second and third dimension (larger values shrink)
 C
+      use omp_lib
       implicit none
       external kldistd,lkern
       double precision kldistd,lkern
@@ -200,8 +198,8 @@ C
       integer ih,ih1,ii,i1,i2,j1,j2,k,n,thrednr,
      1        jind,jind2,jwind2,dlw,clw,jw1,jw2
       double precision swj,swj0,z1,z2,wj,hakt2
-!$      integer omp_get_thread_num
-!$      external omp_get_thread_num
+C!$      integer omp_get_thread_num
+C!$      external omp_get_thread_num
       hakt2=hakt*hakt
       ih=FLOOR(hakt)
       dlw=2*ih+1
@@ -221,7 +219,6 @@ C
             lw(jind)=wj
          END DO
       END DO
-      call rchkusr()
 C$OMP PARALLEL DEFAULT(NONE)
 C$OMP& SHARED(n1,n2,dv,kern,y,thnew,bi,hakt,lw,swj0,swjy,clw,dlw,
 C$OMP&        ih,n,hakt2,z1,jind,jind2)
@@ -287,13 +284,13 @@ C
       external kldistgc,lkern
       double precision kldistgc,lkern
       integer n,n1,n2,dv,kern,nvpar,y(dv,n1,n2),theta(dv,n1,n2),
-     1        thnew(dv,n1,n2)
-      logical aws,fix(n),early,homogen,fixi
+     1        thnew(dv,n1,n2),fix(n),early,homogen
+      logical aws
       double precision bi(n),lambda,spmin,hakt,lw(*),wghts(dv),bi0,
      1       vcoef(nvpar,dv),chcorr(*),meanvar(dv),hhom(n),
      2       thi(3),thij(3),si(3),s2i(9),swjy(3)
       integer ih,ih1,ii,i1,i2,j1,j2,ja1,je1,l,k,info,kdv,
-     1        jind,jind2,jwind2,dlw,clw,jw1,jw2,m0
+     1        jind,jind2,jwind2,dlw,clw,jw1,jw2,m0,fixi
       double precision bii,sij,swj,z1,z2,wj,hakt2,spf,
      1       swj0,hhomi,hhommax,hfixmax,hnfix,hmax2
 C  s2i, s2ii temporay stor sigma^2_i and its inverse (nneded for KL-distance)
@@ -308,7 +305,7 @@ C  maximaum dv = 4
 C      n=n1*n2
 C   compute location weights first
       swj0=0.d0
-      fixi=.FALSE.
+      fixi=0
       hmax2=0.d0
       DO j2=1,dlw
          z2=clw-j2
@@ -328,7 +325,6 @@ C  first location weight
          END DO
       END DO
       bi0=swj0
-      call rchkusr()
 C$OMP PARALLEL DEFAULT(NONE)
 C$OMP& SHARED(n1,n2,dv,kern,nvpar,y,theta,thnew,fix,early,homogen,
 C$OMP&        bi,lambda,spmin,hakt,lw,wghts,vcoef,chcorr,meanvar,
@@ -343,14 +339,14 @@ C$OMP DO SCHEDULE(GUIDED)
          i1=mod(ii,n1)
          if(i1.eq.0) i1=n1
          i2=(ii-i1)/n1+1
-         if(early) fixi=fix(ii)
-         if(fixi) THEN
+         if(early.ne.0) fixi=fix(ii)
+         if(fixi.ne.0) THEN
             DO k=1,dv
                thnew(k,i1,i2)=theta(k,i1,i2)
             END DO
             CYCLE
          END IF
-         if(homogen) THEN
+         if(homogen.ne.0) THEN
             hhomi=hhom(ii)
             hhomi=hhomi*hhomi
          END IF
@@ -385,9 +381,9 @@ C  Now fill estimated Covariancematrix in pixel i
             END DO
          END DO
          call dpotrf("U",dv,s2i(1),dv,info)
-         IF (info.ne.0) call intpr("non-definite matrix 1",21,info,1)
+C         IF (info.ne.0) call intpr("non-definite matrix 1",21,info,1)
          call dpotri("U",dv,s2i(1),dv,info)
-         IF (info.ne.0) call intpr("non-definite matrix 2",21,info,1)
+C         IF (info.ne.0) call intpr("non-definite matrix 2",21,info,1)
          IF(dv.gt.1) THEN
             DO k=2,dv
                kdv = (k-1)*dv
@@ -415,13 +411,13 @@ C  Now fill estimated Covariancematrix in pixel i
                IF (aws.and.z1.ge.hhomi) THEN
                   sij=bii*kldistgc(thij,s2i,dv)
                   IF (sij.gt.1.d0) THEN
-                     if(homogen) hhommax=min(hhommax,z1)
+                     if(homogen.ne.0) hhommax=min(hhommax,z1)
                      CYCLE
                   END IF
-                  if(early) hfixmax=max(hfixmax,z1)
+                  if(early.ne.0) hfixmax=max(hfixmax,z1)
                   IF (sij.gt.spmin) THEN
                      wj=wj*(1.d0-spf*(sij-spmin))
-                     if(homogen) hhommax=min(hhommax,z1)
+                     if(homogen.ne.0) hhommax=min(hhommax,z1)
                   END IF
                END IF
                swj=swj+wj
@@ -434,9 +430,9 @@ C  Now fill estimated Covariancematrix in pixel i
             thnew(k,i1,i2)=int(swjy(k)/swj)
          END DO
          bi(ii)=swj
-         if(homogen) hhom(ii)=sqrt(hhommax)
-         IF(early.and.hakt-sqrt(hfixmax).ge.hnfix) THEN
-            fix(ii)=.TRUE.
+         if(homogen.ne.0) hhom(ii)=sqrt(hhommax)
+         IF(early.ne.0.and.hakt-sqrt(hfixmax).ge.hnfix) THEN
+            fix(ii)=1
          END IF
       END DO
 C$OMP END DO NOWAIT
@@ -678,7 +674,7 @@ C     now calculate theta as B_i^{-1} A_i
          call dposv("U",3,3,mat,3,imat,3,info)
 C    if info>0 just keep the old estimate
          IF (info.gt.0) THEN
-             call intpr("info",4,info,1)
+C             call intpr("info",4,info,1)
              varcoef(1,k)=1d-2
              varcoef(2,k)=0d0
              varcoef(3,k)=0d0

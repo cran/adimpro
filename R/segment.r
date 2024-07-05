@@ -356,7 +356,7 @@ cat("Identify center  of segmented region by left mouse click\n")
                                as.integer(coord$y),
                                integer(n1*n2),
                                integer(n1*n2),
-                               logical(n1*n2),
+                               integer(n1*n2),
                                PACKAGE="adimpro")$segment-1,n1,n2)
 }
 #
