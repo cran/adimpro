@@ -1,9 +1,11 @@
 Package: adimpro
-Version: 0.9.7
-Date: 2024-07-05
+Version: 0.9.7.2
+Date: 2024-09-24
 Title: Adaptive Smoothing of Digital Images
-Author: Karsten Tabelow <tabelow@wias-berlin.de>,
-             		Joerg Polzehl <polzehl@wias-berlin.de>
+Authors@R: c(person("Karsten", "Tabelow", role = c("aut", "cre"),
+                    email = "tabelow@wias-berlin.de"),
+             person("Joerg", "Polzehl", role = c("aut"),
+                    email = "polzehl@wias-berlin.de"))
 Maintainer: Karsten Tabelow <tabelow@wias-berlin.de>
 Depends: R (>= 3.2.0)
 Imports: awsMethods (>= 1.1-1), grDevices, methods
@@ -19,6 +21,8 @@ Copyright: This package is Copyright (C) 2006-2024 Weierstrass
         Institute for Applied Analysis and Stochastics.
 URL: https://www.wias-berlin.de/software/imaging/
 NeedsCompilation: yes
-Packaged: 2024-07-05 12:30:25 UTC; tabelow
+Packaged: 2024-09-25 08:10:33 UTC; tabelow
+Author: Karsten Tabelow [aut, cre],
+  Joerg Polzehl [aut]
 Repository: CRAN
-Date/Publication: 2024-07-05 13:10:02 UTC
+Date/Publication: 2024-09-25 11:30:02 UTC

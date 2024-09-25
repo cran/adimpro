@@ -124,14 +124,12 @@ C  compute r(y) and check for y=x_k
       RETURN
       END
       subroutine shrinkg(x,nx1,nx2,y,ny1,ny2,tol,z,nz,method,nc)
-      use omp_lib
+C!$     use omp_lib
       implicit none
       integer nx1,ny1,nx2,ny2,nz,x(nx1,nx2),y(ny1,ny2),nc
       double precision z(nz,nc),tol
       integer iy1,iy2,ja1,ja2,je1,je2,jx1,jx2,k,method,thrednr
       double precision yy,d1,d2
-C!$      integer omp_get_thread_num
-C!$      external omp_get_thread_num
 C
 C   x - original image
 C   y - new image
@@ -150,7 +148,7 @@ C$OMP PARALLEL DEFAULT(SHARED)
 C$OMP& PRIVATE(iy2,ja2,je2,iy1,ja1,je1,jx1,jx2,k,yy,thrednr)
 C$OMP DO SCHEDULE(GUIDED)
       DO iy2=1,ny2
-!$         thrednr = omp_get_thread_num()+1
+C!$         thrednr = omp_get_thread_num()+1
 C         ja2=max(1,int(0.5+(iy2-1)*d2))
 C         je2=max(1,int(0.5d0+iy2*d2))
          ja2=max(1,int(1d-4+(iy2-1)*d2))
@@ -200,14 +198,12 @@ C$OMP FLUSH(y)
       RETURN
       END
       subroutine shrinkc(x,nx1,nx2,y,ny1,ny2,tol,z,nz,method,nc)
-      use omp_lib
+C!$      use omp_lib
       implicit none
       integer nx1,ny1,nx2,ny2,nz,x(3,nx1,nx2),y(3,ny1,ny2),nc
       double precision z(3,nz,nc),tol
       integer iy1,iy2,ja1,ja2,je1,je2,jx1,jx2,k,method,thrednr
       double precision yy(3),d1,d2
-C!$      integer omp_get_thread_num
-C!$      external omp_get_thread_num
 C
 C   x - original image
 C   y - new image
@@ -226,7 +222,7 @@ C$OMP PARALLEL DEFAULT(SHARED)
 C$OMP& PRIVATE(iy2,ja2,je2,iy1,ja1,je1,jx1,jx2,k,yy,thrednr)
 C$OMP DO SCHEDULE(GUIDED)
       DO iy2=1,ny2
-!$         thrednr = omp_get_thread_num()+1
+C!$         thrednr = omp_get_thread_num()+1
 C         ja2=max(1,int(0.5d0+(iy2-1)*d2))
 C         je2=max(1,int(0.5d0+iy2*d2))
          ja2=max(1,int(1+1d-4+(iy2-1)*d2))

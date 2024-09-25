@@ -189,7 +189,7 @@ C   thnew    non-adaptive estimates    (output)
 C   kern     specifies the location kernel
 C   wght     scaling factor for second and third dimension (larger values shrink)
 C
-      use omp_lib
+C$    use omp_lib
       implicit none
       external kldistd,lkern
       double precision kldistd,lkern
@@ -198,8 +198,6 @@ C
       integer ih,ih1,ii,i1,i2,j1,j2,k,n,thrednr,
      1        jind,jind2,jwind2,dlw,clw,jw1,jw2
       double precision swj,swj0,z1,z2,wj,hakt2
-C!$      integer omp_get_thread_num
-C!$      external omp_get_thread_num
       hakt2=hakt*hakt
       ih=FLOOR(hakt)
       dlw=2*ih+1
@@ -219,6 +217,7 @@ C!$      external omp_get_thread_num
             lw(jind)=wj
          END DO
       END DO
+      thrednr=1
 C$OMP PARALLEL DEFAULT(NONE)
 C$OMP& SHARED(n1,n2,dv,kern,y,thnew,bi,hakt,lw,swj0,swjy,clw,dlw,
 C$OMP&        ih,n,hakt2,z1,jind,jind2)
@@ -226,7 +225,7 @@ C$OMP& PRIVATE(ii,ih1,i1,i2,j1,j2,k,jwind2,jw1,
 C$OMP&         jw2,swj,z2,wj,thrednr)
 C$OMP DO SCHEDULE(GUIDED)
       DO ii=1,n1*n2
-!$         thrednr = omp_get_thread_num()+1
+C!$         thrednr = omp_get_thread_num()+1
          i1=mod(ii,n1)
          if(i1.eq.0) i1=n1
          i2=(ii-i1)/n1+1
